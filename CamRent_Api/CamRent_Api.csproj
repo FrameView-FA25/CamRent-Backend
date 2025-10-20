@@ -8,10 +8,13 @@
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CameRent_Application\CameRent_Application.csproj" />
+    <ProjectReference Include="..\CamRent_Infrastructure\CamRent_Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
