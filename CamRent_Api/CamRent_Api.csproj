@@ -11,7 +11,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CameRent_Application\CameRent_Application.csproj" />
+    <ProjectReference Include="..\CamRent_Infrastructure\CamRent_Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
