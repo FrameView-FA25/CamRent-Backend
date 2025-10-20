@@ -1,8 +1,6 @@
-using CamRent_Domain.Bookings;
 using CamRent_Domain.Common;
-using CamRent_Domain.Files;
 
-namespace CamRent_Domain.Inspections
+namespace CamRent_Domain.Entities
 {
     public class Inspection : BaseEntity
     {

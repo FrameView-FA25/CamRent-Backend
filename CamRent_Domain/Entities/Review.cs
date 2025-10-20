@@ -1,8 +1,6 @@
 using CamRent_Domain.Common;
-using CamRent_Domain.Devices;
-using CamRent_Domain.Users;
 
-namespace CamRent_Domain.Reviews
+namespace CamRent_Domain.Entities
 {
     public class Review : BaseEntity
     {

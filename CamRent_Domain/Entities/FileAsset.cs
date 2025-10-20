@@ -1,6 +1,6 @@
 using CamRent_Domain.Common;
 
-namespace CamRent_Domain.Files
+namespace CamRent_Domain.Entities
 {
     public class FileAsset : BaseEntity
     {

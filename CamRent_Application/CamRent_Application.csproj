@@ -18,6 +18,10 @@
     <Folder Include="IServices\" />
     <Folder Include="DTOs\" />
     <Folder Include="Common\" />
+    <Folder Include="DTOs\" />
+    <Folder Include="Common\" />
+    <Folder Include="IServices\" />
+    <Folder Include="Services\" />
     <Folder Include="Services\" />
   </ItemGroup>
 

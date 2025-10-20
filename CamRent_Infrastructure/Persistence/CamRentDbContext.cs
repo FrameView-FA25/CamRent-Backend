@@ -1,15 +1,5 @@
-using CamRent_Domain.Bookings;
-using CamRent_Domain.Branches;
 using CamRent_Domain.Common;
-using CamRent_Domain.Contracts;
-using CamRent_Domain.Delivery;
-using CamRent_Domain.Devices;
-using CamRent_Domain.Disputes;
-using CamRent_Domain.Files;
-using CamRent_Domain.Finance;
-using CamRent_Domain.Inspections;
-using CamRent_Domain.Reviews;
-using CamRent_Domain.Users;
+using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Infrastructure.Persistence

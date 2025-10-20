@@ -1,9 +1,6 @@
-using CamRent_Domain.Branches;
 using CamRent_Domain.Common;
-using CamRent_Domain.Files;
-using CamRent_Domain.Users;
 
-namespace CamRent_Domain.Devices
+namespace CamRent_Domain.Entities
 {
     public class Device : BaseEntity
     {
