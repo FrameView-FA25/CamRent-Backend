@@ -1,4 +1,5 @@
 using CamRent_Domain.Common;
+using CamRent_Domain.Branches;
 
 namespace CamRent_Domain.Users
 {

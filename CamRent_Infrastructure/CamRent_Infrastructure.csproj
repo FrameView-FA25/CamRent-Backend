@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CameRent_Application\CameRent_Application.csproj" />
+    <ProjectReference Include="..\CamRent_Application\CamRent_Application.csproj" />
     <ProjectReference Include="..\CamRent_Domain\CamRent_Domain.csproj" />
   </ItemGroup>
 

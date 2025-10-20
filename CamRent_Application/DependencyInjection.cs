@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace CameRent_Application
+namespace CamRent_Application
 {
 	public static class DependencyInjection
 	{

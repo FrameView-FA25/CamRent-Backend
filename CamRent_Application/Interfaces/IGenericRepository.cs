@@ -1,4 +1,4 @@
-﻿namespace CameRent_Application.Interfaces
+﻿namespace CamRent_Application.Interfaces
 {
 	public class IGenericRepository
 	{

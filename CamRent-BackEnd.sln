@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36429.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CamRent_Domain", "CamRent_Domain\CamRent_Domain.csproj", "{B53B330E-68EF-4BD9-AA85-97CD3D40104E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameRent_Application", "CameRent_Application\CameRent_Application.csproj", "{44A9B0A5-8A29-4109-9DA9-B623A3ED8036}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CamRent_Application", "CamRent_Application\CamRent_Application.csproj", "{44A9B0A5-8A29-4109-9DA9-B623A3ED8036}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CamRent_Infrastructure", "CamRent_Infrastructure\CamRent_Infrastructure.csproj", "{EB890D7E-B651-4788-98E2-624DDED117CE}"
 EndProject

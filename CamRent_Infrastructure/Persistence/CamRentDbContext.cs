@@ -46,7 +46,7 @@ namespace CamRent_Infrastructure.Persistence
                 entity.SetTableName(ToSnakeCase(entity.GetTableName()!));
                 foreach (var property in entity.GetProperties())
                 {
-                    property.SetColumnName(ToSnakeCase(property.GetColumnBaseName()));
+                    property.SetColumnName(ToSnakeCase(property.GetColumnName()));
                 }
             }
 
