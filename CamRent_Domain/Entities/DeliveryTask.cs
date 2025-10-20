@@ -1,8 +1,6 @@
-using CamRent_Domain.Bookings;
 using CamRent_Domain.Common;
-using CamRent_Domain.Users;
 
-namespace CamRent_Domain.Delivery
+namespace CamRent_Domain.Entities
 {
     public class DeliveryTask : BaseEntity
     {

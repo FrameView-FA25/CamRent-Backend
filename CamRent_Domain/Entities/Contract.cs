@@ -1,7 +1,6 @@
-using CamRent_Domain.Bookings;
 using CamRent_Domain.Common;
 
-namespace CamRent_Domain.Contracts
+namespace CamRent_Domain.Entities
 {
     public class ContractTemplate : BaseEntity
     {

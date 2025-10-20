@@ -1,7 +1,6 @@
 using CamRent_Domain.Common;
-using CamRent_Domain.Branches;
 
-namespace CamRent_Domain.Users
+namespace CamRent_Domain.Entities
 {
     public class User : BaseEntity
     {
