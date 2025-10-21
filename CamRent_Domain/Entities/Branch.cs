@@ -1,7 +1,6 @@
 using CamRent_Domain.Common;
-using CamRent_Domain.Users;
 
-namespace CamRent_Domain.Branches
+namespace CamRent_Domain.Entities
 {
     public class Branch : BaseEntity
     {
@@ -12,7 +11,7 @@ namespace CamRent_Domain.Branches
     public class UserBranchMembership : BaseEntity
     {
         public Guid UserId { get; set; }
-        public Users.User User { get; set; } = default!;
+        public User User { get; set; } = default!;
 
         public Guid BranchId { get; set; }
         public Branch Branch { get; set; } = default!;
