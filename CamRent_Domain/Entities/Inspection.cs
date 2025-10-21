@@ -9,6 +9,12 @@ namespace CamRent_Domain.Entities
 
         public InspectionType Type { get; set; }
         public string Notes { get; set; } = string.Empty;
+        public DateTime? PerformedAt { get; set; }
+        public Guid? PerformedByUserId { get; set; }
+        public User? PerformedByUser { get; set; }
+        public Guid? BranchId { get; set; }
+        public Branch? Branch { get; set; }
+        public string? ChecklistTemplateVersion { get; set; }
 
         public ICollection<InspectionItem> Items { get; set; } = new List<InspectionItem>();
         public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();

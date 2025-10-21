@@ -25,8 +25,18 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Wallet> Wallets => Set<Wallet>();
         public DbSet<Transaction> Transactions => Set<Transaction>();
         public DbSet<Payment> Payments => Set<Payment>();
+        public DbSet<PaymentLine> PaymentLines => Set<PaymentLine>();
         public DbSet<Dispute> Disputes => Set<Dispute>();
         public DbSet<DisputeItem> DisputeItems => Set<DisputeItem>();
+        public DbSet<Category> Categories => Set<Category>();
+        public DbSet<DeviceCategoryLink> DeviceCategories => Set<DeviceCategoryLink>();
+        public DbSet<Combo> Combos => Set<Combo>();
+        public DbSet<ComboItem> ComboItems => Set<ComboItem>();
+        public DbSet<BookingItem> BookingItems => Set<BookingItem>();
+        public DbSet<DeviceUnavailability> DeviceUnavailabilities => Set<DeviceUnavailability>();
+        public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
+        public DbSet<Payout> Payouts => Set<Payout>();
+        public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -111,10 +121,80 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(p => p.BookingId);
 
+            modelBuilder.Entity<PaymentLine>()
+                .HasOne(l => l.Payment)
+                .WithMany(p => p.Lines)
+                .HasForeignKey(l => l.PaymentId);
+
             modelBuilder.Entity<DisputeItem>()
                 .HasOne(i => i.Dispute)
                 .WithMany(d => d.Items)
                 .HasForeignKey(i => i.DisputeId);
+
+            modelBuilder.Entity<DeviceCategoryLink>()
+                .HasOne(dc => dc.Device)
+                .WithMany(d => d.Categories)
+                .HasForeignKey(dc => dc.DeviceId);
+
+            modelBuilder.Entity<DeviceCategoryLink>()
+                .HasOne(dc => dc.Category)
+                .WithMany()
+                .HasForeignKey(dc => dc.CategoryId);
+
+            modelBuilder.Entity<ComboItem>()
+                .HasOne(ci => ci.Combo)
+                .WithMany(c => c.Items)
+                .HasForeignKey(ci => ci.ComboId);
+
+            modelBuilder.Entity<ComboItem>()
+                .HasOne(ci => ci.Device)
+                .WithMany()
+                .HasForeignKey(ci => ci.DeviceId);
+
+            modelBuilder.Entity<BookingItem>()
+                .HasOne(bi => bi.Booking)
+                .WithMany()
+                .HasForeignKey(bi => bi.BookingId);
+
+            modelBuilder.Entity<BookingItem>()
+                .HasOne(bi => bi.Device)
+                .WithMany()
+                .HasForeignKey(bi => bi.DeviceId);
+
+            modelBuilder.Entity<BookingItem>()
+                .HasOne(bi => bi.Combo)
+                .WithMany()
+                .HasForeignKey(bi => bi.ComboId);
+
+            modelBuilder.Entity<DeviceUnavailability>()
+                .HasOne(u => u.Device)
+                .WithMany()
+                .HasForeignKey(u => u.DeviceId);
+
+            modelBuilder.Entity<VerificationRequest>()
+                .HasOne(v => v.TargetUser)
+                .WithMany()
+                .HasForeignKey(v => v.TargetUserId);
+
+            modelBuilder.Entity<VerificationRequest>()
+                .HasOne(v => v.TargetDevice)
+                .WithMany()
+                .HasForeignKey(v => v.TargetDeviceId);
+
+            modelBuilder.Entity<Payout>()
+                .HasOne(p => p.OwnerUser)
+                .WithMany()
+                .HasForeignKey(p => p.OwnerUserId);
+
+            modelBuilder.Entity<Payout>()
+                .HasOne(p => p.Booking)
+                .WithMany()
+                .HasForeignKey(p => p.BookingId);
+
+            modelBuilder.Entity<UserProfile>()
+                .HasOne(up => up.User)
+                .WithMany()
+                .HasForeignKey(up => up.UserId);
         }
 
         private static string ToSnakeCase(string name)

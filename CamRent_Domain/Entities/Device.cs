@@ -22,6 +22,8 @@ namespace CamRent_Domain.Entities
         public decimal PlatformFeePercent { get; set; }
 
         public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
+        public string? SpecsJson { get; set; }
+        public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
     }
 }
 

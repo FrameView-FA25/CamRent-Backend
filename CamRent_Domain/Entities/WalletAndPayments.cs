@@ -31,6 +31,7 @@ namespace CamRent_Domain.Entities
         public decimal AuthorizedAmount { get; set; }
         public decimal CapturedAmount { get; set; }
         public decimal RefundedAmount { get; set; }
+        public ICollection<PaymentLine> Lines { get; set; } = new List<PaymentLine>();
     }
 }
 

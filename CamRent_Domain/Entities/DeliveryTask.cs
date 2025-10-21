@@ -15,6 +15,9 @@ namespace CamRent_Domain.Entities
         public DateTime? DeliveredAt { get; set; }
         public string? TrackingCode { get; set; }
         public string? Notes { get; set; }
+        public Address? PickupAddress { get; set; }
+        public Address? DropoffAddress { get; set; }
+        public decimal? DeliveryFee { get; set; }
     }
 }
 
