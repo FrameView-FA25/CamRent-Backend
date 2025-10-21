@@ -18,6 +18,8 @@ namespace CamRent_Domain.Entities
         public decimal Amount { get; set; }
         public string Currency { get; set; } = "VND";
         public string? Reference { get; set; }
+        public Guid? BookingId { get; set; }
+        public Booking? Booking { get; set; }
     }
 
     public class Payment : BaseEntity

@@ -37,6 +37,12 @@ namespace CamRent_Domain.Common
         NoShow = 9
     }
 
+    public enum BookingType
+    {
+        Rental = 1,
+        Blockout = 2
+    }
+
     public enum InspectionType
     {
         Pre = 1,

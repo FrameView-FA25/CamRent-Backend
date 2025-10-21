@@ -33,9 +33,7 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Combo> Combos => Set<Combo>();
         public DbSet<ComboItem> ComboItems => Set<ComboItem>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
-        public DbSet<DeviceUnavailability> DeviceUnavailabilities => Set<DeviceUnavailability>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
-        public DbSet<Payout> Payouts => Set<Payout>();
         public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -166,11 +164,6 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(bi => bi.ComboId);
 
-            modelBuilder.Entity<DeviceUnavailability>()
-                .HasOne(u => u.Device)
-                .WithMany()
-                .HasForeignKey(u => u.DeviceId);
-
             modelBuilder.Entity<VerificationRequest>()
                 .HasOne(v => v.TargetUser)
                 .WithMany()
@@ -180,16 +173,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(v => v.TargetDevice)
                 .WithMany()
                 .HasForeignKey(v => v.TargetDeviceId);
-
-            modelBuilder.Entity<Payout>()
-                .HasOne(p => p.OwnerUser)
-                .WithMany()
-                .HasForeignKey(p => p.OwnerUserId);
-
-            modelBuilder.Entity<Payout>()
-                .HasOne(p => p.Booking)
-                .WithMany()
-                .HasForeignKey(p => p.BookingId);
 
             modelBuilder.Entity<UserProfile>()
                 .HasOne(up => up.User)

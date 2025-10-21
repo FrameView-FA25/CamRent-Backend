@@ -7,8 +7,10 @@ namespace CamRent_Domain.Entities
         public Guid DeviceId { get; set; }
         public Device Device { get; set; } = default!;
 
-        public Guid RenterId { get; set; }
-        public User Renter { get; set; } = default!;
+        public BookingType Type { get; set; } = BookingType.Rental;
+
+        public Guid? RenterId { get; set; }
+        public User? Renter { get; set; }
 
         public DateTime PickupAt { get; set; }
         public DateTime ReturnAt { get; set; }
