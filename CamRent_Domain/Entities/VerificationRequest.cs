@@ -13,6 +13,9 @@ namespace CamRent_Domain.Entities
         public Guid? TargetDeviceId { get; set; }
         public Device? TargetDevice { get; set; }
 
+        public Guid? BranchId { get; set; }
+        public Branch? Branch { get; set; }
+
         public string? Notes { get; set; }
     }
 }
