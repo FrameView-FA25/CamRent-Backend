@@ -7,14 +7,20 @@ namespace CamRent_Domain.Entities
         public Guid AuthorUserId { get; set; }
         public User AuthorUser { get; set; } = default!;
 
-        public Guid? TargetUserId { get; set; }
-        public User? TargetUser { get; set; }
+        public Guid? TargetCameraId { get; set; }
+        public Camera? TargetCamera { get; set; }
 
-        public Guid? TargetDeviceId { get; set; }
-        public Device? TargetDevice { get; set; }
+        public Guid? TargetAccessoryId { get; set; }
+        public Accessory? TargetAccessory { get; set; }
 
         public int Rating { get; set; }
         public string Content { get; set; } = string.Empty;
+
+        // Quản lý bởi staff
+        public ReviewStatus Status { get; set; } = ReviewStatus.Pending;
+        public Guid? ReviewedByStaffId { get; set; }
+        public User? ReviewedByStaff { get; set; }
+        public DateTime? ReviewedAt { get; set; }
+        public string? ModerationNotes { get; set; }
     }
 }
-

@@ -4,8 +4,11 @@ namespace CamRent_Domain.Entities
 {
     public class Booking : BaseEntity
     {
-        public Guid DeviceId { get; set; }
-        public Device Device { get; set; } = default!;
+        public Guid? CameraId { get; set; }
+        public Camera? Camera { get; set; }
+
+        public Guid? AccessoryId { get; set; }
+        public Accessory? Accessory { get; set; }
 
         public BookingType Type { get; set; } = BookingType.Rental;
 

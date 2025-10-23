@@ -7,8 +7,11 @@ namespace CamRent_Domain.Entities
         public Guid BookingId { get; set; }
         public Booking Booking { get; set; } = default!;
 
-        public Guid? DeviceId { get; set; }
-        public Device? Device { get; set; }
+        public Guid? CameraId { get; set; }
+        public Camera? Camera { get; set; }
+
+        public Guid? AccessoryId { get; set; }
+        public Accessory? Accessory { get; set; }
 
         public Guid? ComboId { get; set; }
         public Combo? Combo { get; set; }

@@ -74,5 +74,13 @@ namespace CamRent_Domain.Common
         Refunded = 4,
         Failed = 5
     }
+    
+    public enum ReviewStatus
+    {
+        Pending,      // Chờ duyệt
+        Approved,     // Đã duyệt
+        Rejected,     // Bị từ chối (bình luận xấu)
+        Flagged       // Bị báo cáo
+    }
 }
 

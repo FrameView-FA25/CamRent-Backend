@@ -15,7 +15,8 @@ namespace CamRent_Domain.Entities
         public Guid? BranchId { get; set; }
         public Branch? Branch { get; set; }
         public string? ChecklistTemplateVersion { get; set; }
-
+        public Guid VerifyRequestId { get; set; }
+        public VerificationRequest VerifyRequest { get; set; }
         public ICollection<InspectionItem> Items { get; set; } = new List<InspectionItem>();
         public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
         public string? RenterSignatureUrl { get; set; }

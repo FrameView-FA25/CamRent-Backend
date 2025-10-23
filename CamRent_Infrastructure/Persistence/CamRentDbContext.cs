@@ -14,7 +14,6 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<UserBranchMembership> BranchMemberships => Set<UserBranchMembership>();
         public DbSet<FileAsset> Files => Set<FileAsset>();
 
-        public DbSet<Device> Devices => Set<Device>();
         public DbSet<Camera> Cameras => Set<Camera>();
         public DbSet<Accessory> Accessories => Set<Accessory>();
         public DbSet<Booking> Bookings => Set<Booking>();
@@ -71,15 +70,25 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany(u => u.Roles)
                 .HasForeignKey(m => m.UserId);
 
-            modelBuilder.Entity<Device>()
-                .HasOne(d => d.Branch)
+            modelBuilder.Entity<Camera>()
+                .HasOne(c => c.Branch)
                 .WithMany()
-                .HasForeignKey(d => d.BranchId);
+                .HasForeignKey(c => c.BranchId);
+
+            modelBuilder.Entity<Accessory>()
+                .HasOne(a => a.Branch)
+                .WithMany()
+                .HasForeignKey(a => a.BranchId);
 
             modelBuilder.Entity<Booking>()
-                .HasOne(b => b.Device)
+                .HasOne(b => b.Camera)
                 .WithMany()
-                .HasForeignKey(b => b.DeviceId);
+                .HasForeignKey(b => b.CameraId);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Accessory)
+                .WithMany()
+                .HasForeignKey(b => b.AccessoryId);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Renter)
@@ -132,9 +141,14 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(i => i.DisputeId);
 
             modelBuilder.Entity<DeviceCategoryLink>()
-                .HasOne(dc => dc.Device)
-                .WithMany(d => d.Categories)
-                .HasForeignKey(dc => dc.DeviceId);
+                .HasOne(dc => dc.Camera)
+                .WithMany(c => c.Categories)
+                .HasForeignKey(dc => dc.CameraId);
+
+            modelBuilder.Entity<DeviceCategoryLink>()
+                .HasOne(dc => dc.Accessory)
+                .WithMany(a => a.Categories)
+                .HasForeignKey(dc => dc.AccessoryId);
 
             modelBuilder.Entity<DeviceCategoryLink>()
                 .HasOne(dc => dc.Category)
@@ -147,9 +161,14 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(ci => ci.ComboId);
 
             modelBuilder.Entity<ComboItem>()
-                .HasOne(ci => ci.Device)
+                .HasOne(ci => ci.Camera)
                 .WithMany()
-                .HasForeignKey(ci => ci.DeviceId);
+                .HasForeignKey(ci => ci.CameraId);
+
+            modelBuilder.Entity<ComboItem>()
+                .HasOne(ci => ci.Accessory)
+                .WithMany()
+                .HasForeignKey(ci => ci.AccessoryId);
 
             modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Booking)
@@ -157,9 +176,14 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(bi => bi.BookingId);
 
             modelBuilder.Entity<BookingItem>()
-                .HasOne(bi => bi.Device)
+                .HasOne(bi => bi.Camera)
                 .WithMany()
-                .HasForeignKey(bi => bi.DeviceId);
+                .HasForeignKey(bi => bi.CameraId);
+
+            modelBuilder.Entity<BookingItem>()
+                .HasOne(bi => bi.Accessory)
+                .WithMany()
+                .HasForeignKey(bi => bi.AccessoryId);
 
             modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Combo)
@@ -172,19 +196,58 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(v => v.TargetUserId);
 
             modelBuilder.Entity<VerificationRequest>()
-                .HasOne(v => v.TargetDevice)
-                .WithMany()
-                .HasForeignKey(v => v.TargetDeviceId);
-
-            modelBuilder.Entity<VerificationRequest>()
                 .HasOne(v => v.Branch)
                 .WithMany()
                 .HasForeignKey(v => v.BranchId);
+
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.Booking)
+                .WithMany()
+                .HasForeignKey(i => i.BookingId);
+
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.VerifyRequest)
+                .WithMany(v => v.Inspections)
+                .HasForeignKey(i => i.VerifyRequestId);
+
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.PerformedByUser)
+                .WithMany()
+                .HasForeignKey(i => i.PerformedByUserId);
+
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.Branch)
+                .WithMany()
+                .HasForeignKey(i => i.BranchId);
 
             modelBuilder.Entity<UserProfile>()
                 .HasOne(up => up.User)
                 .WithMany()
                 .HasForeignKey(up => up.UserId);
+            
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.AuthorUser)
+                .WithMany()
+                .HasForeignKey(r => r.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.TargetCamera)
+                .WithMany()
+                .HasForeignKey(r => r.TargetCameraId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.TargetAccessory)
+                .WithMany()
+                .HasForeignKey(r => r.TargetAccessoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.ReviewedByStaff)
+                .WithMany()
+                .HasForeignKey(r => r.ReviewedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         private static string ToSnakeCase(string name)
