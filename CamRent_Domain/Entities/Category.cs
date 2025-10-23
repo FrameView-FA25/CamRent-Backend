@@ -11,8 +11,11 @@ namespace CamRent_Domain.Entities
 
     public class DeviceCategoryLink : BaseEntity
     {
-        public Guid DeviceId { get; set; }
-        public Device Device { get; set; } = default!;
+        public Guid? CameraId { get; set; }
+        public Camera? Camera { get; set; }
+
+        public Guid? AccessoryId { get; set; }
+        public Accessory? Accessory { get; set; }
 
         public Guid CategoryId { get; set; }
         public Category Category { get; set; } = default!;

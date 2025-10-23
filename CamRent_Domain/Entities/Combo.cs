@@ -16,8 +16,11 @@ namespace CamRent_Domain.Entities
         public Guid ComboId { get; set; }
         public Combo Combo { get; set; } = default!;
 
-        public Guid DeviceId { get; set; }
-        public Device Device { get; set; } = default!;
+        public Guid? CameraId { get; set; }
+        public Camera? Camera { get; set; }
+
+        public Guid? AccessoryId { get; set; }
+        public Accessory? Accessory { get; set; }
         public int Quantity { get; set; } = 1;
     }
 }

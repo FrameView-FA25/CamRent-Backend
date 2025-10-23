@@ -2,9 +2,8 @@ using CamRent_Domain.Common;
 
 namespace CamRent_Domain.Entities
 {
-    public class Device : BaseEntity
+    public class Accessory : BaseEntity
     {
-        public DeviceCategory Category { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public string? Variant { get; set; }
@@ -26,4 +25,3 @@ namespace CamRent_Domain.Entities
         public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
     }
 }
-
