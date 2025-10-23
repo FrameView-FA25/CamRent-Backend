@@ -15,6 +15,8 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<FileAsset> Files => Set<FileAsset>();
 
         public DbSet<Device> Devices => Set<Device>();
+        public DbSet<Camera> Cameras => Set<Camera>();
+        public DbSet<Accessory> Accessories => Set<Accessory>();
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
         public DbSet<InspectionItem> InspectionItems => Set<InspectionItem>();
@@ -173,6 +175,11 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(v => v.TargetDevice)
                 .WithMany()
                 .HasForeignKey(v => v.TargetDeviceId);
+
+            modelBuilder.Entity<VerificationRequest>()
+                .HasOne(v => v.Branch)
+                .WithMany()
+                .HasForeignKey(v => v.BranchId);
 
             modelBuilder.Entity<UserProfile>()
                 .HasOne(up => up.User)
