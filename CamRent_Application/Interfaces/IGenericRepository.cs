@@ -7,7 +7,7 @@ namespace CamRent_Application.Interfaces
 	public interface IGenericRepository<T> where T : BaseEntity
 	{
 		Task<T?> GetByIdAsync(Guid id);
-		Task<IReadOnlyList<T>> GetAllAsync();
+		Task<List<T>> GetAllAsync();
 
 		Task AddAsync(T entity);
 
