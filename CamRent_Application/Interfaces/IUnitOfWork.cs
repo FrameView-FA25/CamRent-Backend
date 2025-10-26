@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CamRent_Domain.Interfaces
+namespace CamRent_Application.Interfaces
 {
 	public interface IUnitOfWork : IDisposable
 	{

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore.Query;
 
@@ -10,16 +11,12 @@ namespace CamRent_Application.IServices
 {
 	public interface ICameraService
 	{
-		Task<Camera?> GetByIdAsync(Guid id);
-		Task<IReadOnlyList<Camera>> GetAllAsync();
-		Task AddAsync(Camera camera);
-		Task UpdateAsync(Camera camera);
-		Task DeleteAsync(Guid id);
-		Task<bool> ExistsAsync(Guid id);
+		Task<CameraResponseDTO?> GetByIdAsync(Guid id);
+		Task<List<CameraResponseDTO>> GetAllAsync();
+		Task<int> AddAsync(Camera camera);
+		Task<int> UpdateAsync(Camera camera);
+		Task<int> DeleteAsync(Guid id);
 
-		Task<IEnumerable<Camera>> ListAsync(
-			Expression<Func<Camera, bool>>? filter = null,
-			Func<IQueryable<Camera>, IOrderedQueryable<Camera>>? orderBy = null,
-			Func<IQueryable<Camera>, IIncludableQueryable<Camera, object>>? include = null);
+		Task<IEnumerable<CameraResponseDTO>> ListAsync();
 	}
 }
