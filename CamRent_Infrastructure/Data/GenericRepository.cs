@@ -19,14 +19,11 @@ namespace CamRent_Infrastructure.Data
 		public async Task<T?> GetByIdAsync(Guid id)
 			=> await _context.Set<T>().FindAsync(id);
 
-		public async Task<IReadOnlyList<T>> GetAllAsync()
+		public async Task<List<T>> GetAllAsync()
 			=> await _context.Set<T>().ToListAsync();
 
 		public async Task AddAsync(T entity)
 			=> await _context.Set<T>().AddAsync(entity);
-
-		public async Task AddRangeAsync(IEnumerable<T> entities)
-			=> await _context.Set<T>().AddRangeAsync(entities);
 
 		public Task UpdateAsync(T entity)
 		{

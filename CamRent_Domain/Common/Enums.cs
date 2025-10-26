@@ -10,7 +10,13 @@ namespace CamRent_Domain.Common
         Admin = 5
     }
 
-    public enum DeviceCategory
+    public enum UserStatus
+    {
+        Ban = 0,
+        Active = 1,
+	}
+
+	public enum DeviceCategory
     {
         Camera = 1,
         Lens = 2,

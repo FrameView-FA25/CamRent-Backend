@@ -11,7 +11,9 @@ namespace CamRent_Domain.Entities
         public string FullName { get; set; } = string.Empty;
         public Address? Address { get; set; }
 
-        public ICollection<UserRoleMapping> Roles { get; set; } = new List<UserRoleMapping>();
+        public UserStatus Status { get; set; } 
+
+		public ICollection<UserRoleMapping> Roles { get; set; } = new List<UserRoleMapping>();
         public ICollection<UserBranchMembership> BranchMemberships { get; set; } = new List<UserBranchMembership>();
     }
 
