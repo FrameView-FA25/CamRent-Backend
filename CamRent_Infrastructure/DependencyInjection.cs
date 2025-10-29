@@ -1,5 +1,4 @@
 ﻿using CamRent_Application.Interfaces;
-using CamRent_Domain.Interfaces;
 using CamRent_Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 

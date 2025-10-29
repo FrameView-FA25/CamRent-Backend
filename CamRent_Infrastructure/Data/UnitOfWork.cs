@@ -1,6 +1,5 @@
 ﻿using CamRent_Application.Interfaces;
 using CamRent_Domain.Common;
-using CamRent_Domain.Interfaces;
 using CamRent_Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
