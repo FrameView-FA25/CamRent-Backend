@@ -1,4 +1,6 @@
 using CamRent_Infrastructure.Persistence;
+using CamRent_Infrastructure;
+using CamRent_Application;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,10 @@ builder.Services.AddDbContext<CamRentDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Register DI from layers
+builder.Services
+	.AddInfrastructureDI()
+	.AddApplicationDI();
 
 var app = builder.Build();
 
