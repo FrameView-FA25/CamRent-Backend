@@ -10,9 +10,13 @@ namespace CamRent_Application.Services
 	public class BookingService : IBookingService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		public BookingService(IUnitOfWork unitOfWork)
+		private readonly IAvailabilityService _availabilityService;
+		private readonly IPricingService _pricingService;
+		public BookingService(IUnitOfWork unitOfWork, IAvailabilityService availabilityService, IPricingService pricingService)
 		{
 			_unitOfWork = unitOfWork;
+			_availabilityService = availabilityService;
+			_pricingService = pricingService;
 		}
 
 		public async Task<Booking?> GetByIdAsync(Guid bookingId)
@@ -47,7 +51,30 @@ namespace CamRent_Application.Services
 			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
 				?? throw new InvalidOperationException("Booking not found");
 
-			await EnsureAvailabilityAsync(booking.PickupAt, booking.ReturnAt, cameraId, accessoryId);
+			if (cameraId.HasValue)
+			{
+				var ok = await _availabilityService.IsCameraAvailableAsync(cameraId.Value, booking.PickupAt, booking.ReturnAt);
+				if (!ok) throw new InvalidOperationException("Camera is not available in the selected period");
+				if (unitPrice <= 0 || depositAmount <= 0)
+				{
+					int days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
+					(var unit, var deposit, _) = await _pricingService.GetCameraPricingAsync(cameraId.Value, days);
+					unitPrice = unit;
+					depositAmount = deposit;
+				}
+			}
+			if (accessoryId.HasValue)
+			{
+				var ok = await _availabilityService.IsAccessoryAvailableAsync(accessoryId.Value, booking.PickupAt, booking.ReturnAt);
+				if (!ok) throw new InvalidOperationException("Accessory is not available in the selected period");
+				if (unitPrice <= 0 || depositAmount <= 0)
+				{
+					int days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
+					(var unit, var deposit, _) = await _pricingService.GetAccessoryPricingAsync(accessoryId.Value, days);
+					unitPrice = unit;
+					depositAmount = deposit;
+				}
+			}
 
 			var item = new BookingItem
 			{
@@ -111,32 +138,34 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Complete();
 		}
 
-		private async Task EnsureAvailabilityAsync(DateTime pickupAt, DateTime returnAt, Guid? cameraId, Guid? accessoryId)
+		public async Task<int> ProcessStatusesAsync(DateTime nowUtc)
 		{
-			// get overlapping bookings with blocking statuses
-			var overlapping = await _unitOfWork.Repository<Booking>().ListAsync(
-				b => b.Status != BookingStatus.Cancelled
-					&& b.Status != BookingStatus.Completed
-					&& b.PickupAt < returnAt
-					&& b.ReturnAt > pickupAt
+			int updated = 0;
+			// Load bookings that may require transition
+			var candidates = await _unitOfWork.Repository<Booking>().ListAsync(
+				b => b.Status == BookingStatus.Confirmed
+					|| b.Status == BookingStatus.InUse
+					|| b.Status == BookingStatus.Returned
 			);
-			if (!overlapping.Any()) return;
-			var overlappingIds = overlapping.Select(b => b.Id).ToList();
-
-			if (cameraId.HasValue)
+			foreach (var b in candidates)
 			{
-				var conflicts = await _unitOfWork.Repository<BookingItem>().ListAsync(
-					bi => bi.CameraId == cameraId && overlappingIds.Contains(bi.BookingId)
-				);
-				if (conflicts.Any()) throw new InvalidOperationException("Camera is not available in the selected period");
+				var original = b.Status;
+				if ((b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.InUse) && nowUtc > b.ReturnAt)
+				{
+					b.Status = BookingStatus.Overdue;
+				}
+				if (b.Status == BookingStatus.Returned)
+				{
+					b.Status = BookingStatus.Completed;
+				}
+				if (b.Status != original)
+				{
+					await _unitOfWork.Repository<Booking>().UpdateAsync(b);
+					updated++;
+				}
 			}
-			if (accessoryId.HasValue)
-			{
-				var conflicts = await _unitOfWork.Repository<BookingItem>().ListAsync(
-					bi => bi.AccessoryId == accessoryId && overlappingIds.Contains(bi.BookingId)
-				);
-				if (conflicts.Any()) throw new InvalidOperationException("Accessory is not available in the selected period");
-			}
+			if (updated > 0) await _unitOfWork.Complete();
+			return updated;
 		}
 
 		private async Task UpdateSnapshotTotalsAsync(Guid bookingId)

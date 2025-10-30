@@ -12,5 +12,6 @@ namespace CamRent_Application.IServices
 		Task SubmitForApprovalAsync(Guid bookingId);
 		Task ApproveAsync(Guid bookingId);
 		Task CancelAsync(Guid bookingId);
+		Task<int> ProcessStatusesAsync(DateTime nowUtc);
 	}
 }

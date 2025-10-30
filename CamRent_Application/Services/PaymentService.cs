@@ -1,8 +1,70 @@
+using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 
 namespace CamRent_Application.Services
 {
 	public class PaymentService : IPaymentService
 	{
+		private readonly IUnitOfWork _unitOfWork;
+		public PaymentService(IUnitOfWork unitOfWork)
+		{
+			_unitOfWork = unitOfWork;
+		}
+
+		public async Task<Guid> CreateAuthorizationAsync(Guid bookingId, decimal rentalAmount, decimal depositAmount)
+		{
+			var payment = new Payment
+			{
+				Id = Guid.NewGuid(),
+				BookingId = bookingId,
+				Status = PaymentStatus.Authorized,
+				AuthorizedAmount = rentalAmount + depositAmount,
+				CapturedAmount = 0,
+				RefundedAmount = 0,
+				CreatedAt = DateTime.UtcNow
+			};
+			await _unitOfWork.Repository<Payment>().AddAsync(payment);
+			if (rentalAmount > 0) await AddLineAsync(payment.Id, "rental", rentalAmount);
+			if (depositAmount > 0) await AddLineAsync(payment.Id, "deposit", depositAmount);
+			await _unitOfWork.Complete();
+			return payment.Id;
+		}
+
+		public async Task AddLineAsync(Guid paymentId, string type, decimal amount)
+		{
+			var line = new PaymentLine
+			{
+				Id = Guid.NewGuid(),
+				PaymentId = paymentId,
+				Type = type,
+				Amount = amount,
+				CapturedAmount = 0,
+				RefundedAmount = 0,
+				CreatedAt = DateTime.UtcNow
+			};
+			await _unitOfWork.Repository<PaymentLine>().AddAsync(line);
+		}
+
+		public async Task CaptureAsync(Guid paymentId, decimal amount)
+		{
+			var payment = await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId)
+				?? throw new InvalidOperationException("Payment not found");
+			payment.CapturedAmount += amount;
+			payment.Status = PaymentStatus.Captured;
+			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
+			await _unitOfWork.Complete();
+		}
+
+		public async Task RefundAsync(Guid paymentId, decimal amount)
+		{
+			var payment = await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId)
+				?? throw new InvalidOperationException("Payment not found");
+			payment.RefundedAmount += amount;
+			payment.Status = PaymentStatus.Refunded;
+			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
+			await _unitOfWork.Complete();
+		}
 	}
 }

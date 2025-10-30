@@ -1,6 +1,7 @@
 using CamRent_Infrastructure.Persistence;
 using CamRent_Infrastructure;
 using CamRent_Application;
+using CamRent_Api.HostedServices;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,9 @@ builder.Services.AddSwaggerGen();
 builder.Services
 	.AddInfrastructureDI()
 	.AddApplicationDI();
+
+// Hosted services
+builder.Services.AddHostedService<BookingStatusHostedService>();
 
 var app = builder.Build();
 
