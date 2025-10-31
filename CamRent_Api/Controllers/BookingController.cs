@@ -1,4 +1,5 @@
 using CamRent_Application.IServices;
+using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,9 +10,11 @@ namespace CamRent_Api.Controllers
 	public class BookingController : ControllerBase
 	{
 		private readonly IBookingService _bookingService;
-		public BookingController(IBookingService bookingService)
+		private readonly IPricingService _pricingService;
+		public BookingController(IBookingService bookingService, IPricingService pricingService)
 		{
 			_bookingService = bookingService;
+			_pricingService = pricingService;
 		}
 
 		[HttpGet("{id:guid}")]
@@ -84,6 +87,29 @@ namespace CamRent_Api.Controllers
 		{
 			await _bookingService.CancelAsync(id);
 			return NoContent();
+		}
+
+		[HttpGet("{id:guid}/quote")]
+		public async Task<ActionResult<PricingQuoteResult>> Quote(Guid id, [FromQuery] decimal? platformFeePercent, [FromQuery] decimal ownerShareRatio = 0.75m)
+		{
+			var quote = await _pricingService.QuoteBookingAsync(id, platformFeePercent, ownerShareRatio);
+			return Ok(quote);
+		}
+
+		public class SettlementRequest
+		{
+			public int LateDays { get; set; }
+			public decimal RepairCost { get; set; }
+			public int DowntimeDays { get; set; }
+			public decimal MissingAccessoriesCost { get; set; }
+			public decimal CleaningCost { get; set; }
+		}
+
+		[HttpPost("{id:guid}/settlement")]
+		public async Task<ActionResult<DepositSettlement>> Settlement(Guid id, [FromBody] SettlementRequest request)
+		{
+			var result = await _pricingService.ComputeSettlementAsync(id, request.LateDays, request.RepairCost, request.DowntimeDays, request.MissingAccessoriesCost, request.CleaningCost);
+			return Ok(result);
 		}
 	}
 }
