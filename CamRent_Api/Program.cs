@@ -26,6 +26,20 @@ builder.Services.AddHostedService<BookingStatusHostedService>();
 
 var app = builder.Build();
 
+var applyMigrations = Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true";
+if (applyMigrations)
+{
+	await using var scope = app.Services.CreateAsyncScope();
+	var db = scope.ServiceProvider.GetRequiredService<CamRentDbContext>();
+
+	var pending = await db.Database.GetPendingMigrationsAsync();
+	if (pending.Any())
+	{
+		await db.Database.MigrateAsync();
+		// TODO: Seed nếu cần
+	}
+}
+
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
