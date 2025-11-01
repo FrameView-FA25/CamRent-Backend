@@ -59,8 +59,10 @@ namespace CamRent_Infrastructure.Persistence
                 }
             }
 
-            // Relationships
-            modelBuilder.Entity<UserBranchMembership>()
+			modelBuilder.Owned<Address>();
+
+			// Relationships
+			modelBuilder.Entity<UserBranchMembership>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.BranchMemberships)
                 .HasForeignKey(m => m.UserId);
