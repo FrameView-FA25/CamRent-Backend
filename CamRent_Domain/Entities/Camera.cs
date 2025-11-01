@@ -16,9 +16,15 @@ namespace CamRent_Domain.Entities
         public Guid BranchId { get; set; }
         public Branch Branch { get; set; } = default!;
 
+        // Pricing base
         public decimal BaseDailyRate { get; set; }
-        public decimal DepositPercent { get; set; }
         public decimal PlatformFeePercent { get; set; }
+
+        // Deposit policy: percent of EstimatedValueVnd, with caps
+        public decimal EstimatedValueVnd { get; set; }
+        public decimal DepositPercent { get; set; }
+        public decimal? DepositCapMinVnd { get; set; }
+        public decimal? DepositCapMaxVnd { get; set; }
 
         public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
         public string? SpecsJson { get; set; }
