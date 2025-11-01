@@ -1,0 +1,6 @@
+@CamRent_Api_HostAddress = http://localhost:5149
+
+GET {{CamRent_Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
