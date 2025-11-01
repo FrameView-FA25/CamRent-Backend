@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using CamRent_Application.Common;
 using CamRent_Application.IServices;
 using CamRent_Application.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CamRent_Application
 {
@@ -8,6 +9,8 @@ namespace CamRent_Application
 	{
 		public static IServiceCollection AddApplicationDI(this IServiceCollection services)
 		{
+			services.AddAutoMapper(typeof(MappingProfile));
+			services.AddAutoMapper(typeof(MappingProfile).Assembly);
 			services.AddScoped<ICameraService, CameraService>();
 			services.AddScoped<IBookingService, BookingService>();
 			services.AddScoped<IPricingService, PricingService>();
