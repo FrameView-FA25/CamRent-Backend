@@ -1,15 +1,16 @@
-using CamRent_Application.IServices;
+﻿using CamRent_Application.IServices;
 using CamRent_Domain.Common;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CamRent_Api.Controllers
 {
-	[ApiController]
 	[Route("api/[controller]")]
-	public class DeliveryController : ControllerBase
+	[ApiController]
+	public class DeliverysController : ControllerBase
 	{
 		private readonly IDeliveryService _deliveryService;
-		public DeliveryController(IDeliveryService deliveryService)
+		public DeliverysController(IDeliveryService deliveryService)
 		{
 			_deliveryService = deliveryService;
 		}

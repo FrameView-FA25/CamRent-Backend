@@ -1,17 +1,19 @@
+﻿using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
-using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.BookingModel;
 
 namespace CamRent_Api.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
-	public class BookingController : ControllerBase
+	public class BookingsController : ControllerBase
 	{
+
 		private readonly IBookingService _bookingService;
 		private readonly IPricingService _pricingService;
-		public BookingController(IBookingService bookingService, IPricingService pricingService)
+		public BookingsController(IBookingService bookingService, IPricingService pricingService)
 		{
 			_bookingService = bookingService;
 			_pricingService = pricingService;
@@ -25,12 +27,6 @@ namespace CamRent_Api.Controllers
 			return Ok(booking);
 		}
 
-		public class CreateBookingRequest
-		{
-			public Guid RenterId { get; set; }
-			public DateTime PickupAt { get; set; }
-			public DateTime ReturnAt { get; set; }
-		}
 
 		[HttpPost]
 		public async Task<ActionResult<Guid>> CreateDraft([FromBody] CreateBookingRequest request)
@@ -39,14 +35,7 @@ namespace CamRent_Api.Controllers
 			return CreatedAtAction(nameof(GetById), new { id }, id);
 		}
 
-		public class AddItemRequest
-		{
-			public Guid? CameraId { get; set; }
-			public Guid? AccessoryId { get; set; }
-			public int Quantity { get; set; }
-			public decimal UnitPrice { get; set; }
-			public decimal DepositAmount { get; set; }
-		}
+
 
 		[HttpPost("{id:guid}/items")]
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
@@ -55,11 +44,7 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		public class UpdateTimesRequest
-		{
-			public DateTime PickupAt { get; set; }
-			public DateTime ReturnAt { get; set; }
-		}
+
 
 		[HttpPut("{id:guid}/times")]
 		public async Task<IActionResult> UpdateTimes(Guid id, [FromBody] UpdateTimesRequest request)
@@ -96,14 +81,6 @@ namespace CamRent_Api.Controllers
 			return Ok(quote);
 		}
 
-		public class SettlementRequest
-		{
-			public int LateDays { get; set; }
-			public decimal RepairCost { get; set; }
-			public int DowntimeDays { get; set; }
-			public decimal MissingAccessoriesCost { get; set; }
-			public decimal CleaningCost { get; set; }
-		}
 
 		[HttpPost("{id:guid}/settlement")]
 		public async Task<ActionResult<DepositSettlement>> Settlement(Guid id, [FromBody] SettlementRequest request)

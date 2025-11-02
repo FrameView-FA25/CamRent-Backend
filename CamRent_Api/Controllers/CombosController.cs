@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.ComboModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -13,7 +14,7 @@ namespace CamRent_Api.Controllers
 			_comboService = comboService;
 		}
 
-		public class CreateComboRequest { public string Name { get; set; } = string.Empty; public string? Description { get; set; } public decimal? PriceOverride { get; set; } }
+		
 		[HttpPost]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateComboRequest request)
 		{
@@ -28,7 +29,7 @@ namespace CamRent_Api.Controllers
 			return Ok(combo);
 		}
 
-		public class AddItemRequest { public Guid? CameraId { get; set; } public Guid? AccessoryId { get; set; } public int Quantity { get; set; } }
+		
 		[HttpPost("{id:guid}/items")]
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
 		{
