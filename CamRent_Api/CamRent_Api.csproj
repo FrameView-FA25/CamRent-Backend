@@ -20,10 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\CamRent_Application\CamRent_Application.csproj" />
     <ProjectReference Include="..\CamRent_Infrastructure\CamRent_Infrastructure.csproj" />
   </ItemGroup>

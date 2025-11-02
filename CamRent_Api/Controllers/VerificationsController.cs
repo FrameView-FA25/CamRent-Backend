@@ -1,14 +1,15 @@
-using CamRent_Application.IServices;
+﻿using CamRent_Application.IServices;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CamRent_Api.Controllers
 {
-	[ApiController]
 	[Route("api/[controller]")]
-	public class VerificationController : ControllerBase
+	[ApiController]
+	public class VerificationsController : ControllerBase
 	{
 		private readonly IVerificationService _verificationService;
-		public VerificationController(IVerificationService verificationService)
+		public VerificationsController(IVerificationService verificationService)
 		{
 			_verificationService = verificationService;
 		}
