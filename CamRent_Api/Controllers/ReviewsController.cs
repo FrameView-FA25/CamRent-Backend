@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.ReviewModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -13,7 +14,6 @@ namespace CamRent_Api.Controllers
 			_reviewService = reviewService;
 		}
 
-		public class CreateCameraReviewRequest { public Guid AuthorUserId { get; set; } public Guid TargetCameraId { get; set; } public int Rating { get; set; } public string Content { get; set; } = string.Empty; }
 		[HttpPost("camera")]
 		public async Task<ActionResult<Guid>> CreateForCamera([FromBody] CreateCameraReviewRequest request)
 		{
@@ -21,7 +21,6 @@ namespace CamRent_Api.Controllers
 			return Ok(id);
 		}
 
-		public class CreateAccessoryReviewRequest { public Guid AuthorUserId { get; set; } public Guid TargetAccessoryId { get; set; } public int Rating { get; set; } public string Content { get; set; } = string.Empty; }
 		[HttpPost("accessory")]
 		public async Task<ActionResult<Guid>> CreateForAccessory([FromBody] CreateAccessoryReviewRequest request)
 		{

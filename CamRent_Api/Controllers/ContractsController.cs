@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.ContractModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -13,7 +14,6 @@ namespace CamRent_Api.Controllers
 			_contractService = contractService;
 		}
 
-		public class CreateContractRequest { public Guid BookingId { get; set; } public Guid TemplateId { get; set; } }
 		[HttpPost]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateContractRequest request)
 		{
@@ -21,7 +21,6 @@ namespace CamRent_Api.Controllers
 			return Ok(id);
 		}
 
-		public class SignContractRequest { public string? SignedFileUrl { get; set; } }
 		[HttpPost("{id:guid}/sign")]
 		public async Task<IActionResult> Sign(Guid id, [FromBody] SignContractRequest request)
 		{

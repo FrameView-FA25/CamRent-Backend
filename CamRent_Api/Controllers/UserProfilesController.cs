@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.UserProfileModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -20,7 +21,6 @@ namespace CamRent_Api.Controllers
 			return Ok(p);
 		}
 
-		public class UpdateProfileRequest { public string? NationalId { get; set; } public string? KycStatus { get; set; } public string? BankNo { get; set; } public string? BankName { get; set; } public string? BankAccName { get; set; } }
 		[HttpPut("{userId:guid}")]
 		public async Task<IActionResult> Update(Guid userId, [FromBody] UpdateProfileRequest req)
 		{
