@@ -1,6 +1,7 @@
 ﻿using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.VerificationModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -14,7 +15,6 @@ namespace CamRent_Api.Controllers
 			_verificationService = verificationService;
 		}
 
-		public class CreateVerificationRequest { public Guid? TargetUserId { get; set; } public Guid? BranchId { get; set; } public string? Notes { get; set; } }
 		[HttpPost]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateVerificationRequest request)
 		{

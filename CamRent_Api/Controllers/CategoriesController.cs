@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.CategoryModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -13,7 +14,6 @@ namespace CamRent_Api.Controllers
 			_categoryService = categoryService;
 		}
 
-		public class CreateCategoryRequest { public string Name { get; set; } = string.Empty; public Guid? ParentId { get; set; } }
 		[HttpPost]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateCategoryRequest request)
 		{
@@ -35,7 +35,6 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		public class LinkRequest { public Guid CategoryId { get; set; } public Guid DeviceId { get; set; } }
 		[HttpPost("link/camera")]
 		public async Task<IActionResult> LinkCamera([FromBody] LinkRequest request)
 		{

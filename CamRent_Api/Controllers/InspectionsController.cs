@@ -1,6 +1,7 @@
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Mvc;
+using static CamRent_Api.Models.InspectionModel;
 
 namespace CamRent_Api.Controllers
 {
@@ -12,17 +13,6 @@ namespace CamRent_Api.Controllers
 		public InspectionsController(IInspectionService inspectionService)
 		{
 			_inspectionService = inspectionService;
-		}
-
-		public class CreateInspectionRequest
-		{
-			public Guid BookingId { get; set; }
-			public InspectionType Type { get; set; }
-			public Guid? PerformedByUserId { get; set; }
-			public Guid? BranchId { get; set; }
-			public string? Notes { get; set; }
-			public List<Item> Items { get; set; } = new();
-			public class Item { public string Section { get; set; } = string.Empty; public string Label { get; set; } = string.Empty; public string? Value { get; set; } public bool? Passed { get; set; } public string? Notes { get; set; } }
 		}
 
 		[HttpPost]
