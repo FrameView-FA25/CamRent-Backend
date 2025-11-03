@@ -1,6 +1,7 @@
 ﻿using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.BookingModel;
 
@@ -8,6 +9,7 @@ namespace CamRent_Api.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
+	[Authorize]
 	public class BookingsController : ControllerBase
 	{
 
@@ -29,6 +31,7 @@ namespace CamRent_Api.Controllers
 
 
 		[HttpPost]
+		[Authorize(Policy = "Renter")]
 		public async Task<ActionResult<Guid>> CreateDraft([FromBody] CreateBookingRequest request)
 		{
 			var id = await _bookingService.CreateDraftAsync(request.RenterId, request.PickupAt, request.ReturnAt);
@@ -38,6 +41,7 @@ namespace CamRent_Api.Controllers
 
 
 		[HttpPost("{id:guid}/items")]
+		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
 		{
 			await _bookingService.AddItemAsync(id, request.CameraId, request.AccessoryId, request.Quantity, request.UnitPrice, request.DepositAmount);
@@ -47,6 +51,7 @@ namespace CamRent_Api.Controllers
 
 
 		[HttpPut("{id:guid}/times")]
+		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> UpdateTimes(Guid id, [FromBody] UpdateTimesRequest request)
 		{
 			await _bookingService.UpdateTimesAsync(id, request.PickupAt, request.ReturnAt);
@@ -54,6 +59,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("{id:guid}/submit")]
+		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> Submit(Guid id)
 		{
 			await _bookingService.SubmitForApprovalAsync(id);
@@ -61,6 +67,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("{id:guid}/approve")]
+		[Authorize(Policy = "BranchManager")]
 		public async Task<IActionResult> Approve(Guid id)
 		{
 			await _bookingService.ApproveAsync(id);
@@ -68,6 +75,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("{id:guid}/cancel")]
+		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> Cancel(Guid id)
 		{
 			await _bookingService.CancelAsync(id);
@@ -91,6 +99,7 @@ namespace CamRent_Api.Controllers
 
 		public class FinalizeRequest { public decimal OwnerShareRatio { get; set; } = 0.75m; public Guid PlatformUserId { get; set; } }
 		[HttpPost("{id:guid}/finalize")]
+		[Authorize(Policy = "BranchManager")]
 		public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest req)
 		{
 			await _bookingService.FinalizeAsync(id, req.OwnerShareRatio, req.PlatformUserId);

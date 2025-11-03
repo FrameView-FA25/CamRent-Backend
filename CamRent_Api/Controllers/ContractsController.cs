@@ -1,4 +1,5 @@
 using CamRent_Application.IServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.ContractModel;
 
@@ -15,6 +16,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
+		[Authorize(Policy = "BranchManager")]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateContractRequest request)
 		{
 			var id = await _contractService.CreateInstanceAsync(request.BookingId, request.TemplateId);
@@ -22,6 +24,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("{id:guid}/sign")]
+		[Authorize]
 		public async Task<IActionResult> Sign(Guid id, [FromBody] SignContractRequest request)
 		{
 			await _contractService.MarkSignedAsync(id, request.SignedFileUrl);

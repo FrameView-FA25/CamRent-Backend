@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.InspectionModel;
 
@@ -16,6 +17,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
+		[Authorize(Policy = "BranchManager")]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateInspectionRequest request)
 		{
 			var id = await _inspectionService.CreateInspectionAsync(
