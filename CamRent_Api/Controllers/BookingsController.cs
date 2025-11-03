@@ -88,5 +88,13 @@ namespace CamRent_Api.Controllers
 			var result = await _pricingService.ComputeSettlementAsync(id, request.LateDays, request.RepairCost, request.DowntimeDays, request.MissingAccessoriesCost, request.CleaningCost);
 			return Ok(result);
 		}
+
+		public class FinalizeRequest { public decimal OwnerShareRatio { get; set; } = 0.75m; public Guid PlatformUserId { get; set; } }
+		[HttpPost("{id:guid}/finalize")]
+		public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest req)
+		{
+			await _bookingService.FinalizeAsync(id, req.OwnerShareRatio, req.PlatformUserId);
+			return NoContent();
+		}
 	}
 }
