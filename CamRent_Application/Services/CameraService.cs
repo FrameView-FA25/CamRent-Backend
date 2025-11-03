@@ -3,6 +3,7 @@ using CamRent_Domain.Entities;
 using CamRent_Application.Interfaces;
 using CamRent_Application.DTOs;
 using AutoMapper;
+using static CamRent_Application.DTOs.CameraDTO;
 
 namespace CamRent_Application.Services
 {

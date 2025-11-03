@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore.Query;
+using static CamRent_Application.DTOs.CameraDTO;
 
 namespace CamRent_Application.IServices
 {
