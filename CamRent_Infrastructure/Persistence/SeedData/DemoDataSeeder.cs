@@ -1,9 +1,11 @@
-using CamRent_Domain.Entities;
 using CamRent_Domain.Common;
-using CamRent_Infrastructure.Persistence;
+using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace CamRent_Api.HostedServices
+namespace CamRent_Infrastructure.Persistence.SeedData
 {
 	public class DemoDataSeeder : BackgroundService
 	{
@@ -32,7 +34,6 @@ namespace CamRent_Api.HostedServices
 
 				var rng = new Random(1234);
 
-				// Branches
 				var branches = new List<Branch>
 				{
 					new Branch { Id = Guid.NewGuid(), Name = "Branch District 1", CreatedAt = DateTime.UtcNow },
@@ -41,14 +42,12 @@ namespace CamRent_Api.HostedServices
 				};
 				await db.Branches.AddRangeAsync(branches, stoppingToken);
 
-				// Users: owners(5), renters(5), staff(3)
 				var owners = Enumerable.Range(1, 5).Select(i => new User { Id = Guid.NewGuid(), Email = $"owner{i}@demo", FullName = $"Owner {i}", CreatedAt = DateTime.UtcNow }).ToList();
 				var renters = Enumerable.Range(1, 5).Select(i => new User { Id = Guid.NewGuid(), Email = $"renter{i}@demo", FullName = $"Renter {i}", CreatedAt = DateTime.UtcNow }).ToList();
 				var managers = branches.Select((b, idx) => new User { Id = Guid.NewGuid(), Email = $"manager{idx+1}@demo", FullName = $"Manager {idx+1}", CreatedAt = DateTime.UtcNow }).ToList();
 				var deliveries = branches.Select((b, idx) => new User { Id = Guid.NewGuid(), Email = $"delivery{idx+1}@demo", FullName = $"Delivery {idx+1}", CreatedAt = DateTime.UtcNow }).ToList();
 				await db.Users.AddRangeAsync(owners.Concat(renters).Concat(managers).Concat(deliveries).ToList(), stoppingToken);
 
-				// Roles
 				var roleMappings = new List<UserRoleMapping>();
 				roleMappings.AddRange(owners.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Owner, CreatedAt = DateTime.UtcNow }));
 				roleMappings.AddRange(renters.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Renter, CreatedAt = DateTime.UtcNow }));
@@ -56,7 +55,6 @@ namespace CamRent_Api.HostedServices
 				roleMappings.AddRange(deliveries.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Delivery, CreatedAt = DateTime.UtcNow }));
 				await db.UserRoles.AddRangeAsync(roleMappings, stoppingToken);
 
-				// Branch memberships
 				var memberships = new List<UserBranchMembership>();
 				foreach (var m in managers)
 					memberships.Add(new UserBranchMembership { Id = Guid.NewGuid(), UserId = m.Id, BranchId = branches[rng.Next(branches.Count)].Id, CreatedAt = DateTime.UtcNow });
@@ -64,7 +62,6 @@ namespace CamRent_Api.HostedServices
 					memberships.Add(new UserBranchMembership { Id = Guid.NewGuid(), UserId = d.Id, BranchId = branches[rng.Next(branches.Count)].Id, CreatedAt = DateTime.UtcNow });
 				await db.BranchMemberships.AddRangeAsync(memberships, stoppingToken);
 
-				// Categories
 				var categories = new List<Category>
 				{
 					new Category { Id = Guid.NewGuid(), Name = "Camera", CreatedAt = DateTime.UtcNow },
@@ -73,7 +70,6 @@ namespace CamRent_Api.HostedServices
 				};
 				await db.Categories.AddRangeAsync(categories, stoppingToken);
 
-				// Cameras (>=12)
 				var cameraModels = new (string brand, string model, decimal value)[]
 				{
 					("Canon","R5", 30_000_000m), ("Canon","R6", 25_000_000m), ("Canon","EOS 90D", 18_000_000m),
@@ -90,7 +86,7 @@ namespace CamRent_Api.HostedServices
 					{
 						Id = Guid.NewGuid(), Brand = brand, Model = model, BranchId = branch.Id,
 						Ownership = OwnershipType.Owner, OwnerUserId = owner.Id,
-						BaseDailyRate = Math.Round(value * 0.008m, 0), // ~0.8% of V
+						BaseDailyRate = Math.Round(value * 0.008m, 0),
 						PlatformFeePercent = rng.Next(15, 26),
 						EstimatedValueVnd = value, DepositPercent = rng.Next(20, 41),
 						DepositCapMinVnd = 5_000_000m, DepositCapMaxVnd = 30_000_000m,
@@ -100,7 +96,6 @@ namespace CamRent_Api.HostedServices
 				}
 				await db.Cameras.AddRangeAsync(cameras, stoppingToken);
 
-				// Accessories (>=12)
 				var accessoryModels = new (string brand, string model, decimal value)[]
 				{
 					("Canon","RF 24-70", 25_000_000m), ("Sony","FE 70-200", 40_000_000m), ("Nikon","Z 50", 8_000_000m),
@@ -117,7 +112,7 @@ namespace CamRent_Api.HostedServices
 					{
 						Id = Guid.NewGuid(), Brand = brand, Model = model, BranchId = branch.Id,
 						Ownership = OwnershipType.Owner, OwnerUserId = owner.Id,
-						BaseDailyRate = Math.Round(value * 0.006m, 0), // ~0.6%
+						BaseDailyRate = Math.Round(value * 0.006m, 0),
 						PlatformFeePercent = rng.Next(15, 26),
 						EstimatedValueVnd = value, DepositPercent = rng.Next(20, 41),
 						DepositCapMinVnd = 5_000_000m, DepositCapMaxVnd = 30_000_000m,
@@ -127,7 +122,6 @@ namespace CamRent_Api.HostedServices
 				}
 				await db.Accessories.AddRangeAsync(accessories, stoppingToken);
 
-				// Link categories (simple): all cameras -> Camera, lenses/accessory names -> Accessory/Lens
 				var catCamera = categories.First(c => c.Name == "Camera");
 				var catLens = categories.First(c => c.Name == "Lens");
 				var catAccessory = categories.First(c => c.Name == "Accessory");
@@ -136,7 +130,6 @@ namespace CamRent_Api.HostedServices
 				links.AddRange(accessories.Select(acc => new DeviceCategoryLink { Id = Guid.NewGuid(), AccessoryId = acc.Id, CategoryId = (acc.Model.Contains("RF") || acc.Model.Contains("FE") || acc.Model.Contains("XF")) ? catLens.Id : catAccessory.Id, CreatedAt = DateTime.UtcNow }));
 				await db.DeviceCategories.AddRangeAsync(links, stoppingToken);
 
-				// Combos (3)
 				var combos = new List<Combo>();
 				for (int i = 1; i <= 3; i++)
 				{

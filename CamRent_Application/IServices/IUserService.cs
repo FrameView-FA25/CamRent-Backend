@@ -13,8 +13,11 @@ namespace CamRent_Application.IServices
 		Task<AuthResponse> GetToken(string email, string password);
 		Task<List<User>> GetAllUsers();
 		Task<User> GetUserProfileById(Guid id);
-		Task<String> Register(RegisterRequest user);
+		Task<string> Register(RegisterRequest user);
 		Task<int> UpdateUser(User user);
 		Task<int> DeleteUser(Guid id);
+
+		Task<(Guid id, Guid userId, string? nationalId, string kycStatus, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
+		Task UpdateProfileAsync(Guid userId, string? nationalId, string? kycStatus, string? bankNo, string? bankName, string? bankAccName);
 	}
 }

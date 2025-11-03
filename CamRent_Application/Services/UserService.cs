@@ -25,6 +25,7 @@ namespace CamRent_Application.Services
 		{
 			_unitOfWork = uow;
 			_hasher = hasher;
+			_jwt = jwt.Value;
 		}
 
 		public async Task<int> DeleteUser(Guid id)
@@ -43,35 +44,32 @@ namespace CamRent_Application.Services
 		public async Task<User> GetUserProfileById(Guid id)
 		{
 			var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
-			return user;
+			return user!;
 		}
 
 		public async Task<string> Register(RegisterRequest request)
 		{
 			var email = request.Email.Trim();
 
-			// 1) check tồn tại
 			var userExists = await _unitOfWork.Repository<User>()
-				.ListAsync(u => u.Email == email); 
+				.ListAsync(u => u.Email == email);
 			if (userExists.Any())
 				return "Email đã tồn tại.";
 
-			// 2) tạo user
 			var user = new User
 			{
+				Id = Guid.NewGuid(),
 				Email = email,
+				NormalizedEmail = email.ToUpper(),
 				Phone = request.Phone?.Trim() ?? string.Empty,
 				FullName = request.FullName?.Trim() ?? string.Empty,
 				Status = UserStatus.Active,
-				NormalizedEmail = email.ToUpper(),
+				CreatedAt = DateTime.UtcNow
 			};
 
-			// 3) băm mật khẩu bằng PasswordHasher
 			user.PasswordHash = _hasher.HashPassword(user, request.Password);
-
 			await _unitOfWork.Repository<User>().AddAsync(user);
 
-			// 4) gán role (tránh trùng)
 			if (request.Role == UserRole.Renter || request.Role == UserRole.Owner)
 			{
 				await _unitOfWork.Repository<UserRoleMapping>().AddAsync(new UserRoleMapping
@@ -101,7 +99,6 @@ namespace CamRent_Application.Services
 			if (user.Status != UserStatus.Active)
 				throw new Exception("Tài khoản chưa hoạt động hoặc bị khóa.");
 
-			// … phát JWT với ClaimTypes.Role từ UserRoleMapping như bạn đã làm
 			return GenerateJwt(user);
 		}
 
@@ -110,18 +107,16 @@ namespace CamRent_Application.Services
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
 			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-			// Claims “an toàn”: không cần JwtRegisteredClaimNames
 			var claims = new List<Claim>
 			{
-				new Claim("sub", user.Id.ToString()),                        // subject
-				new Claim("jti", Guid.NewGuid().ToString()),                 // token id
-				new Claim("email", user.Email),                              // email
-				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),    // NameIdentifier
-				new Claim(ClaimTypes.Name, user.FullName ?? string.Empty),   // display name
+				new Claim("sub", user.Id.ToString()),
+				new Claim("jti", Guid.NewGuid().ToString()),
+				new Claim("email", user.Email),
+				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+				new Claim(ClaimTypes.Name, user.FullName ?? string.Empty),
 				new Claim("uid", user.Id.ToString())
 			};
 
-			// đa-role
 			foreach (var r in user.Roles.Select(x => x.Role.ToString()))
 				claims.Add(new Claim(ClaimTypes.Role, r));
 
@@ -155,5 +150,24 @@ namespace CamRent_Application.Services
 			return result;
 		}
 
+		public async Task<(Guid id, Guid userId, string? nationalId, string kycStatus, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId)
+		{
+			var user = (await _unitOfWork.Repository<User>().ListAsync(p => p.Id == userId)).FirstOrDefault()
+				?? throw new InvalidOperationException("User not found");
+			return (user.Id, user.Id, user.NationalIdNumber, user.KycStatus, user.BankAccountNumber, user.BankName, user.BankAccountName);
+		}
+
+		public async Task UpdateProfileAsync(Guid userId, string? nationalId, string? kycStatus, string? bankNo, string? bankName, string? bankAccName)
+		{
+			var user = (await _unitOfWork.Repository<User>().ListAsync(p => p.Id == userId)).FirstOrDefault()
+				?? throw new InvalidOperationException("User not found");
+			user.NationalIdNumber = nationalId ?? user.NationalIdNumber;
+			if (!string.IsNullOrWhiteSpace(kycStatus)) user.KycStatus = kycStatus!;
+			user.BankAccountNumber = bankNo ?? user.BankAccountNumber;
+			user.BankName = bankName ?? user.BankName;
+			user.BankAccountName = bankAccName ?? user.BankAccountName;
+			await _unitOfWork.Repository<User>().UpdateAsync(user);
+			await _unitOfWork.Complete();
+		}
 	}
 }

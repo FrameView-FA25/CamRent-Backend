@@ -35,7 +35,6 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<ComboItem> ComboItems => Set<ComboItem>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
-        public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -211,35 +210,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(i => i.Branch)
                 .WithMany()
                 .HasForeignKey(i => i.BranchId);
-
-            modelBuilder.Entity<UserProfile>()
-                .HasOne(up => up.User)
-                .WithMany()
-                .HasForeignKey(up => up.UserId);
-            
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.AuthorUser)
-                .WithMany()
-                .HasForeignKey(r => r.AuthorUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.TargetCamera)
-                .WithMany()
-                .HasForeignKey(r => r.TargetCameraId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.TargetAccessory)
-                .WithMany()
-                .HasForeignKey(r => r.TargetAccessoryId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.ReviewedByStaff)
-                .WithMany()
-                .HasForeignKey(r => r.ReviewedByStaffId)
-                .OnDelete(DeleteBehavior.Restrict);
         }
 
         private static string ToSnakeCase(string name)

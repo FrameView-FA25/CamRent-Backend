@@ -28,7 +28,7 @@ namespace CamRent_Application
 			services.AddScoped<IReviewService, ReviewService>();
 			services.AddScoped<ICategoryService, CategoryService>();
 			services.AddScoped<IComboService, ComboService>();
-			services.AddScoped<IUserProfileService, UserProfileService>();
+			services.AddScoped<IUserService, UserService>();
 			return services;
 		}
 	}
