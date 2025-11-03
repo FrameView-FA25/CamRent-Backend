@@ -4,6 +4,7 @@ using CamRent_Api.Validators;
 using CamRent_Application;
 using CamRent_Infrastructure;
 using CamRent_Infrastructure.Persistence;
+using CamRent_Infrastructure.Persistence.SeedData;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication;

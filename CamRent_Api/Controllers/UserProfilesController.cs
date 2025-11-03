@@ -8,23 +8,23 @@ namespace CamRent_Api.Controllers
 	[Route("api/[controller]")]
 	public class UserProfilesController : ControllerBase
 	{
-		private readonly IUserProfileService _userProfileService;
-		public UserProfilesController(IUserProfileService userProfileService)
+		private readonly IUserService _userService;
+		public UserProfilesController(IUserService userService)
 		{
-			_userProfileService = userProfileService;
+			_userService = userService;
 		}
 
 		[HttpGet("{userId:guid}")]
 		public async Task<ActionResult<object>> Get(Guid userId)
 		{
-			var p = await _userProfileService.GetByUserIdAsync(userId);
+			var p = await _userService.GetProfileAsync(userId);
 			return Ok(p);
 		}
 
 		[HttpPut("{userId:guid}")]
 		public async Task<IActionResult> Update(Guid userId, [FromBody] UpdateProfileRequest req)
 		{
-			await _userProfileService.UpdateAsync(userId, req.NationalId, req.KycStatus, req.BankNo, req.BankName, req.BankAccName);
+			await _userService.UpdateProfileAsync(userId, req.NationalId, req.KycStatus, req.BankNo, req.BankName, req.BankAccName);
 			return NoContent();
 		}
 	}
