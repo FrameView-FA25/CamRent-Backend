@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace CamRent_Application.DTOs
 {
-	public class CameraResponseDTO
+	public class CameraDTO
 	{
+		public class CameraResponseDTO
+		{
+		}
 	}
 }

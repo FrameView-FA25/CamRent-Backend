@@ -1,4 +1,4 @@
-﻿using CamRent_Api.Auth;
+﻿using CamRent_Api;
 using CamRent_Api.HostedServices;
 using CamRent_Api.Validators;
 using CamRent_Application;
@@ -17,50 +17,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddDbContext<CamRentDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-	c.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
-
-	// QUAN TRỌNG: đặt schemaId theo FullName và thay dấu '+' của nested types
-	c.CustomSchemaIds(type =>
-	{
-		// xử lý cả generic types cho chắc
-		if (type.IsGenericType)
-		{
-			var name = type.Name[..type.Name.IndexOf('`')];
-			var args = string.Join(",", type.GetGenericArguments().Select(a => a.Name));
-			return $"{type.Namespace}.{name}[{args}]".Replace("+", ".");
-		}
-		return (type.FullName ?? type.Name).Replace("+", ".");
-	});
-});
 builder.Services.AddHealthChecks();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingRequestValidator>();
 
-// Auth
-builder.Services
-	.AddAuthentication(HeaderAuthHandler.SchemeName)
-	.AddScheme<AuthenticationSchemeOptions, HeaderAuthHandler>(HeaderAuthHandler.SchemeName, null);
-
-builder.Services.AddAuthorization(options =>
-{
-	options.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
-	options.AddPolicy("BranchManager", p => p.RequireRole("BranchManager", "Admin"));
-	options.AddPolicy("Delivery", p => p.RequireRole("Delivery", "Admin"));
-	options.AddPolicy("Owner", p => p.RequireRole("Owner", "Admin"));
-	options.AddPolicy("Renter", p => p.RequireRole("Renter", "Admin"));
-});
 
 // Register DI from layers
 builder.Services
-	.AddInfrastructureDI()
-	.AddApplicationDI();
+	.AddInfrastructureDI(builder.Configuration)
+	.AddApplicationDI()
+	.AddSwaggerGen()
+	.AddJwtAuthentication(builder.Configuration);
 
 // Hosted services
 builder.Services.AddHostedService<BookingStatusHostedService>();
