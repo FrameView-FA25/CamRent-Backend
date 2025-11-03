@@ -1,15 +1,16 @@
-﻿using CamRent_Infrastructure.Persistence;
-using CamRent_Infrastructure;
-using CamRent_Application;
+﻿using CamRent_Api.Auth;
 using CamRent_Api.HostedServices;
-using CamRent_Api.Auth;
+using CamRent_Api.Validators;
+using CamRent_Application;
+using CamRent_Infrastructure;
+using CamRent_Infrastructure.Persistence;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FluentValidation.AspNetCore;
-using FluentValidation;
-using CamRent_Api.Validators;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +21,24 @@ builder.Services.AddDbContext<CamRentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+	c.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
+
+	// QUAN TRỌNG: đặt schemaId theo FullName và thay dấu '+' của nested types
+	c.CustomSchemaIds(type =>
+	{
+		// xử lý cả generic types cho chắc
+		if (type.IsGenericType)
+		{
+			var name = type.Name[..type.Name.IndexOf('`')];
+			var args = string.Join(",", type.GetGenericArguments().Select(a => a.Name));
+			return $"{type.Namespace}.{name}[{args}]".Replace("+", ".");
+		}
+		return (type.FullName ?? type.Name).Replace("+", ".");
+	});
+});
+builder.Services.AddHealthChecks();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingRequestValidator>();
@@ -69,12 +87,29 @@ app.UseExceptionHandler(errorApp =>
 	});
 });
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var applyMigrations = Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true";
+if (applyMigrations)
 {
-	app.UseSwagger();
-	app.UseSwaggerUI();
+	await using var scope = app.Services.CreateAsyncScope();
+	var db = scope.ServiceProvider.GetRequiredService<CamRentDbContext>();
+
+	var pending = await db.Database.GetPendingMigrationsAsync();
+	if (pending.Any())
+	{
+		await db.Database.MigrateAsync();
+		// TODO: Seed nếu cần
+	}
 }
+
+// Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Route gốc: chuyển sang Swagger hoặc trả JSON
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription(); // hoặc Results.Json(new { app="CamRent API", ok=true })
+
+// Health check
+app.MapHealthChecks("/health");
 
 app.UseHttpsRedirection();
 
