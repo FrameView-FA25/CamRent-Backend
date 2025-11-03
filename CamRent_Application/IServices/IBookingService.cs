@@ -13,5 +13,6 @@ namespace CamRent_Application.IServices
 		Task ApproveAsync(Guid bookingId);
 		Task CancelAsync(Guid bookingId);
 		Task<int> ProcessStatusesAsync(DateTime nowUtc);
+		Task FinalizeAsync(Guid bookingId, decimal ownerShareRatio, Guid platformUserId);
 	}
 }

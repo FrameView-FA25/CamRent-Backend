@@ -22,10 +22,10 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet]
-		public async Task<ActionResult<object>> List()
+		public async Task<ActionResult<object>> List([FromQuery] string? search, [FromQuery] string? sort = "name", [FromQuery] bool desc = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
 		{
-			var list = await _categoryService.ListAsync();
-			return Ok(list);
+			var (items, total) = await _categoryService.ListAsync(search, sort, desc, page, pageSize);
+			return Ok(new { total, items });
 		}
 
 		[HttpDelete("{id:guid}")]

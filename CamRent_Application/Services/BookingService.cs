@@ -168,6 +168,81 @@ namespace CamRent_Application.Services
 			return updated;
 		}
 
+		public async Task FinalizeAsync(Guid bookingId, decimal ownerShareRatio, Guid platformUserId)
+		{
+			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
+				?? throw new InvalidOperationException("Booking not found");
+			var quote = await _pricingService.QuoteBookingAsync(bookingId, null, ownerShareRatio);
+
+			// Determine owner from first item (MVP assumption: single-owner booking)
+			var firstItem = (await _unitOfWork.Repository<BookingItem>().ListAsync(bi => bi.BookingId == bookingId)).FirstOrDefault()
+				?? throw new InvalidOperationException("Booking has no items");
+			Guid? ownerUserId = null;
+			if (firstItem.CameraId.HasValue)
+			{
+				var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(firstItem.CameraId.Value);
+				ownerUserId = cam?.OwnerUserId;
+			}
+			else if (firstItem.AccessoryId.HasValue)
+			{
+				var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(firstItem.AccessoryId.Value);
+				ownerUserId = acc?.OwnerUserId;
+			}
+			if (!ownerUserId.HasValue) throw new InvalidOperationException("Cannot determine owner for payout");
+
+			// Ensure wallets
+			var ownerWallet = (await _unitOfWork.Repository<Wallet>().ListAsync(w => w.OwnerUserId == ownerUserId.Value)).FirstOrDefault();
+			if (ownerWallet == null)
+			{
+				ownerWallet = new Wallet { Id = Guid.NewGuid(), OwnerUserId = ownerUserId.Value, Balance = 0, CreatedAt = DateTime.UtcNow };
+				await _unitOfWork.Repository<Wallet>().AddAsync(ownerWallet);
+			}
+			Wallet? platformWallet = null;
+			if (platformUserId != Guid.Empty)
+			{
+				platformWallet = (await _unitOfWork.Repository<Wallet>().ListAsync(w => w.OwnerUserId == platformUserId)).FirstOrDefault();
+				if (platformWallet == null)
+				{
+					platformWallet = new Wallet { Id = Guid.NewGuid(), OwnerUserId = platformUserId, Balance = 0, CreatedAt = DateTime.UtcNow };
+					await _unitOfWork.Repository<Wallet>().AddAsync(platformWallet);
+				}
+			}
+
+			// Transactions
+			var ownerTx = new Transaction
+			{
+				Id = Guid.NewGuid(),
+				WalletId = ownerWallet.Id,
+				Type = "payout_owner",
+				Amount = quote.OwnerShare,
+				Currency = "VND",
+				Reference = $"Booking:{bookingId}",
+				CreatedAt = DateTime.UtcNow
+			};
+			await _unitOfWork.Repository<Transaction>().AddAsync(ownerTx);
+			ownerWallet.Balance += quote.OwnerShare;
+			await _unitOfWork.Repository<Wallet>().UpdateAsync(ownerWallet);
+
+			if (platformWallet != null && quote.PlatformNet > 0)
+			{
+				var platformTx = new Transaction
+				{
+					Id = Guid.NewGuid(),
+					WalletId = platformWallet.Id,
+					Type = "platform_net",
+					Amount = quote.PlatformNet,
+					Currency = "VND",
+					Reference = $"Booking:{bookingId}",
+					CreatedAt = DateTime.UtcNow
+				};
+				await _unitOfWork.Repository<Transaction>().AddAsync(platformTx);
+				platformWallet.Balance += quote.PlatformNet;
+				await _unitOfWork.Repository<Wallet>().UpdateAsync(platformWallet);
+			}
+
+			await _unitOfWork.Complete();
+		}
+
 		private async Task UpdateSnapshotTotalsAsync(Guid bookingId)
 		{
 			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)

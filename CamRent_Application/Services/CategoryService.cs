@@ -20,10 +20,18 @@ namespace CamRent_Application.Services
 			return cat.Id;
 		}
 
-		public async Task<List<(Guid id, string name, Guid? parentId)>> ListAsync()
+		public async Task<(IEnumerable<(Guid id, string name, Guid? parentId)> items, int total)> ListAsync(string? search, string? sort = "name", bool desc = false, int page = 1, int pageSize = 20)
 		{
-			var list = await _unitOfWork.Repository<Category>().GetAllAsync();
-			return list.Select(c => (c.Id, c.Name, c.ParentId)).ToList();
+			var all = await _unitOfWork.Repository<Category>().ListAsync(
+				filter: string.IsNullOrWhiteSpace(search) ? null : c => c.Name.ToLower().Contains(search!.ToLower())
+			);
+			IEnumerable<Category> ordered = sort?.ToLower() == "created"
+				? (desc ? all.OrderByDescending(c => c.CreatedAt) : all.OrderBy(c => c.CreatedAt))
+				: (desc ? all.OrderByDescending(c => c.Name) : all.OrderBy(c => c.Name));
+			int total = ordered.Count();
+			var pageItems = ordered.Skip((Math.Max(1, page) - 1) * Math.Max(1, pageSize)).Take(Math.Max(1, pageSize))
+				.Select(c => (c.Id, c.Name, c.ParentId));
+			return (pageItems, total);
 		}
 
 		public async Task DeleteAsync(Guid categoryId)
