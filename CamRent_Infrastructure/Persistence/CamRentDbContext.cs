@@ -1,5 +1,6 @@
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using CamRent_Infrastructure.Persistence.SeedData;
 using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Infrastructure.Persistence
@@ -35,8 +36,9 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<ComboItem> ComboItems => Set<ComboItem>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
+		public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // snake_case convention
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -59,6 +61,14 @@ namespace CamRent_Infrastructure.Persistence
             }
 
 			modelBuilder.Owned<Address>();
+
+			modelBuilder.Entity<SeedHistory>(e =>
+			{
+				e.ToTable("SeedHistories");
+				e.HasKey(x => x.Id);
+				e.Property(x => x.Key).HasMaxLength(100).IsRequired();
+				e.HasIndex(x => x.Key).IsUnique();
+			});
 
 			// Relationships
 			modelBuilder.Entity<UserBranchMembership>()
