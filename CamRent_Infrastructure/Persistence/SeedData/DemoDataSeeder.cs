@@ -26,10 +26,10 @@ namespace CamRent_Infrastructure.Persistence.SeedData
 				return;
 			}
 
-			// Guard idempotent: có data rồi thì thôi
-			if (await _db.Cameras.AsNoTracking().AnyAsync(ct) || await _db.Accessories.AsNoTracking().AnyAsync(ct))
+			const string SeedKey = "demo-v1";
+			if (await _db.SeedHistories.AsNoTracking().AnyAsync(x => x.Key == SeedKey, ct))
 			{
-				_logger.LogInformation("Demo data already present - skipping seed");
+				_logger.LogInformation("Seed {SeedKey} already applied.", SeedKey);
 				return;
 			}
 
@@ -169,6 +169,7 @@ namespace CamRent_Infrastructure.Persistence.SeedData
 				}
 				await _db.ComboItems.AddRangeAsync(comboItems, ct);
 
+				_db.SeedHistories.Add(new SeedHistory { Key = SeedKey });
 				await _db.SaveChangesAsync(ct);
 				await tx.CommitAsync(ct);
 
