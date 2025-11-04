@@ -13,6 +13,7 @@ namespace CamRent_Application
 		{
 			services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+			services.AddScoped<IAuthService, AuthService>();
 			services.AddScoped<ICameraService, CameraService>();
 			services.AddScoped<IBookingService, BookingService>();
 			services.AddScoped<IPricingService, PricingService>();
