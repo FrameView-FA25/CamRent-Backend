@@ -44,7 +44,7 @@ namespace CamRent_Api.Controllers
 		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
 		{
-			await _bookingService.AddItemAsync(id, request.CameraId, request.AccessoryId, request.Quantity, request.UnitPrice, request.DepositAmount);
+			await _bookingService.AddItemAsync(id, request.CameraId, request.AccessoryId, request.ComboId, request.Quantity, request.UnitPrice, request.DepositAmount);
 			return NoContent();
 		}
 

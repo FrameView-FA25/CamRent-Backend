@@ -18,6 +18,7 @@ namespace CamRent_Api.Models
 		{
 			public Guid? CameraId { get; set; }
 			public Guid? AccessoryId { get; set; }
+			public Guid? ComboId { get; set; }
 			[Range(1, int.MaxValue)]
 			public int Quantity { get; set; }
 			[Range(0, double.MaxValue)]

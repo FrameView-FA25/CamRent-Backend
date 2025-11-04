@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -8,14 +8,13 @@ using static CamRent_Api.Models.AccessoryModel;
 
 namespace CamRent_Api.Controllers
 {
-	
 	[Route("api/[controller]")]
 	[ApiController]
-	public class AccessorysController : ControllerBase
+	public class AccessoriesController : ControllerBase
 	{
 		private readonly IAccessoryService _accessoryService;
 		private readonly IMapper _mapper;
-		public AccessorysController(IAccessoryService accessoryService, IMapper mapper)
+		public AccessoriesController(IAccessoryService accessoryService, IMapper mapper)
 		{
 			_accessoryService = accessoryService;
 			_mapper = mapper;
@@ -42,16 +41,15 @@ namespace CamRent_Api.Controllers
 		[HttpPost]
 		public async Task<IActionResult> CreateAccessory([FromBody] AccessoryRequest accessoryCreateModel)
 		{
-			// Lấy ID từ claims (tuỳ bạn nhúng claim gì vào token)
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)   // thường là "sub" hoặc NameIdentifier
-					  ?? User.FindFirst("sub")?.Value
-					  ?? User.FindFirst("uid")?.Value;
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+				  ?? User.FindFirst("sub")?.Value
+				  ?? User.FindFirst("uid")?.Value;
 
 			if (string.IsNullOrEmpty(userId))
-				return Forbid(); // hoặc Unauthorized()
+				return Forbid();
 
 			var accessory = _mapper.Map<Accessory>(accessoryCreateModel);
-			accessory.OwnerUserId = Guid.Parse(userId); // Gán server-side, KHÔNG tin dữ liệu client gửi
+			accessory.OwnerUserId = Guid.Parse(userId);
 
 			var result = await _accessoryService.CreateAccessoryAsync(accessory);
 			return result > 0 ? Ok() : BadRequest();
@@ -66,7 +64,7 @@ namespace CamRent_Api.Controllers
 				return NotFound();
 			}
 			var accessoryToUpdate = _mapper.Map<Accessory>(accessoryUpdateModel);
-			accessoryToUpdate.Id = id; // Đảm bảo ID đúng
+			accessoryToUpdate.Id = id;
 			var result = await _accessoryService.UpdateAccessoryAsync(accessoryToUpdate);
 			return result > 0 ? Ok() : BadRequest();
 		}
@@ -82,6 +80,7 @@ namespace CamRent_Api.Controllers
 			var result = await _accessoryService.DeleteAccessoryAsync(id);
 			return result > 0 ? Ok() : BadRequest();
 		}
-
 	}
 }
+
+

@@ -6,7 +6,7 @@ namespace CamRent_Application.IServices
 	{
 		Task<Booking?> GetByIdAsync(Guid bookingId);
 		Task<Guid> CreateDraftAsync(Guid renterId, DateTime pickupAt, DateTime returnAt);
-		Task AddItemAsync(Guid bookingId, Guid? cameraId, Guid? accessoryId, int quantity, decimal unitPrice, decimal depositAmount);
+		Task AddItemAsync(Guid bookingId, Guid? cameraId, Guid? accessoryId, Guid? comboId, int quantity, decimal unitPrice, decimal depositAmount);
 		Task RemoveItemAsync(Guid bookingItemId);
 		Task UpdateTimesAsync(Guid bookingId, DateTime pickupAt, DateTime returnAt);
 		Task SubmitForApprovalAsync(Guid bookingId);
