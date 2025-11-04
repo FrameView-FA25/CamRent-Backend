@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
+using static CamRent_Application.DTOs.AccessoryDTO;
 using static CamRent_Application.DTOs.CameraDTO;
 
 namespace CamRent_Application.Common
@@ -10,6 +11,7 @@ namespace CamRent_Application.Common
 		public MappingProfileApplication()
 		{
 			CreateMap<Camera, CameraResponseDTO>();
+			CreateMap<Accessory, AccessoryResponseDTO>();
 		}
 	}
 }

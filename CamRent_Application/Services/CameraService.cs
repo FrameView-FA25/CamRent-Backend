@@ -4,6 +4,7 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.DTOs;
 using AutoMapper;
 using static CamRent_Application.DTOs.CameraDTO;
+using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Application.Services
 {
@@ -16,7 +17,7 @@ namespace CamRent_Application.Services
 			_unitOfWork = unitOfWork;
 			_mapper = mapper;
 		}
-		public async Task<int> AddAsync(Camera camera)
+		public async Task<int> CreateAsync(Camera camera)
 		{
 			await _unitOfWork.Repository<Camera>().AddAsync(camera);
 			var result = await _unitOfWork.Complete();
@@ -32,21 +33,16 @@ namespace CamRent_Application.Services
 
 		public async Task<List<CameraResponseDTO>> GetAllAsync()
 		{
-			var listCamera = await _unitOfWork.Repository<Camera>().GetAllAsync();
+			var listCamera = await _unitOfWork.Repository<Camera>().ListAsync(include: c => c.Include(c =>c.Branch).Include(c => c.Media));
 			var result = _mapper.Map<List<CameraResponseDTO>>(listCamera);
 			return result;
 		}
 
 		public async Task<CameraResponseDTO?> GetByIdAsync(Guid id)
 		{
-			var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id);
+			var camera = (await _unitOfWork.Repository<Camera>().ListAsync(filter: c => c.Id == id, include: c => c.Include(c => c.Branch).Include(c => c.Media))).FirstOrDefault();
 			var cameraResponse = _mapper.Map<CameraResponseDTO>(camera);
 			return cameraResponse;
-		}
-
-		public Task<IEnumerable<CameraResponseDTO>> ListAsync()
-		{
-			throw new NotImplementedException();
 		}
 
 		public async Task<int> UpdateAsync(Camera camera)
