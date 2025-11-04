@@ -42,10 +42,11 @@ namespace CamRent_Application.Services
 			return booking.Id;
 		}
 
-		public async Task AddItemAsync(Guid bookingId, Guid? cameraId, Guid? accessoryId, int quantity, decimal unitPrice, decimal depositAmount)
+		public async Task AddItemAsync(Guid bookingId, Guid? cameraId, Guid? accessoryId, Guid? comboId, int quantity, decimal unitPrice, decimal depositAmount)
 		{
-			if ((cameraId.HasValue && accessoryId.HasValue) || (!cameraId.HasValue && !accessoryId.HasValue))
-				throw new ArgumentException("Provide exactly one of cameraId or accessoryId");
+			int provided = (cameraId.HasValue ? 1 : 0) + (accessoryId.HasValue ? 1 : 0) + (comboId.HasValue ? 1 : 0);
+			if (provided != 1)
+				throw new ArgumentException("Provide exactly one of cameraId, accessoryId, or comboId");
 			if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity));
 
 			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
@@ -76,12 +77,46 @@ namespace CamRent_Application.Services
 				}
 			}
 
+			if (comboId.HasValue)
+			{
+				int days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
+				var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(comboId.Value)
+					?? throw new InvalidOperationException("Combo not found");
+				var comboItems = await _unitOfWork.Repository<ComboItem>().ListAsync(ci => ci.ComboId == comboId.Value);
+				decimal unitSum = 0;
+				decimal depositSum = 0;
+				foreach (var ci in comboItems)
+				{
+					if (ci.CameraId.HasValue)
+					{
+						(var unit, var deposit, _) = await _pricingService.GetCameraPricingAsync(ci.CameraId.Value, days);
+						unitSum += unit * ci.Quantity;
+						depositSum += deposit * ci.Quantity;
+					}
+					else if (ci.AccessoryId.HasValue)
+					{
+						(var unit, var deposit, _) = await _pricingService.GetAccessoryPricingAsync(ci.AccessoryId.Value, days);
+						unitSum += unit * ci.Quantity;
+						depositSum += deposit * ci.Quantity;
+					}
+				}
+				if (unitPrice <= 0)
+				{
+					unitPrice = combo.PriceOverride ?? unitSum;
+				}
+				if (depositAmount <= 0)
+				{
+					depositAmount = depositSum;
+				}
+			}
+
 			var item = new BookingItem
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				CameraId = cameraId,
 				AccessoryId = accessoryId,
+				ComboId = comboId,
 				Quantity = quantity,
 				UnitPrice = unitPrice,
 				DepositAmount = depositAmount,
@@ -187,6 +222,25 @@ namespace CamRent_Application.Services
 			{
 				var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(firstItem.AccessoryId.Value);
 				ownerUserId = acc?.OwnerUserId;
+			}
+			else if (firstItem.ComboId.HasValue)
+			{
+				var comboItems = await _unitOfWork.Repository<ComboItem>().ListAsync(ci => ci.ComboId == firstItem.ComboId.Value);
+				var firstCam = comboItems.FirstOrDefault(ci => ci.CameraId.HasValue);
+				if (firstCam != null)
+				{
+					var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(firstCam.CameraId!.Value);
+					ownerUserId = cam?.OwnerUserId;
+				}
+				else
+				{
+					var firstAcc = comboItems.FirstOrDefault(ci => ci.AccessoryId.HasValue);
+					if (firstAcc != null)
+					{
+						var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(firstAcc.AccessoryId!.Value);
+						ownerUserId = acc?.OwnerUserId;
+					}
+				}
 			}
 			if (!ownerUserId.HasValue) throw new InvalidOperationException("Cannot determine owner for payout");
 
