@@ -72,7 +72,8 @@ namespace CamRent_Application.Services
 			var user = (await _unitOfWork.Repository<User>()
 				.ListAsync(u => u.Email == email.Trim()))
 				.FirstOrDefault();
-
+			user.Roles = (await _unitOfWork.Repository<UserRoleMapping>()
+				.ListAsync(r => r.UserId == user.Id)).ToList();
 			if (user is null)
 				throw new Exception("Sai email hoặc mật khẩu.");
 
