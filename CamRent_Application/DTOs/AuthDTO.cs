@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CamRent_Application.DTOs
 {
-	public class UserDTO
+	public class AuthDTO
 	{
 		public class RegisterRequest
 		{
