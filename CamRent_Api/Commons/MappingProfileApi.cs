@@ -4,9 +4,9 @@ using static CamRent_Api.Models.CameraModel;
 
 namespace CamRent_Api.Commons
 {
-	public class MappingProfile : Profile
+	public class MappingProfileApi : Profile
 	{
-		public MappingProfile()
+		public MappingProfileApi()
 		{
 			CreateMap<CreateCameraRequest, Camera>();
 		}

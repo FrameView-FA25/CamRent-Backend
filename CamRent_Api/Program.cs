@@ -31,11 +31,11 @@ builder.Services
 	.AddInfrastructureDI(builder.Configuration)
 	.AddApplicationDI()
 	.AddSwaggerGen()
-	.AddJwtAuthentication(builder.Configuration);
+	.AddJwtAuthentication(builder.Configuration)
+	.AddApiDI();
 
 // Hosted services
 builder.Services.AddHostedService<BookingStatusHostedService>();
-builder.Services.AddHostedService<DemoDataSeeder>();
 
 var app = builder.Build();
 
@@ -63,13 +63,14 @@ if (applyMigrations)
 {
 	await using var scope = app.Services.CreateAsyncScope();
 	var db = scope.ServiceProvider.GetRequiredService<CamRentDbContext>();
+	var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
 
 	var pending = await db.Database.GetPendingMigrationsAsync();
 	if (pending.Any())
 	{
 		await db.Database.MigrateAsync();
-		// TODO: Seed nếu cần
 	}
+	await seeder.RunAsync();
 }
 
 // Configure the HTTP request pipeline.

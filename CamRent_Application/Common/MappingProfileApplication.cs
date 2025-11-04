@@ -5,9 +5,9 @@ using static CamRent_Application.DTOs.CameraDTO;
 
 namespace CamRent_Application.Common
 {
-	public class MappingProfile : Profile
+	public class MappingProfileApplication : Profile
 	{
-		public MappingProfile()
+		public MappingProfileApplication()
 		{
 			CreateMap<Camera, CameraResponseDTO>();
 		}

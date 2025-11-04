@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using CamRent_Api.Commons;
+using CamRent_Application.Common;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using static CamRent_Application.DTOs.UserDTO;
+using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Api
 {
@@ -64,14 +66,14 @@ namespace CamRent_Api
 					return (type.FullName ?? type.Name).Replace("+", ".");
 				});
 
-				// JWT bearer
+				// JWT bearer (chỉ cần nhập token, Swagger tự thêm "Bearer ")
 				c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
 				{
-					Description = "Nhập JWT theo dạng: Bearer {token}",
+					Description = "Dán JWT access token.",
 					Name = "Authorization",
 					In = ParameterLocation.Header,
-					Type = SecuritySchemeType.Http,
-					Scheme = "bearer",
+					Type = SecuritySchemeType.Http,  // <-- quan trọng
+					Scheme = "bearer",               // <-- quan trọng
 					BearerFormat = "JWT"
 				});
 
@@ -80,8 +82,8 @@ namespace CamRent_Api
 					{
 						new OpenApiSecurityScheme {
 							Reference = new OpenApiReference {
-									Type = ReferenceType.SecurityScheme,
-									Id = "Bearer"
+								Type = ReferenceType.SecurityScheme,
+								Id = "Bearer"
 							}
 						},
 						Array.Empty<string>()
@@ -91,6 +93,14 @@ namespace CamRent_Api
 			return services;
 		}
 
+		public static IServiceCollection AddApiDI(this IServiceCollection services)
+		{
+			services.AddAutoMapper(
+			   typeof(MappingProfileApi).Assembly,
+			   typeof(MappingProfileApplication).Assembly // assembly của Application
+			);
+			return services;
+		}
 
 	}
 }
