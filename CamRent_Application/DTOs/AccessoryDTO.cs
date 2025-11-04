@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace CamRent_Application.DTOs
 {
-	public class CameraDTO
+	public class AccessoryDTO
 	{
-		public class CameraResponseDTO
+		public class AccessoryResponseDTO
 		{
 			public Guid Id { get; set; }
 			public string Brand { get; set; } = string.Empty;
@@ -29,6 +29,7 @@ namespace CamRent_Application.DTOs
 			public decimal DepositPercent { get; set; }
 			public decimal? DepositCapMinVnd { get; set; }
 			public decimal? DepositCapMaxVnd { get; set; }
+
 			public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
 			public string? SpecsJson { get; set; }
 			public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();

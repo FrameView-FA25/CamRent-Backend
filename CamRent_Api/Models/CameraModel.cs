@@ -5,7 +5,7 @@ namespace CamRent_Api.Models
 {
 	public class CameraModel
 	{
-		public class CreateCameraRequest
+		public class CameraRequest
 		{
 			public string Brand { get; set; } = string.Empty;
 			public string Model { get; set; } = string.Empty;

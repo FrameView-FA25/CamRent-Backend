@@ -38,15 +38,15 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> AddCamera([FromBody] CreateCameraRequest cameraRequest)
+		public async Task<IActionResult> CreateCamera([FromBody] CameraRequest cameraRequest)
 		{
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
-			var result = await _cameraService.AddAsync(camera);
+			var result = await _cameraService.CreateAsync(camera);
 			return Ok();
 		}
 
 		[HttpPut("{id:guid}")]
-		public async Task<IActionResult> UpdateCamera(Guid id, [FromBody] CreateCameraRequest cameraRequest)
+		public async Task<IActionResult> UpdateCamera(Guid id, [FromBody] CameraRequest cameraRequest)
 		{
 			var existingCamera = await _cameraService.GetByIdAsync(id);
 			if (existingCamera == null)

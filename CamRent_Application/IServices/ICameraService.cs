@@ -14,10 +14,8 @@ namespace CamRent_Application.IServices
 	{
 		Task<CameraResponseDTO?> GetByIdAsync(Guid id);
 		Task<List<CameraResponseDTO>> GetAllAsync();
-		Task<int> AddAsync(Camera camera);
+		Task<int> CreateAsync(Camera camera);
 		Task<int> UpdateAsync(Camera camera);
 		Task<int> DeleteAsync(Guid id);
-
-		Task<IEnumerable<CameraResponseDTO>> ListAsync();
 	}
 }
