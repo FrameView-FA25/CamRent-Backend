@@ -19,6 +19,7 @@ namespace CamRent_Domain.Entities
         public int Quantity { get; set; } = 1;
         public decimal UnitPrice { get; set; }
         public decimal DepositAmount { get; set; }
+
     }
 }
 
