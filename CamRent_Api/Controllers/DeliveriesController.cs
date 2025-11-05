@@ -1,4 +1,4 @@
-﻿using CamRent_Application.IServices;
+using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -9,10 +9,10 @@ namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class DeliverysController : ControllerBase
+	public class DeliveriesController : ControllerBase
 	{
 		private readonly IDeliveryService _deliveryService;
-		public DeliverysController(IDeliveryService deliveryService)
+		public DeliveriesController(IDeliveryService deliveryService)
 		{
 			_deliveryService = deliveryService;
 		}
@@ -34,3 +34,5 @@ namespace CamRent_Api.Controllers
 		}
 	}
 }
+
+
