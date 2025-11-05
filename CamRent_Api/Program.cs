@@ -25,6 +25,16 @@ builder.Services.AddHealthChecks();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingRequestValidator>();
 
+const string CorsAllowAll = "AllowAll";
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy(CorsAllowAll, policy =>
+		policy
+			.AllowAnyOrigin()   // ✅ KHÔNG dùng kèm AllowCredentials()
+			.AllowAnyMethod()
+			.AllowAnyHeader()
+	);
+});
 
 // Register DI from layers
 builder.Services
@@ -85,9 +95,14 @@ app.MapHealthChecks("/health");
 
 app.UseHttpsRedirection();
 
+app.UseCors(CorsAllowAll);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Đảm bảo preflight OPTIONS luôn 200
+app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok());
 
 app.Run();

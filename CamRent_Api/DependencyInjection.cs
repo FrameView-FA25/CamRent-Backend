@@ -95,6 +95,8 @@ namespace CamRent_Api
 
 		public static IServiceCollection AddApiDI(this IServiceCollection services)
 		{
+
+			
 			services.AddAutoMapper(
 			   typeof(MappingProfileApi).Assembly,
 			   typeof(MappingProfileApplication).Assembly // assembly của Application
