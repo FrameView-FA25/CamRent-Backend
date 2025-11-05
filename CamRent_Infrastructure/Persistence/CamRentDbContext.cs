@@ -173,7 +173,7 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Booking)
-                .WithMany()
+                .WithMany(b => b.Items)
                 .HasForeignKey(bi => bi.BookingId);
 
             modelBuilder.Entity<BookingItem>()
