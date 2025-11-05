@@ -59,7 +59,8 @@ namespace CamRent_Application.Services
 				await _unitOfWork.Repository<UserRoleMapping>().AddAsync(new UserRoleMapping
 				{
 					User = user,
-					Role = request.Role
+					Role = request.Role,
+					CreatedAt = DateTime.UtcNow
 				});
 			}
 
