@@ -4,6 +4,7 @@ using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.BookingModel;
+using static CamRent_Application.DTOs.BookingDTO;
 
 namespace CamRent_Api.Controllers
 {
@@ -19,6 +20,13 @@ namespace CamRent_Api.Controllers
 		{
 			_bookingService = bookingService;
 			_pricingService = pricingService;
+		}
+
+		[HttpGet]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetAll()
+		{
+			var bookings = await _bookingService.GetAllAsync();
+			return Ok(bookings);
 		}
 
 		[HttpGet("{id:guid}")]
@@ -58,7 +66,7 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		[HttpPost("{id:guid}/submit")]
+		[HttpPut("{id:guid}/submit")]
 		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> Submit(Guid id)
 		{
@@ -66,7 +74,7 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		[HttpPost("{id:guid}/approve")]
+		[HttpPut("{id:guid}/approve")]
 		[Authorize(Policy = "BranchManager")]
 		public async Task<IActionResult> Approve(Guid id)
 		{
@@ -74,7 +82,7 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		[HttpPost("{id:guid}/cancel")]
+		[HttpPut("{id:guid}/cancel")]
 		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> Cancel(Guid id)
 		{

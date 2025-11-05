@@ -19,6 +19,8 @@ namespace CamRent_Domain.Entities
         public decimal SnapshotPlatformFeePercent { get; set; }
         public decimal SnapshotRentalTotal { get; set; }
         public decimal SnapshotDepositAmount { get; set; }
-    }
+
+		public ICollection<BookingItem> Items { get; set; } = new List<BookingItem>();
+	}
 }
 

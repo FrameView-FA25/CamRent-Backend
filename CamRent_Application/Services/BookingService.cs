@@ -1,9 +1,12 @@
+using AutoMapper;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Linq.Expressions;
+using static CamRent_Application.DTOs.BookingDTO;
 
 namespace CamRent_Application.Services
 {
@@ -12,11 +15,13 @@ namespace CamRent_Application.Services
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IAvailabilityService _availabilityService;
 		private readonly IPricingService _pricingService;
-		public BookingService(IUnitOfWork unitOfWork, IAvailabilityService availabilityService, IPricingService pricingService)
+		private readonly IMapper _mapper;
+		public BookingService(IUnitOfWork unitOfWork, IAvailabilityService availabilityService, IPricingService pricingService, IMapper mapper)
 		{
 			_unitOfWork = unitOfWork;
 			_availabilityService = availabilityService;
 			_pricingService = pricingService;
+			_mapper = mapper;
 		}
 
 		public async Task<Booking?> GetByIdAsync(Guid bookingId)
@@ -308,6 +313,13 @@ namespace CamRent_Application.Services
 			booking.SnapshotRentalTotal = total;
 			booking.SnapshotDepositAmount = deposit;
 			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+		}
+
+		public async Task<List<BookingResponseDTO>> GetAllAsync()
+		{
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items));
+			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			return results;
 		}
 	}
 }

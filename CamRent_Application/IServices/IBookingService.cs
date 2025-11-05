@@ -1,4 +1,5 @@
 using CamRent_Domain.Entities;
+using static CamRent_Application.DTOs.BookingDTO;
 
 namespace CamRent_Application.IServices
 {
@@ -14,5 +15,7 @@ namespace CamRent_Application.IServices
 		Task CancelAsync(Guid bookingId);
 		Task<int> ProcessStatusesAsync(DateTime nowUtc);
 		Task FinalizeAsync(Guid bookingId, decimal ownerShareRatio, Guid platformUserId);
+
+		Task<List<BookingResponseDTO>> GetAllAsync();
 	}
 }
