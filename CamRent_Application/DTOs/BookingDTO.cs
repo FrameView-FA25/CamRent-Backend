@@ -29,7 +29,23 @@ namespace CamRent_Application.DTOs
 			public decimal SnapshotRentalTotal { get; set; }
 			public decimal SnapshotDepositAmount { get; set; }
 
-			public ICollection<BookingItem> Items { get; set; } = new List<BookingItem>();
+			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
+		}
+
+		public class BookingItemDTO
+		{
+			public Guid? CameraId { get; set; }
+			public Camera? Camera { get; set; }
+
+			public Guid? AccessoryId { get; set; }
+			public Accessory? Accessory { get; set; }
+
+			public Guid? ComboId { get; set; }
+			public Combo? Combo { get; set; }
+
+			public int Quantity { get; set; } = 1;
+			public decimal UnitPrice { get; set; }
+			public decimal DepositAmount { get; set; }
 		}
 	}
 }
