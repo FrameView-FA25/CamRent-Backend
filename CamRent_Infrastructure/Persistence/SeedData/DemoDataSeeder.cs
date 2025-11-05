@@ -169,6 +169,151 @@ namespace CamRent_Infrastructure.Persistence.SeedData
 				}
 				await _db.ComboItems.AddRangeAsync(comboItems, ct);
 
+				// Seed demo bookings
+				decimal ApplyTier(decimal baseDaily, int days)
+				{
+					if (days >= 28) return Math.Round(baseDaily * 0.60m, 0);
+					if (days >= 7) return Math.Round(baseDaily * 0.85m, 0);
+					return baseDaily;
+				}
+
+				decimal ClampDeposit(decimal value, decimal? min, decimal? max)
+				{
+					var lower = min ?? 5_000_000m;
+					var upper = max ?? 30_000_000m;
+					if (value < lower) return lower;
+					if (value > upper) return upper;
+					return Math.Round(value, 0);
+				}
+
+				var demoBookings = new List<Booking>();
+				var demoBookingItems = new List<BookingItem>();
+				int bookingCount = Math.Min(10, renters.Count * 2);
+				for (int i = 0; i < bookingCount; i++)
+				{
+					var renter = renters[rng.Next(renters.Count)];
+					var pickupAt = DateTime.UtcNow.Date.AddDays(rng.Next(1, 10));
+					int days = rng.Next(3, 8);
+					var returnAt = pickupAt.AddDays(days);
+					var booking = new Booking
+					{
+						Id = Guid.NewGuid(),
+						Type = BookingType.Rental,
+						RenterId = renter.Id,
+						PickupAt = pickupAt,
+						ReturnAt = returnAt,
+						Status = BookingStatus.Confirmed,
+						CreatedAt = DateTime.UtcNow,
+						IsDeleted = false
+					};
+					demoBookings.Add(booking);
+
+					int itemCount = rng.Next(1, 3);
+					decimal perDaySum = 0m;
+					decimal depositSum = 0m;
+					decimal platformFeeSum = 0m;
+					int platformFeeItems = 0;
+
+					for (int j = 0; j < itemCount; j++)
+					{
+						int kind = rng.Next(0, 3); // 0: camera, 1: accessory, 2: combo
+						if (kind == 0 && cameras.Any())
+						{
+							var cam = cameras[rng.Next(cameras.Count)];
+							var unit = ApplyTier(cam.BaseDailyRate, days);
+							var deposit = ClampDeposit(cam.EstimatedValueVnd * (cam.DepositPercent / 100m), cam.DepositCapMinVnd, cam.DepositCapMaxVnd);
+							var bi = new BookingItem
+							{
+								Id = Guid.NewGuid(),
+								BookingId = booking.Id,
+								CameraId = cam.Id,
+								Quantity = 1,
+								UnitPrice = unit,
+								DepositAmount = deposit,
+								CreatedAt = DateTime.UtcNow,
+								IsDeleted = false
+							};
+							demoBookingItems.Add(bi);
+							perDaySum += unit;
+							depositSum += deposit;
+							platformFeeSum += cam.PlatformFeePercent;
+							platformFeeItems++;
+						}
+						else if (kind == 1 && accessories.Any())
+						{
+							var acc = accessories[rng.Next(accessories.Count)];
+							var unit = ApplyTier(acc.BaseDailyRate, days);
+							var deposit = ClampDeposit(acc.EstimatedValueVnd * (acc.DepositPercent / 100m), acc.DepositCapMinVnd, acc.DepositCapMaxVnd);
+							var bi = new BookingItem
+							{
+								Id = Guid.NewGuid(),
+								BookingId = booking.Id,
+								AccessoryId = acc.Id,
+								Quantity = 1,
+								UnitPrice = unit,
+								DepositAmount = deposit,
+								CreatedAt = DateTime.UtcNow,
+								IsDeleted = false
+							};
+							demoBookingItems.Add(bi);
+							perDaySum += unit;
+							depositSum += deposit;
+							platformFeeSum += acc.PlatformFeePercent;
+							platformFeeItems++;
+						}
+						else if (kind == 2 && combos.Any())
+						{
+							var cmb = combos[rng.Next(combos.Count)];
+							var cmbItems = comboItems.Where(ci => ci.ComboId == cmb.Id).ToList();
+							decimal unitSum = 0m;
+							decimal depositSumCombo = 0m;
+							foreach (var ci in cmbItems)
+							{
+								if (ci.CameraId.HasValue)
+								{
+									var cam = cameras.First(c => c.Id == ci.CameraId.Value);
+									var unit = ApplyTier(cam.BaseDailyRate, days) * ci.Quantity;
+									var deposit = ClampDeposit(cam.EstimatedValueVnd * (cam.DepositPercent / 100m), cam.DepositCapMinVnd, cam.DepositCapMaxVnd) * ci.Quantity;
+									unitSum += unit;
+									depositSumCombo += deposit;
+								}
+								else if (ci.AccessoryId.HasValue)
+								{
+									var acc = accessories.First(a => a.Id == ci.AccessoryId.Value);
+									var unit = ApplyTier(acc.BaseDailyRate, days) * ci.Quantity;
+									var deposit = ClampDeposit(acc.EstimatedValueVnd * (acc.DepositPercent / 100m), acc.DepositCapMinVnd, acc.DepositCapMaxVnd) * ci.Quantity;
+									unitSum += unit;
+									depositSumCombo += deposit;
+								}
+							}
+							var unitPrice = cmb.PriceOverride ?? unitSum;
+							var bi = new BookingItem
+							{
+								Id = Guid.NewGuid(),
+								BookingId = booking.Id,
+								ComboId = cmb.Id,
+								Quantity = 1,
+								UnitPrice = unitPrice,
+								DepositAmount = depositSumCombo,
+								CreatedAt = DateTime.UtcNow,
+								IsDeleted = false
+							};
+							demoBookingItems.Add(bi);
+							perDaySum += unitPrice;
+							depositSum += depositSumCombo;
+						}
+					}
+
+					booking.SnapshotBaseDailyRate = perDaySum;
+					booking.SnapshotDepositPercent = 0m; // demo only
+					booking.SnapshotPlatformFeePercent = platformFeeItems > 0 ? Math.Round(platformFeeSum / platformFeeItems, 2) : 0m;
+					booking.SnapshotRentalTotal = perDaySum * days;
+					booking.SnapshotDepositAmount = depositSum;
+				}
+
+				await _db.Bookings.AddRangeAsync(demoBookings, ct);
+				await _db.BookingItems.AddRangeAsync(demoBookingItems, ct);
+
 				_db.SeedHistories.Add(new SeedHistory { Key = SeedKey });
 				await _db.SaveChangesAsync(ct);
 				await tx.CommitAsync(ct);
