@@ -54,15 +54,12 @@ namespace CamRent_Application.Services
 			user.PasswordHash = _hasher.HashPassword(user, request.Password);
 			await _unitOfWork.Repository<User>().AddAsync(user);
 
-			if (request.Role == UserRole.Renter || request.Role == UserRole.Owner)
+			await _unitOfWork.Repository<UserRoleMapping>().AddAsync(new UserRoleMapping
 			{
-				await _unitOfWork.Repository<UserRoleMapping>().AddAsync(new UserRoleMapping
-				{
-					User = user,
-					Role = request.Role,
-					CreatedAt = DateTime.UtcNow
-				});
-			}
+				User = user,
+				Role = request.Role,
+				CreatedAt = DateTime.UtcNow
+			});
 
 			await _unitOfWork.Complete();
 			return true;

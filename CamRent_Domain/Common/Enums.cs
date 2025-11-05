@@ -6,7 +6,7 @@ namespace CamRent_Domain.Common
         Renter = 1,
         Owner = 2,
         BranchManager = 3,
-        Delivery = 4,
+        Staff = 4,
         Admin = 5
     }
 
