@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
 using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Api
@@ -96,7 +97,14 @@ namespace CamRent_Api
 		public static IServiceCollection AddApiDI(this IServiceCollection services)
 		{
 
-			
+			services.AddControllers()
+			.AddJsonOptions(o =>
+			{
+				o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+				// tuỳ chọn:
+				// o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+				// o.JsonSerializerOptions.MaxDepth = 64; // nếu dữ liệu sâu
+			});
 			services.AddAutoMapper(
 			   typeof(MappingProfileApi).Assembly,
 			   typeof(MappingProfileApplication).Assembly // assembly của Application
