@@ -57,7 +57,7 @@ namespace CamRent_Infrastructure.Persistence.SeedData
 				roleMappings.AddRange(owners.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Owner, CreatedAt = DateTime.UtcNow }));
 				roleMappings.AddRange(renters.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Renter, CreatedAt = DateTime.UtcNow }));
 				roleMappings.AddRange(managers.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.BranchManager, CreatedAt = DateTime.UtcNow }));
-				roleMappings.AddRange(deliveries.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Delivery, CreatedAt = DateTime.UtcNow }));
+				roleMappings.AddRange(deliveries.Select(u => new UserRoleMapping { Id = Guid.NewGuid(), UserId = u.Id, Role = UserRole.Staff, CreatedAt = DateTime.UtcNow }));
 				await _db.UserRoles.AddRangeAsync(roleMappings, ct);
 
 				var memberships = new List<UserBranchMembership>();

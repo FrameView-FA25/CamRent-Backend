@@ -30,7 +30,7 @@ namespace CamRent_Api.Controllers
 			request.Role = UserRole.Renter;
 			var result = await _authService.Register(request);
 			if (!result)
-				return BadRequest("Đăng ký không thành công.");
+				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
 		}
 
@@ -40,7 +40,26 @@ namespace CamRent_Api.Controllers
 			request.Role = UserRole.Owner;
 			var result = await _authService.Register(request);
 			if (!result)
-				return BadRequest("Đăng ký không thành công.");
+				return BadRequest("Email đã được đăng kí.");
+			return Ok("Đăng ký thành công.");
+		}
+
+		[HttpPost("BranchManagerRegister")]
+		public async Task<IActionResult> RegisterAsManager([FromBody] RegisterRequest request)
+		{
+			request.Role = UserRole.BranchManager;
+			var result = await _authService.Register(request);
+			if (!result)
+				return BadRequest("Email đã được đăng kí.");
+			return Ok("Đăng ký thành công.");
+		}
+		[HttpPost("StaffRegister")]
+		public async Task<IActionResult> RegisterAsStaff([FromBody] RegisterRequest request)
+		{
+			request.Role = UserRole.Staff;
+			var result = await _authService.Register(request);
+			if (!result)
+				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
 		}
 	}
