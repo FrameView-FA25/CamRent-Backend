@@ -26,7 +26,7 @@ namespace CamRent_Infrastructure.Persistence.SeedData
 				return;
 			}
 
-			const string SeedKey = "demo-v1";
+			const string SeedKey = "demo-v2";
 			if (await _db.SeedHistories.AsNoTracking().AnyAsync(x => x.Key == SeedKey, ct))
 			{
 				_logger.LogInformation("Seed {SeedKey} already applied.", SeedKey);
