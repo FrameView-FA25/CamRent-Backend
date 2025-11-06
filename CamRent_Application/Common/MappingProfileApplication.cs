@@ -13,7 +13,9 @@ namespace CamRent_Application.Common
 		{
 			CreateMap<Camera, CameraResponseDTO>();
 			CreateMap<Accessory, AccessoryResponseDTO>();
-			CreateMap<Booking, BookingResponseDTO>();
+			CreateMap<Booking, BookingResponseDTO>()
+			.ForMember(d => d.StatusText,
+				opt => opt.MapFrom(s => s.Status.GetDisplayName()));
 			CreateMap<BookingItem, BookingItemDTO>();
 		}
 	}
