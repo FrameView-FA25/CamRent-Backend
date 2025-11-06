@@ -1,4 +1,5 @@
 ﻿using CamRent_Application.IServices;
+using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ namespace CamRent_Api.Controllers
 			var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 			foreach (var role in roles)
 			{
-				if (role == "Manager")
+				if (role == UserRole.BranchManager.ToString())
 				{
 					userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
