@@ -6,7 +6,12 @@ namespace CamRent_Domain.Entities
     {
         public string Name { get; set; } = string.Empty;
         public Address Address { get; set; } = new Address();
-    }
+
+        public Guid ManagerId { get; set; }
+		public User Manager { get; set; } = default!;
+
+		public ICollection<UserBranchMembership> UserMemberships { get; set; } = new List<UserBranchMembership>();
+	}
 
     public class UserBranchMembership : BaseEntity
     {
