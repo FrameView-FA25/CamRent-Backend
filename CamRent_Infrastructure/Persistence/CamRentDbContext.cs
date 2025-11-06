@@ -82,7 +82,8 @@ namespace CamRent_Infrastructure.Persistence
             modelBuilder.Entity<Branch>()
                 .HasOne(b => b.Manager)
                 .WithMany()
-                .HasForeignKey(b => b.ManagerId);
+                .HasForeignKey(b => b.ManagerId)
+                .OnDelete(DeleteBehavior.SetNull); ;
 			modelBuilder.Entity<UserRoleMapping>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.Roles)

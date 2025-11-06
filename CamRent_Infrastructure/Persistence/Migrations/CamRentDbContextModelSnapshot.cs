@@ -1868,7 +1868,8 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("CamRent_Domain.Entities.User", "Manager")
                         .WithMany()
-                        .HasForeignKey("ManagerId");
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.OwnsOne("CamRent_Domain.Common.Address", "Address", b1 =>
                         {

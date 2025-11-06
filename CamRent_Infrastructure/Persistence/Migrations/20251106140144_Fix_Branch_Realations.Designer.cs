@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    [Migration("20251106092510_Fix_Branch_Realations")]
+    [Migration("20251106140144_Fix_Branch_Realations")]
     partial class Fix_Branch_Realations
     {
         /// <inheritdoc />
@@ -298,7 +298,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
-                    b.Property<Guid>("ManagerId")
+                    b.Property<Guid?>("ManagerId")
                         .HasColumnType("uuid")
                         .HasColumnName("manager_id");
 
@@ -1872,8 +1872,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.HasOne("CamRent_Domain.Entities.User", "Manager")
                         .WithMany()
                         .HasForeignKey("ManagerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.OwnsOne("CamRent_Domain.Common.Address", "Address", b1 =>
                         {
