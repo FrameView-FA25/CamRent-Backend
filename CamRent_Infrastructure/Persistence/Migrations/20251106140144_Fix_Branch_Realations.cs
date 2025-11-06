@@ -10,10 +10,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_branches_users_manager_id",
-                table: "branches");
-
             migrationBuilder.AddForeignKey(
                 name: "FK_branches_users_manager_id",
                 table: "branches",
