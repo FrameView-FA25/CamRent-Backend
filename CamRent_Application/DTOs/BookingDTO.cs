@@ -22,6 +22,8 @@ namespace CamRent_Application.DTOs
 			public DateTime ReturnAt { get; set; }
 			public BookingStatus Status { get; set; }
 
+			public string StatusText { get; set; } = "";
+
 			// Snapshot pricing values for immutability
 			public decimal SnapshotBaseDailyRate { get; set; }
 			public decimal SnapshotDepositPercent { get; set; }

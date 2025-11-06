@@ -321,5 +321,6 @@ namespace CamRent_Application.Services
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
+
 	}
 }
