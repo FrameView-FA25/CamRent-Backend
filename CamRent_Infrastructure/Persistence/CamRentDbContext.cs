@@ -75,8 +75,15 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(m => m.User)
                 .WithMany(u => u.BranchMemberships)
                 .HasForeignKey(m => m.UserId);
-
-            modelBuilder.Entity<UserRoleMapping>()
+            modelBuilder.Entity<UserBranchMembership>()
+                .HasOne(m => m.Branch)
+                .WithMany(b => b.UserMemberships)
+                .HasForeignKey(m => m.BranchId);
+            modelBuilder.Entity<Branch>()
+                .HasOne(b => b.Manager)
+                .WithMany()
+                .HasForeignKey(b => b.ManagerId);
+			modelBuilder.Entity<UserRoleMapping>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.Roles)
                 .HasForeignKey(m => m.UserId);
