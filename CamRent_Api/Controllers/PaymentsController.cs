@@ -13,12 +13,14 @@ namespace CamRent_Api.Controllers
 	[Authorize]
 	public class PaymentsController : ControllerBase
 	{
-		private readonly IPaymentService _paymentService;
-		private readonly IPricingService _pricingService;
-		public PaymentsController(IPaymentService paymentService, IPricingService pricingService)
+    	private readonly IPaymentService _paymentService;
+    	private readonly IPricingService _pricingService;
+    	private readonly IQrPaymentService _qrPaymentService;
+    	public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IQrPaymentService qrPaymentService)
 		{
 			_paymentService = paymentService;
 			_pricingService = pricingService;
+			_qrPaymentService = qrPaymentService;
 		}
 
 		[HttpPost("authorize")]
@@ -51,6 +53,32 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> Refund(Guid id, [FromBody] RefundRequest request)
 		{
 			await _paymentService.RefundAsync(id, request.Amount);
+			return NoContent();
+		}
+
+		// Generate VietQR for bank transfer
+		[HttpPost("{id:guid}/vietqr")]
+		[Authorize(Policy = "Renter")]
+		public async Task<ActionResult<VietQrResponse>> GenerateVietQr(Guid id, [FromBody] InitVietQrRequest request)
+		{
+			var payload = await _qrPaymentService.GenerateVietQrAsync(id, request.Amount, request.Description, HttpContext.RequestAborted);
+			return Ok(new VietQrResponse
+			{
+				PaymentId = payload.PaymentId,
+				Amount = payload.Amount,
+				Content = payload.Content,
+				Payload = payload.Payload,
+				PngBase64 = Convert.ToBase64String(payload.PngImage),
+				ExpiresAt = payload.ExpiresAt
+			});
+		}
+
+		// Test-only: confirm capture after manual transfer verification
+		[HttpPost("{id:guid}/confirm-test")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<IActionResult> ConfirmTest(Guid id, [FromBody] CaptureRequest request)
+		{
+			await _paymentService.CaptureAsync(id, request.Amount);
 			return NoContent();
 		}
 

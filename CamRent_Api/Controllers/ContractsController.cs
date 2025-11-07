@@ -9,10 +9,12 @@ namespace CamRent_Api.Controllers
 	[Route("api/[controller]")]
 	public class ContractsController : ControllerBase
 	{
-		private readonly IContractService _contractService;
-		public ContractsController(IContractService contractService)
+    	private readonly IContractService _contractService;
+    	private readonly IContractTemplateService _templateService;
+    	public ContractsController(IContractService contractService, IContractTemplateService templateService)
 		{
 			_contractService = contractService;
+			_templateService = templateService;
 		}
 
 		[HttpPost]
@@ -29,6 +31,14 @@ namespace CamRent_Api.Controllers
 		{
 			await _contractService.MarkSignedAsync(id, request.SignedFileUrl);
 			return NoContent();
+		}
+
+		[HttpGet("preview/{bookingId:guid}")]
+		[Authorize]
+		public async Task<IActionResult> Preview(Guid bookingId)
+		{
+			var pdf = await _templateService.GeneratePreviewPdfAsync(bookingId, HttpContext.RequestAborted);
+			return File(pdf, "application/pdf", $"Contract_{bookingId}.pdf");
 		}
 	}
 }

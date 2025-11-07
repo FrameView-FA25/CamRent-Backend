@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using CamRent_Application.Common;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +43,9 @@ builder.Services
 	.AddSwaggerGen()
 	.AddJwtAuthentication(builder.Configuration)
 	.AddApiDI();
+
+// Options
+builder.Services.Configure<PaymentQrOptions>(builder.Configuration.GetSection("VietQR"));
 
 // Hosted services
 builder.Services.AddHostedService<BookingStatusHostedService>();
