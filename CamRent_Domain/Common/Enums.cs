@@ -33,7 +33,7 @@ namespace CamRent_Domain.Common
 
     public enum BookingStatus
     {
-		[Display(Name = "Bản nháp")]
+		[Display(Name = "Giỏ hàng")]
 		Draft = 0,
 
 		[Display(Name = "Chờ duyệt")]

@@ -322,5 +322,31 @@ namespace CamRent_Application.Services
 			return results;
 		}
 
+		public async Task<int> AssignStaffToBookingsAsync(Guid bookingId, Guid staffUserId)
+		{
+			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
+				?? throw new InvalidOperationException("Booking not found");
+			if(booking == null)
+			{
+				return 0;
+			}
+			booking.StaffId = staffUserId;
+			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+			return await _unitOfWork.Complete();
+		}
+
+		public async Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId)
+		{
+			var bookings = await  _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b.Include(b => b.Items));
+			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			return results;
+		}
+
+		public async Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId)
+		{
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.PendingApproval, include: b => b.Include(b => b.Items));
+			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			return results;
+		}
 	}
 }

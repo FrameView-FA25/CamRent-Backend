@@ -11,10 +11,12 @@ namespace CamRent_Domain.Entities
 
         public Guid? StaffId { get; set; }
         public User? Staff { get; set; }
-
 		public DateTime PickupAt { get; set; }
-        public DateTime ReturnAt { get; set; }
-        public BookingStatus Status { get; set; }
+        public Address PickupLocation { get; set; }
+		public DateTime ReturnAt { get; set; }
+		public Guid? BranchId { get; set; }
+		public Branch? Branch { get; set; }
+		public BookingStatus Status { get; set; }
 
         // Snapshot pricing values for immutability
         public decimal SnapshotBaseDailyRate { get; set; }
