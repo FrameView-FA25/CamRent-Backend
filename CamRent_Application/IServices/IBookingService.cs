@@ -17,5 +17,8 @@ namespace CamRent_Application.IServices
 		Task FinalizeAsync(Guid bookingId, decimal ownerShareRatio, Guid platformUserId);
 
 		Task<List<BookingResponseDTO>> GetAllAsync();
+		Task<int> AssignStaffToBookingsAsync(Guid bookingId, Guid staffUserId);
+		Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId);
+		Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId);
 	}
 }

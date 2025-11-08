@@ -3,6 +3,7 @@ using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using static CamRent_Api.Models.BookingModel;
 using static CamRent_Application.DTOs.BookingDTO;
 
@@ -37,6 +38,40 @@ namespace CamRent_Api.Controllers
 			return Ok(booking);
 		}
 
+		[HttpGet("renterbookings")]
+		[Authorize(Policy = "Renter")]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByRenterId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			var bookings = await _bookingService.GetBookingsByRenterIdAsync(Guid.Parse(userId));
+				return Ok(bookings);
+		}
+
+		[HttpGet("staffbookings")]
+		[Authorize(Policy = "Staff")]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByStaffId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
+			return Ok(bookings);
+		}
+
+		[HttpPut("{id:guid}/assign-staff/{staffId:guid}")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<IActionResult> AssignStaff(Guid id, Guid staffId)
+		{
+			var result = await _bookingService.AssignStaffToBookingsAsync(id, staffId);
+			if(result > 0)
+			{
+				return NoContent();
+			}
+			return BadRequest();
+		}
 
 		[HttpPost]
 		[Authorize(Policy = "Renter")]

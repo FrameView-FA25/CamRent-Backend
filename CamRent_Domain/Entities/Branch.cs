@@ -11,6 +11,7 @@ namespace CamRent_Domain.Entities
 		public User? Manager { get; set; }
 
 		public ICollection<UserBranchMembership> UserMemberships { get; set; } = new List<UserBranchMembership>();
+        public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 	}
 
     public class UserBranchMembership : BaseEntity
