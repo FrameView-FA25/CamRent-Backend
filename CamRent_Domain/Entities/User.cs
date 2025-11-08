@@ -23,7 +23,9 @@ namespace CamRent_Domain.Entities
 
         public ICollection<UserRoleMapping> Roles { get; set; } = new List<UserRoleMapping>();
         public ICollection<UserBranchMembership> BranchMemberships { get; set; } = new List<UserBranchMembership>();
-    }
+        public ICollection<Booking> RenterBookings { get; set; } = new List<Booking>();
+        public ICollection<Booking> StaffBookings { get; set; } = new List<Booking>();
+	}
 
     public class UserRoleMapping : BaseEntity
     {

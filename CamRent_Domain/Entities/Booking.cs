@@ -9,7 +9,10 @@ namespace CamRent_Domain.Entities
         public Guid? RenterId { get; set; }
         public User? Renter { get; set; }
 
-        public DateTime PickupAt { get; set; }
+        public Guid? StaffId { get; set; }
+        public User? Staff { get; set; }
+
+		public DateTime PickupAt { get; set; }
         public DateTime ReturnAt { get; set; }
         public BookingStatus Status { get; set; }
 
