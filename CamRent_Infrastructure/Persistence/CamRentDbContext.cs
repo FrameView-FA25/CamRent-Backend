@@ -101,10 +101,14 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Renter)
-                .WithMany()
+                .WithMany(u => u.RenterBookings)
                 .HasForeignKey(b => b.RenterId);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Staff)
+                .WithMany(u => u.StaffBookings)
+                .HasForeignKey(b => b.StaffId);
 
-            modelBuilder.Entity<InspectionItem>()
+			modelBuilder.Entity<InspectionItem>()
                 .HasOne(i => i.Inspection)
                 .WithMany(p => p.Items)
                 .HasForeignKey(i => i.InspectionId);
