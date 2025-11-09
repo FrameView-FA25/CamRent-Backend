@@ -17,7 +17,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
-		[Authorize(Policy = "BranchManager")]
+		[Authorize(Policy = "Staff")]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateInspectionRequest request)
 		{
 			var id = await _inspectionService.CreateInspectionAsync(
