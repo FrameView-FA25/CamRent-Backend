@@ -1,9 +1,12 @@
 using CamRent_Application.IServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using static CamRent_Api.Models.UserProfileModel;
 
 namespace CamRent_Api.Controllers
 {
+	[Authorize]
 	[ApiController]
 	[Route("api/[controller]")]
 	public class UserProfilesController : ControllerBase
@@ -14,10 +17,13 @@ namespace CamRent_Api.Controllers
 			_userService = userService;
 		}
 
-		[HttpGet("{userId:guid}")]
-		public async Task<ActionResult<object>> Get(Guid userId)
+		[HttpGet("UserID")]
+		public async Task<ActionResult<object>> GetUserProfile()
 		{
-			var p = await _userService.GetProfileAsync(userId);
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var p = await _userService.GetUserProfileById(Guid.Parse(userId));
 			return Ok(p);
 		}
 
