@@ -12,8 +12,12 @@ namespace CamRent_Application.Common
 	{
 		public MappingProfileApplication()
 		{
-			CreateMap<Camera, CameraResponseDTO>();
-			CreateMap<Accessory, AccessoryResponseDTO>();
+			CreateMap<Camera, CameraResponseDTO>()
+				.ForMember(c => c.BranchName,
+					opt => opt.MapFrom(s => s.Branch.Name));
+			CreateMap<Accessory, AccessoryResponseDTO>()
+				.ForMember(a => a.BranchName,
+					opt => opt.MapFrom(s => s.Branch.Name));
 			CreateMap<Booking, BookingResponseDTO>()
 			.ForMember(d => d.StatusText,
 				opt => opt.MapFrom(s => s.Status.GetDisplayName()));

@@ -109,5 +109,12 @@ namespace CamRent_Domain.Common
         Rejected,     // Bị từ chối (bình luận xấu)
         Flagged       // Bị báo cáo
     }
+
+    public enum BookingItemType
+    {
+        Camera = 1,
+        Accessory = 2,
+        Combo = 3
+	}
 }
 

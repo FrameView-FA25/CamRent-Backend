@@ -45,6 +45,15 @@ namespace CamRent_Application.Services
 			return cameraResponse;
 		}
 
+		public async Task<List<CameraResponseDTO>> GetCamerasByUserIdAsync(Guid userId)
+		{
+			var cameras = await _unitOfWork.Repository<Camera>().ListAsync(
+				filter: c => c.OwnerUser.Id == userId,
+				include: c => c.Include(c => c.Branch).Include(c => c.Media)
+			);
+			return _mapper.Map<List<CameraResponseDTO>>(cameras);
+		}
+
 		public async Task<int> UpdateAsync(Camera camera)
 		{
 			await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
