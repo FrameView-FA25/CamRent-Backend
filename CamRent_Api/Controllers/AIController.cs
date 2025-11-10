@@ -1,5 +1,5 @@
 using CamRent_Application.IServices;
-using CamRent_Application.Services.Models;
+using CamRent_Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CamRent_Api.Controllers

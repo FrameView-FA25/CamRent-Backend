@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CamRent_Application.Services.Models
+namespace CamRent_Application.DTOs
 {
 	public sealed class VectorUpsertItem
 	{
