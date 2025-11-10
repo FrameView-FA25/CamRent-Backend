@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CamRent_Domain.Common
 {
     public enum UserRole
@@ -6,7 +8,7 @@ namespace CamRent_Domain.Common
         Renter = 1,
         Owner = 2,
         BranchManager = 3,
-        Delivery = 4,
+        Staff = 4,
         Admin = 5
     }
 
@@ -31,17 +33,36 @@ namespace CamRent_Domain.Common
 
     public enum BookingStatus
     {
-        Draft = 0,
-        PendingApproval = 1,
-        Confirmed = 2,
-        PickedUp = 3,
-        InUse = 4,
-        Returned = 5,
-        Completed = 6,
-        Cancelled = 7,
-        Overdue = 8,
-        NoShow = 9
-    }
+		[Display(Name = "Giỏ hàng")]
+		Draft = 0,
+
+		[Display(Name = "Chờ duyệt")]
+		PendingApproval = 1,
+
+		[Display(Name = "Đã xác nhận")]
+		Confirmed = 2,
+
+		[Display(Name = "Đã nhận máy")]
+		PickedUp = 3,
+
+		[Display(Name = "Đang sử dụng")]
+		InUse = 4,
+
+		[Display(Name = "Đã trả")]
+		Returned = 5,
+
+		[Display(Name = "Hoàn tất")]
+		Completed = 6,
+
+		[Display(Name = "Đã hủy")]
+		Cancelled = 7,
+
+		[Display(Name = "Quá hạn")]
+		Overdue = 8,
+
+		[Display(Name = "Vắng mặt")]
+		NoShow = 9
+	}
 
     public enum BookingType
     {

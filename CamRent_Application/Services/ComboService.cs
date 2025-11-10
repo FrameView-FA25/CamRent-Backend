@@ -1,8 +1,46 @@
+using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
+using CamRent_Domain.Entities;
 
 namespace CamRent_Application.Services
 {
 	public class ComboService : IComboService
 	{
+		private readonly IUnitOfWork _unitOfWork;
+		public ComboService(IUnitOfWork unitOfWork)
+		{
+			_unitOfWork = unitOfWork;
+		}
+
+		public async Task<Guid> CreateAsync(string name, string? description, decimal? priceOverride)
+		{
+			var combo = new Combo { Id = Guid.NewGuid(), Name = name, Description = description, PriceOverride = priceOverride, CreatedAt = DateTime.UtcNow };
+			await _unitOfWork.Repository<Combo>().AddAsync(combo);
+			await _unitOfWork.Complete();
+			return combo.Id;
+		}
+
+		public async Task AddItemAsync(Guid comboId, Guid? cameraId, Guid? accessoryId, int quantity)
+		{
+			if ((cameraId.HasValue && accessoryId.HasValue) || (!cameraId.HasValue && !accessoryId.HasValue))
+				throw new ArgumentException("Provide exactly one of cameraId or accessoryId");
+			var item = new ComboItem { Id = Guid.NewGuid(), ComboId = comboId, CameraId = cameraId, AccessoryId = accessoryId, Quantity = quantity, CreatedAt = DateTime.UtcNow };
+			await _unitOfWork.Repository<ComboItem>().AddAsync(item);
+			await _unitOfWork.Complete();
+		}
+
+		public async Task RemoveItemAsync(Guid comboItemId)
+		{
+			await _unitOfWork.Repository<ComboItem>().DeleteAsync(comboItemId);
+			await _unitOfWork.Complete();
+		}
+
+		public async Task<(Guid id, string name, string? description, decimal? priceOverride, List<(Guid? cameraId, Guid? accessoryId, int quantity)> items)> GetAsync(Guid comboId)
+		{
+			var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(comboId)
+				?? throw new InvalidOperationException("Combo not found");
+			var items = await _unitOfWork.Repository<ComboItem>().ListAsync(ci => ci.ComboId == comboId);
+			return (combo.Id, combo.Name, combo.Description, combo.PriceOverride, items.Select(i => (i.CameraId, i.AccessoryId, i.Quantity)).ToList());
+		}
 	}
 }

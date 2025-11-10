@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore.Query;
+using static CamRent_Application.DTOs.CameraDTO;
 
 namespace CamRent_Application.IServices
 {
@@ -13,10 +14,8 @@ namespace CamRent_Application.IServices
 	{
 		Task<CameraResponseDTO?> GetByIdAsync(Guid id);
 		Task<List<CameraResponseDTO>> GetAllAsync();
-		Task<int> AddAsync(Camera camera);
+		Task<int> CreateAsync(Camera camera);
 		Task<int> UpdateAsync(Camera camera);
 		Task<int> DeleteAsync(Guid id);
-
-		Task<IEnumerable<CameraResponseDTO>> ListAsync();
 	}
 }

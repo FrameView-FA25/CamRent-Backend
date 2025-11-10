@@ -1,0 +1,152 @@
+﻿using CamRent_Application.DTOs;
+using CamRent_Application.IServices;
+using CamRent_Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using static CamRent_Api.Models.BookingModel;
+using static CamRent_Application.DTOs.BookingDTO;
+
+namespace CamRent_Api.Controllers
+{
+	[ApiController]
+	[Route("api/[controller]")]
+	[Authorize]
+	public class BookingsController : ControllerBase
+	{
+
+		private readonly IBookingService _bookingService;
+		private readonly IPricingService _pricingService;
+		public BookingsController(IBookingService bookingService, IPricingService pricingService)
+		{
+			_bookingService = bookingService;
+			_pricingService = pricingService;
+		}
+
+		[HttpGet]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetAll()
+		{
+			var bookings = await _bookingService.GetAllAsync();
+			return Ok(bookings);
+		}
+
+		[HttpGet("{id:guid}")]
+		public async Task<ActionResult<Booking>> GetById(Guid id)
+		{
+			var booking = await _bookingService.GetByIdAsync(id);
+			if (booking == null) return NotFound();
+			return Ok(booking);
+		}
+
+		[HttpGet("renterbookings")]
+		[Authorize(Policy = "Renter")]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByRenterId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			var bookings = await _bookingService.GetBookingsByRenterIdAsync(Guid.Parse(userId));
+				return Ok(bookings);
+		}
+
+		[HttpGet("staffbookings")]
+		[Authorize(Policy = "Staff")]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByStaffId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
+			return Ok(bookings);
+		}
+
+		[HttpPut("{id:guid}/assign-staff/{staffId:guid}")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<IActionResult> AssignStaff(Guid id, Guid staffId)
+		{
+			var result = await _bookingService.AssignStaffToBookingsAsync(id, staffId);
+			if(result > 0)
+			{
+				return NoContent();
+			}
+			return BadRequest();
+		}
+
+		[HttpPost]
+		[Authorize(Policy = "Renter")]
+		public async Task<ActionResult<Guid>> CreateDraft([FromBody] CreateBookingRequest request)
+		{
+			var id = await _bookingService.CreateDraftAsync(request.RenterId, request.PickupAt, request.ReturnAt);
+			return CreatedAtAction(nameof(GetById), new { id }, id);
+		}
+
+
+
+		[HttpPost("{id:guid}/items")]
+		[Authorize(Policy = "Renter")]
+		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
+		{
+			await _bookingService.AddItemAsync(id, request.CameraId, request.AccessoryId, request.ComboId, request.Quantity, request.UnitPrice, request.DepositAmount);
+			return NoContent();
+		}
+
+
+
+		[HttpPut("{id:guid}/times")]
+		[Authorize(Policy = "Renter")]
+		public async Task<IActionResult> UpdateTimes(Guid id, [FromBody] UpdateTimesRequest request)
+		{
+			await _bookingService.UpdateTimesAsync(id, request.PickupAt, request.ReturnAt);
+			return NoContent();
+		}
+
+		[HttpPut("{id:guid}/submit")]
+		[Authorize(Policy = "Renter")]
+		public async Task<IActionResult> Submit(Guid id)
+		{
+			await _bookingService.SubmitForApprovalAsync(id);
+			return NoContent();
+		}
+
+		[HttpPut("{id:guid}/approve")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<IActionResult> Approve(Guid id)
+		{
+			await _bookingService.ApproveAsync(id);
+			return NoContent();
+		}
+
+		[HttpPut("{id:guid}/cancel")]
+		[Authorize(Policy = "Renter")]
+		public async Task<IActionResult> Cancel(Guid id)
+		{
+			await _bookingService.CancelAsync(id);
+			return NoContent();
+		}
+
+		[HttpGet("{id:guid}/quote")]
+		public async Task<ActionResult<PricingQuoteResult>> Quote(Guid id, [FromQuery] decimal? platformFeePercent, [FromQuery] decimal ownerShareRatio = 0.75m)
+		{
+			var quote = await _pricingService.QuoteBookingAsync(id, platformFeePercent, ownerShareRatio);
+			return Ok(quote);
+		}
+
+
+		[HttpPost("{id:guid}/settlement")]
+		public async Task<ActionResult<DepositSettlement>> Settlement(Guid id, [FromBody] SettlementRequest request)
+		{
+			var result = await _pricingService.ComputeSettlementAsync(id, request.LateDays, request.RepairCost, request.DowntimeDays, request.MissingAccessoriesCost, request.CleaningCost);
+			return Ok(result);
+		}
+
+		public class FinalizeRequest { public decimal OwnerShareRatio { get; set; } = 0.75m; public Guid PlatformUserId { get; set; } }
+		[HttpPost("{id:guid}/finalize")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest req)
+		{
+			await _bookingService.FinalizeAsync(id, req.OwnerShareRatio, req.PlatformUserId);
+			return NoContent();
+		}
+	}
+}

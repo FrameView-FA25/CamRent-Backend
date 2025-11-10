@@ -1,0 +1,54 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace CamRent_Api.Models
+{
+	public class PaymentModel
+	{
+		public class CreateAuthorizationRequest
+		{
+			[Required]
+			public Guid BookingId { get; set; }
+		}
+
+		public class AddLineRequest
+		{
+			[Required]
+			[StringLength(50)]
+			public string Type { get; set; } = string.Empty;
+			[Range(0.01, double.MaxValue)]
+			public decimal Amount { get; set; }
+		}
+
+		public class CaptureRequest
+		{
+			[Range(0.01, double.MaxValue)]
+			public decimal Amount { get; set; }
+		}
+
+		public class RefundRequest
+		{
+			[Range(0.01, double.MaxValue)]
+			public decimal Amount { get; set; }
+		}
+
+		public class InitVietQrRequest
+		{
+			[Range(0.01, double.MaxValue)]
+			public decimal Amount { get; set; }
+			[StringLength(100)]
+			public string? Description { get; set; }
+		}
+
+		public class VietQrResponse
+		{
+			public Guid PaymentId { get; set; }
+			public decimal Amount { get; set; }
+			public string Content { get; set; } = string.Empty;
+			public string Payload { get; set; } = string.Empty;
+			public string PngBase64 { get; set; } = string.Empty;
+			public DateTime ExpiresAt { get; set; }
+		}
+	}
+}
+
+

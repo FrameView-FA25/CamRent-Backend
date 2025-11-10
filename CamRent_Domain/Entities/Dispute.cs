@@ -14,6 +14,9 @@ namespace CamRent_Domain.Entities
 
         public ICollection<DisputeItem> Items { get; set; } = new List<DisputeItem>();
         public ICollection<FileAsset> Evidence { get; set; } = new List<FileAsset>();
+
+        // Snapshot tổng số tiền người thuê phải trả cho dispute (sum các DisputeItem.Amount)
+        public decimal TotalAmount { get; set; }
     }
 
     public class DisputeItem : BaseEntity

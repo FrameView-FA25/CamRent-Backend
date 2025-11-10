@@ -4,16 +4,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Application.IServices
 {
 	public interface IUserService
 	{
-		Task<User> GetUserByEmail(string email, string password);
+		
 		Task<List<User>> GetAllUsers();
 		Task<User> GetUserProfileById(Guid id);
-		Task<int> CreateUser(User user);
 		Task<int> UpdateUser(User user);
 		Task<int> DeleteUser(Guid id);
+
+		Task<(Guid id, Guid userId, string? nationalId, string kycStatus, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
+		Task UpdateProfileAsync(Guid userId, string? nationalId, string? kycStatus, string? bankNo, string? bankName, string? bankAccName);
 	}
 }

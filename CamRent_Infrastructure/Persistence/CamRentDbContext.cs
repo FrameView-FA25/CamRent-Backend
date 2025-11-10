@@ -1,5 +1,6 @@
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using CamRent_Infrastructure.Persistence.SeedData;
 using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Infrastructure.Persistence
@@ -35,9 +36,9 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<ComboItem> ComboItems => Set<ComboItem>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
-        public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+		public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // snake_case convention
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -59,13 +60,31 @@ namespace CamRent_Infrastructure.Persistence
                 }
             }
 
-            // Relationships
-            modelBuilder.Entity<UserBranchMembership>()
+			modelBuilder.Owned<Address>();
+
+			modelBuilder.Entity<SeedHistory>(e =>
+			{
+				e.ToTable("SeedHistories");
+				e.HasKey(x => x.Id);
+				e.Property(x => x.Key).HasMaxLength(100).IsRequired();
+				e.HasIndex(x => x.Key).IsUnique();
+			});
+
+			// Relationships
+			modelBuilder.Entity<UserBranchMembership>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.BranchMemberships)
                 .HasForeignKey(m => m.UserId);
-
-            modelBuilder.Entity<UserRoleMapping>()
+            modelBuilder.Entity<UserBranchMembership>()
+                .HasOne(m => m.Branch)
+                .WithMany(b => b.UserMemberships)
+                .HasForeignKey(m => m.BranchId);
+            modelBuilder.Entity<Branch>()
+                .HasOne(b => b.Manager)
+                .WithMany()
+                .HasForeignKey(b => b.ManagerId)
+                .OnDelete(DeleteBehavior.SetNull);
+			modelBuilder.Entity<UserRoleMapping>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.Roles)
                 .HasForeignKey(m => m.UserId);
@@ -82,10 +101,18 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Renter)
-                .WithMany()
+                .WithMany(u => u.RenterBookings)
                 .HasForeignKey(b => b.RenterId);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Staff)
+                .WithMany(u => u.StaffBookings)
+                .HasForeignKey(b => b.StaffId);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Branch)
+                .WithMany(br => br.Bookings)
+                .HasForeignKey(b => b.BranchId);
 
-            modelBuilder.Entity<InspectionItem>()
+			modelBuilder.Entity<InspectionItem>()
                 .HasOne(i => i.Inspection)
                 .WithMany(p => p.Items)
                 .HasForeignKey(i => i.InspectionId);
@@ -162,7 +189,7 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Booking)
-                .WithMany()
+                .WithMany(b => b.Items)
                 .HasForeignKey(bi => bi.BookingId);
 
             modelBuilder.Entity<BookingItem>()
@@ -209,35 +236,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(i => i.Branch)
                 .WithMany()
                 .HasForeignKey(i => i.BranchId);
-
-            modelBuilder.Entity<UserProfile>()
-                .HasOne(up => up.User)
-                .WithMany()
-                .HasForeignKey(up => up.UserId);
-            
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.AuthorUser)
-                .WithMany()
-                .HasForeignKey(r => r.AuthorUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.TargetCamera)
-                .WithMany()
-                .HasForeignKey(r => r.TargetCameraId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.TargetAccessory)
-                .WithMany()
-                .HasForeignKey(r => r.TargetAccessoryId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.ReviewedByStaff)
-                .WithMany()
-                .HasForeignKey(r => r.ReviewedByStaffId)
-                .OnDelete(DeleteBehavior.Restrict);
         }
 
         private static string ToSnakeCase(string name)
