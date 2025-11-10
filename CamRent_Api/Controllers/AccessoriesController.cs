@@ -21,10 +21,28 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAllAccessories()
+		[AllowAnonymous]
+		public async Task<IActionResult> GetAllAccessories([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? q = null, [FromQuery] string? sortBy = "createdAt", [FromQuery] string sortDir = "desc")
 		{
+			page = Math.Max(1, page);
+			pageSize = Math.Clamp(pageSize, 1, 100);
 			var accessories = await _accessoryService.GetAllAccessoriesAsync();
-			return Ok(accessories);
+			if (!string.IsNullOrWhiteSpace(q))
+			{
+				var term = q.Trim().ToLowerInvariant();
+				accessories = accessories.Where(a => ($"{a.Brand} {a.Model} {a.Variant}").ToLower().Contains(term)).ToList();
+			}
+			IEnumerable<dynamic> sorted = accessories;
+			if (string.Equals(sortBy, "brand", StringComparison.OrdinalIgnoreCase))
+				sorted = (sortDir == "asc" ? accessories.OrderBy(a => a.Brand) : accessories.OrderByDescending(a => a.Brand));
+			else if (string.Equals(sortBy, "model", StringComparison.OrdinalIgnoreCase))
+				sorted = (sortDir == "asc" ? accessories.OrderBy(a => a.Model) : accessories.OrderByDescending(a => a.Model));
+			else
+				sorted = (sortDir == "asc" ? accessories.OrderBy(a => a.Id) : accessories.OrderByDescending(a => a.Id));
+
+			var total = sorted.Count();
+			var items = sorted.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+			return Ok(new { page, pageSize, total, items });
 		}
 		[HttpGet("{id}")]
 		public async Task<IActionResult> GetAccessoryById(Guid id)

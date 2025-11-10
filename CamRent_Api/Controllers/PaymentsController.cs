@@ -15,12 +15,12 @@ namespace CamRent_Api.Controllers
 	{
     	private readonly IPaymentService _paymentService;
     	private readonly IPricingService _pricingService;
-    	private readonly IQrPaymentService _qrPaymentService;
-    	public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IQrPaymentService qrPaymentService)
+    	private readonly IVnPayService _vnPayService;
+    	public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IVnPayService vnPayService)
 		{
 			_paymentService = paymentService;
 			_pricingService = pricingService;
-			_qrPaymentService = qrPaymentService;
+			_vnPayService = vnPayService;
 		}
 
 		[HttpPost("authorize")]
@@ -56,21 +56,26 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		// Generate VietQR for bank transfer
-		[HttpPost("{id:guid}/vietqr")]
+		// Init VNPay redirect URL
+		[HttpPost("{id:guid}/vnpay")]
 		[Authorize(Policy = "Renter")]
-		public async Task<ActionResult<VietQrResponse>> GenerateVietQr(Guid id, [FromBody] InitVietQrRequest request)
+		public async Task<ActionResult<string>> InitVnPay(Guid id, [FromBody] InitVietQrRequest request)
 		{
-			var payload = await _qrPaymentService.GenerateVietQrAsync(id, request.Amount, request.Description, HttpContext.RequestAborted);
-			return Ok(new VietQrResponse
-			{
-				PaymentId = payload.PaymentId,
-				Amount = payload.Amount,
-				Content = payload.Content,
-				Payload = payload.Payload,
-				PngBase64 = Convert.ToBase64String(payload.PngImage),
-				ExpiresAt = payload.ExpiresAt
-			});
+			// Reuse request model: Amount, Description
+			var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+			var url = await _vnPayService.CreatePaymentUrlAsync(id, request.Amount, request.Description ?? $"CamRent Payment {id}", ip, HttpContext.RequestAborted);
+			return Ok(new { redirectUrl = url });
+		}
+
+		// VNPay return URL
+		[HttpGet("vnpay-return")]
+		[AllowAnonymous]
+		public async Task<IActionResult> VnPayReturn()
+		{
+			var query = HttpContext.Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+			var ok = await _vnPayService.ProcessReturnAsync(query, HttpContext.RequestAborted);
+			if (ok) return Ok(new { ok = true });
+			return BadRequest(new { ok = false });
 		}
 
 		// Test-only: confirm capture after manual transfer verification

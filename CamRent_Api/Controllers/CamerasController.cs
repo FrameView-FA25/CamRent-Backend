@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.CameraModel;
@@ -20,10 +21,29 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetAllCameras()
+		[AllowAnonymous]
+		public async Task<IActionResult> GetAllCameras([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? q = null, [FromQuery] string? sortBy = "createdAt", [FromQuery] string sortDir = "desc")
 		{
+			page = Math.Max(1, page);
+			pageSize = Math.Clamp(pageSize, 1, 100);
 			var cameras = await _cameraService.GetAllAsync();
-			return Ok(cameras);
+			if (!string.IsNullOrWhiteSpace(q))
+			{
+				var term = q.Trim().ToLowerInvariant();
+				cameras = cameras.Where(c => ($"{c.Brand} {c.Model} {c.Variant}").ToLower().Contains(term)).ToList();
+			}
+			// Simple sort: createdAt desc by default (if present)
+			IEnumerable<dynamic> sorted = cameras;
+			if (string.Equals(sortBy, "brand", StringComparison.OrdinalIgnoreCase))
+				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Brand) : cameras.OrderByDescending(c => c.Brand));
+			else if (string.Equals(sortBy, "model", StringComparison.OrdinalIgnoreCase))
+				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Model) : cameras.OrderByDescending(c => c.Model));
+			else
+				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Id) : cameras.OrderByDescending(c => c.Id));
+
+			var total = sorted.Count();
+			var items = sorted.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+			return Ok(new { page, pageSize, total, items });
 		}
 
 		[HttpGet("{id:guid}")]

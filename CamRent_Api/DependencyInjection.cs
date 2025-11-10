@@ -44,6 +44,10 @@ namespace CamRent_Api
 				options.AddPolicy("Staff", p => p.RequireRole("Staff", "Admin"));
 				options.AddPolicy("Owner", p => p.RequireRole("Owner", "Admin"));
 				options.AddPolicy("Renter", p => p.RequireRole("Renter", "Admin"));
+				// Require auth by default unless [AllowAnonymous]
+				options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+					.RequireAuthenticatedUser()
+					.Build();
 			});
 
 			return services;
