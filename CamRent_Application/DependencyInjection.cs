@@ -21,7 +21,7 @@ namespace CamRent_Application
 			services.AddScoped<IPricingService, PricingService>();
 			services.AddScoped<IAvailabilityService, AvailabilityService>();
 			services.AddScoped<IPaymentService, PaymentService>();
-			services.AddScoped<IQrPaymentService, QrPaymentService>();
+			// Removed VietQR in favor of VNPay
 			services.AddScoped<IContractService, ContractService>();
 			services.AddScoped<IContractTemplateService, ContractTemplateService>();
 			services.AddScoped<IInspectionService, InspectionService>();
@@ -31,6 +31,8 @@ namespace CamRent_Application
 			services.AddScoped<ICategoryService, CategoryService>();
 			services.AddScoped<IComboService, ComboService>();
 			services.AddScoped<IUserService, UserService>();
+			services.AddScoped<IAIRecommendationService, AIRecommendationService>();
+			services.AddScoped<IVnPayService, VnPayService>();
 			return services;
 		}
 	}

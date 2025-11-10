@@ -8,9 +8,11 @@ namespace CamRent_Application.Services
 	public class PaymentService : IPaymentService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		public PaymentService(IUnitOfWork unitOfWork)
+		private readonly IEmailService? _email;
+		public PaymentService(IUnitOfWork unitOfWork, IEmailService? email = null)
 		{
 			_unitOfWork = unitOfWork;
+			_email = email;
 		}
 
 		public async Task<Guid> CreateAuthorizationAsync(Guid bookingId, decimal rentalAmount, decimal depositAmount)
@@ -55,6 +57,7 @@ namespace CamRent_Application.Services
 			payment.Status = PaymentStatus.Captured;
 			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
 			await _unitOfWork.Complete();
+			// Optional: notify renter via email if available (booking must be loaded to get renter email/code)
 		}
 
 		public async Task RefundAsync(Guid paymentId, decimal amount)
@@ -65,6 +68,7 @@ namespace CamRent_Application.Services
 			payment.Status = PaymentStatus.Refunded;
 			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
 			await _unitOfWork.Complete();
+			// Optional: email notification
 		}
 	}
 }

@@ -45,7 +45,7 @@ builder.Services
 	.AddApiDI();
 
 // Options
-builder.Services.Configure<PaymentQrOptions>(builder.Configuration.GetSection("VietQR"));
+builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VNPay"));
 
 // Hosted services
 builder.Services.AddHostedService<BookingStatusHostedService>();
@@ -106,6 +106,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Đảm bảo preflight OPTIONS luôn 200
-app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok());
+app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok()).ExcludeFromDescription();
 
 app.Run();
