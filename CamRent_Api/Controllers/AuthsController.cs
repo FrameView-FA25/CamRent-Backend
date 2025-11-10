@@ -1,5 +1,6 @@
 ﻿using CamRent_Application.IServices;
 using CamRent_Domain.Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.AuthModel;
@@ -7,6 +8,7 @@ using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Api.Controllers
 {
+	
 	[Route("api/[controller]")]
 	[ApiController]
 	public class AuthsController : ControllerBase
@@ -16,7 +18,7 @@ namespace CamRent_Api.Controllers
 		{
 			_authService = authService;
 		}
-
+		[AllowAnonymous]
 		[HttpPost("Login")]
 		public async Task<IActionResult> Login([FromBody] LoginRequest request)
 		{

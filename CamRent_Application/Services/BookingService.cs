@@ -1,4 +1,5 @@
 using AutoMapper;
+using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -268,6 +269,19 @@ namespace CamRent_Application.Services
 			var cart = _mapper.Map<Cart>(booking);
 			cart.TotalPrice = (double)booking.Items.Sum(i => i.UnitPrice * i.Quantity);
 			return cart;
+		}
+
+		public Task<List<BookingStatusDTO>> GetBookingStatusesAsync()
+		{
+			var statuses = Enum.GetValues(typeof(BookingStatus))
+				.Cast<BookingStatus>()
+				.Select(bs => new BookingStatusDTO
+				{
+					Status = bs,
+					StatusText = bs.GetDisplayName()
+				})
+				.ToList();
+			return Task.FromResult(statuses);
 		}
 	}
 }

@@ -41,7 +41,11 @@ namespace CamRent_Application.DTOs
 			public double TotalPrice { get; set; }
 		}
 
-
+		public class  BookingStatusDTO
+		{
+			public BookingStatus Status { get; set; }
+			public string StatusText { get; set; }
+		}
 		public class BookingItemDTO
 		{
 			public Guid? CameraId { get; set; }

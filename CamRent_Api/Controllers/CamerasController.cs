@@ -57,8 +57,8 @@ namespace CamRent_Api.Controllers
 			}
 			return Ok(camera);
 		}
-		[HttpGet("GetCamerasByUserId")]
-		public async Task<IActionResult> GetCamerasByUserId()
+		[HttpGet("GetCamerasByOwnerId")]
+		public async Task<IActionResult> GetCamerasByOwnerId()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value

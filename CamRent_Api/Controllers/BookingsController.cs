@@ -61,6 +61,12 @@ namespace CamRent_Api.Controllers
 			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
 			return Ok(bookings);
 		}
+		[HttpGet("GetBookingStatus")]
+		public async Task<ActionResult<IEnumerable<BookingStatusDTO>>> GetBookingStatus()
+		{
+			var statuses = await _bookingService.GetBookingStatusesAsync();
+			return Ok(statuses);
+		}
 
 		[HttpPut("{id:guid}/assign-staff/{staffId:guid}")]
 		[Authorize(Policy = "BranchManager")]
