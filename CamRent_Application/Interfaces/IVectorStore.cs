@@ -1,4 +1,4 @@
-using CamRent_Application.Services.Models;
+using CamRent_Application.DTOs;
 
 namespace CamRent_Application.Interfaces
 {

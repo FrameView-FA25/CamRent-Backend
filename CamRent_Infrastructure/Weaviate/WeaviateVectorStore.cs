@@ -1,5 +1,5 @@
 using CamRent_Application.Interfaces;
-using CamRent_Application.Services.Models;
+using CamRent_Application.DTOs;
 using Microsoft.Extensions.Logging;
 
 namespace CamRent_Infrastructure.Weaviate
