@@ -4,6 +4,7 @@ using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using static CamRent_Api.Models.CameraModel;
 
 namespace CamRent_Api.Controllers
@@ -55,6 +56,15 @@ namespace CamRent_Api.Controllers
 				return NotFound();
 			}
 			return Ok(camera);
+		}
+		[HttpGet("GetCamerasByUserId")]
+		public async Task<IActionResult> GetCamerasByUserId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var cameras = await _cameraService.GetCamerasByOwnerIdAsync(Guid.Parse(userId));
+			return Ok(cameras);
 		}
 
 		[HttpPost]

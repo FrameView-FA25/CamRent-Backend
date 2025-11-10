@@ -34,6 +34,13 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
+		public async Task<List<AccessoryResponseDTO>> GetAccessoriesByOwnerIdAsync(Guid userId)
+		{
+			var accessories = await _unitOfWork.Repository<Accessory>().ListAsync(filter: a => a.OwnerUserId == userId, include: a => a.Include(b => b.Branch).Include(c => c.Media));
+			var accessoryResponseDTOs = _mapper.Map<List<AccessoryResponseDTO>>(accessories);
+			return accessoryResponseDTOs;
+		}
+
 		public async Task<AccessoryResponseDTO?> GetAccessoryByIdAsync(Guid accessoryId)
 		{
 			var accessory = (await  _unitOfWork.Repository<Accessory>().ListAsync(filter: a => a.Id == accessoryId, include: a => a.Include(b => b.Branch).Include(c => c.Media))).FirstOrDefault();
