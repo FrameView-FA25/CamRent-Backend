@@ -1,7 +1,7 @@
 using System.Text.Json;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
-using CamRent_Application.Services.Models;
+using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
 
 namespace CamRent_Application.Services
