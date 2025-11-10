@@ -1,5 +1,6 @@
 ﻿using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -73,56 +74,48 @@ namespace CamRent_Api.Controllers
 			return BadRequest();
 		}
 
-		[HttpPost]
+		[HttpGet("GetCard")]
 		[Authorize(Policy = "Renter")]
-		public async Task<ActionResult<Guid>> CreateDraft([FromBody] CreateBookingRequest request)
+		public async Task<ActionResult<Cart>> GetCard()
 		{
-			var id = await _bookingService.CreateDraftAsync(request.RenterId, request.PickupAt, request.ReturnAt);
-			return CreatedAtAction(nameof(GetById), new { id }, id);
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			var booking = await _bookingService.GetCartByRenterIdAsync(Guid.Parse(userId));
+			if (booking == null) return NotFound();
+
+			return Ok(booking);
 		}
 
-
-
-		[HttpPost("{id:guid}/items")]
+		[HttpPost("AddToCart")]
 		[Authorize(Policy = "Renter")]
-		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
+		public async Task<IActionResult> AddToCart([FromBody] AddToCartRequest request)
 		{
-			await _bookingService.AddItemAsync(id, request.CameraId, request.AccessoryId, request.ComboId, request.Quantity, request.UnitPrice, request.DepositAmount);
-			return NoContent();
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var result = await _bookingService.AddToCart(Guid.Parse(userId), request.Id, request.Type, request.Quantity);
+			if (result > 0)
+			{
+				return NoContent();
+			}
+			return BadRequest();
 		}
 
-
-
-		[HttpPut("{id:guid}/times")]
+		[HttpPost("RemoveFromCart")]
 		[Authorize(Policy = "Renter")]
-		public async Task<IActionResult> UpdateTimes(Guid id, [FromBody] UpdateTimesRequest request)
+		public async Task<IActionResult> RemoveFromCart([FromBody] RemoveFromCartRequest request)
 		{
-			await _bookingService.UpdateTimesAsync(id, request.PickupAt, request.ReturnAt);
-			return NoContent();
-		}
-
-		[HttpPut("{id:guid}/submit")]
-		[Authorize(Policy = "Renter")]
-		public async Task<IActionResult> Submit(Guid id)
-		{
-			await _bookingService.SubmitForApprovalAsync(id);
-			return NoContent();
-		}
-
-		[HttpPut("{id:guid}/approve")]
-		[Authorize(Policy = "BranchManager")]
-		public async Task<IActionResult> Approve(Guid id)
-		{
-			await _bookingService.ApproveAsync(id);
-			return NoContent();
-		}
-
-		[HttpPut("{id:guid}/cancel")]
-		[Authorize(Policy = "Renter")]
-		public async Task<IActionResult> Cancel(Guid id)
-		{
-			await _bookingService.CancelAsync(id);
-			return NoContent();
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var result = await _bookingService.RemoveFromCart(Guid.Parse(userId), request.Id, request.Type);
+			if (result > 0)
+			{
+				return NoContent();
+			}
+			return BadRequest();
 		}
 
 		[HttpGet("{id:guid}/quote")]

@@ -1,6 +1,4 @@
 ﻿using CamRent_Api;
-using CamRent_Api.HostedServices;
-using CamRent_Api.Validators;
 using CamRent_Application;
 using CamRent_Infrastructure;
 using CamRent_Infrastructure.Persistence;
@@ -23,7 +21,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks();
 
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingRequestValidator>();
 
 const string CorsAllowAll = "AllowAll";
 builder.Services.AddCors(options =>
@@ -48,7 +45,6 @@ builder.Services
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VNPay"));
 
 // Hosted services
-builder.Services.AddHostedService<BookingStatusHostedService>();
 
 var app = builder.Build();
 

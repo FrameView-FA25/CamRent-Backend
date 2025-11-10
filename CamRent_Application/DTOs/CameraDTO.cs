@@ -17,12 +17,11 @@ namespace CamRent_Application.DTOs
 			public string Model { get; set; } = string.Empty;
 			public string? Variant { get; set; }
 			public string? SerialNumber { get; set; }
-			public Guid BranchId { get; set; }
-			public Branch Branch { get; set; } = default!;
+			public string BranchName { get; set; }
 
+			public BookingItemType BookingItemType => BookingItemType.Camera;
 			// Pricing base
 			public decimal BaseDailyRate { get; set; }
-			public decimal PlatformFeePercent { get; set; }
 
 			// Deposit policy: percent of EstimatedValueVnd, with caps
 			public decimal EstimatedValueVnd { get; set; }
