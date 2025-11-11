@@ -86,11 +86,13 @@ if (applyMigrations)
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Route gốc: chuyển sang Swagger hoặc trả JSON
-app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription(); // hoặc Results.Json(new { app="CamRent API", ok=true })
+// Public routes
+app.MapGet("/", () => Results.Redirect("/swagger"))
+   .AllowAnonymous()
+   .ExcludeFromDescription();
 
-// Health check
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health")
+   .AllowAnonymous();
 
 app.UseHttpsRedirection();
 
