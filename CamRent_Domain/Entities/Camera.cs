@@ -17,17 +17,17 @@ namespace CamRent_Domain.Entities
         public Branch Branch { get; set; } = default!;
 
         // Pricing base
-        public decimal BaseDailyRate { get; set; }
-        public decimal PlatformFeePercent { get; set; }
+        public decimal BaseDailyRate { get; set; } = 0;
+		public decimal PlatformFeePercent { get; set; } = 0;
 
-        // Deposit policy: percent of EstimatedValueVnd, with caps
-        public decimal EstimatedValueVnd { get; set; }
-        public decimal DepositPercent { get; set; }
-        public decimal? DepositCapMinVnd { get; set; }
-        public decimal? DepositCapMaxVnd { get; set; }
+		// Deposit policy: percent of EstimatedValueVnd, with caps
+		public decimal EstimatedValueVnd { get; set; } = 0;
+		public decimal DepositPercent { get; set; } = 0;
+		public decimal? DepositCapMinVnd { get; set; } = 0;
+        public decimal? DepositCapMaxVnd { get; set; } = 0;
 
-        public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
+        public ICollection<FileAsset>? Media { get; set; } = new List<FileAsset>();
         public string? SpecsJson { get; set; }
-        public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
+        public ICollection<DeviceCategoryLink>? Categories { get; set; } = new List<DeviceCategoryLink>();
     }
 }
