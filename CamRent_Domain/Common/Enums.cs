@@ -90,8 +90,9 @@ namespace CamRent_Domain.Common
         Draft = 1,
         Sent = 2,
         Signed = 3,
-        Cancelled = 4
-    }
+        Cancelled = 4,
+		Completed = 5
+	}
 
     public enum PaymentStatus
     {
