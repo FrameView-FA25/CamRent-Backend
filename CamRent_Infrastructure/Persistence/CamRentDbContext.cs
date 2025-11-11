@@ -22,6 +22,8 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<InspectionItem> InspectionItems => Set<InspectionItem>();
         public DbSet<ContractTemplate> ContractTemplates => Set<ContractTemplate>();
         public DbSet<ContractInstance> Contracts => Set<ContractInstance>();
+        public DbSet<ContractSigner> ContractSigners => Set<ContractSigner>();
+        public DbSet<ContractEvent> ContractEvents => Set<ContractEvent>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<DeliveryTask> DeliveryTasks => Set<DeliveryTask>();
         public DbSet<Wallet> Wallets => Set<Wallet>();
@@ -126,6 +128,16 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(c => c.Template)
                 .WithMany()
                 .HasForeignKey(c => c.TemplateId);
+
+            modelBuilder.Entity<ContractSigner>()
+                .HasOne(s => s.Contract)
+                .WithMany(c => c.Signers)
+                .HasForeignKey(s => s.ContractId);
+
+            modelBuilder.Entity<ContractEvent>()
+                .HasOne(e => e.Contract)
+                .WithMany(c => c.Events)
+                .HasForeignKey(e => e.ContractId);
 
             modelBuilder.Entity<DeliveryTask>()
                 .HasOne(t => t.Booking)
