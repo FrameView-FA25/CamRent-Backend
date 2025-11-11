@@ -33,6 +33,8 @@ namespace CamRent_Application
 			services.AddScoped<IUserService, UserService>();
 			services.AddScoped<IAIRecommendationService, AIRecommendationService>();
 			services.AddScoped<IVnPayService, VnPayService>();
+			services.AddScoped<IDisputeService, DisputeService>();
+			services.AddScoped<IContractSignatureProvider, MockSignatureProvider>();
 			return services;
 		}
 	}

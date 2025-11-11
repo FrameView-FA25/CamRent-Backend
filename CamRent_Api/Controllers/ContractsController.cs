@@ -11,10 +11,12 @@ namespace CamRent_Api.Controllers
 	{
     	private readonly IContractService _contractService;
     	private readonly IContractTemplateService _templateService;
-    	public ContractsController(IContractService contractService, IContractTemplateService templateService)
+    	private readonly IContractSignatureProvider _signatureProvider;
+    	public ContractsController(IContractService contractService, IContractTemplateService templateService, IContractSignatureProvider signatureProvider)
 		{
 			_contractService = contractService;
 			_templateService = templateService;
+			_signatureProvider = signatureProvider;
 		}
 
 		[HttpPost]
@@ -39,6 +41,22 @@ namespace CamRent_Api.Controllers
 		{
 			var pdf = await _templateService.GeneratePreviewPdfAsync(bookingId, HttpContext.RequestAborted);
 			return File(pdf, "application/pdf", $"Contract_{bookingId}.pdf");
+		}
+
+		[HttpPost("{id:guid}/init-sign")]
+		[Authorize]
+		public async Task<ActionResult<string>> InitSign(Guid id)
+		{
+			var url = await _signatureProvider.CreateEnvelopeAsync(id, HttpContext.RequestAborted);
+			return Ok(new { signUrl = url });
+		}
+
+		[HttpPost("webhook")]
+		[AllowAnonymous]
+		public async Task<IActionResult> Webhook([FromBody] string payload, [FromHeader(Name = "X-Signature")] string? sig)
+		{
+			await _signatureProvider.HandleWebhookAsync(payload, sig, HttpContext.RequestAborted);
+			return Ok();
 		}
 	}
 }
