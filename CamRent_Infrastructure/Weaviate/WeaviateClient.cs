@@ -12,6 +12,7 @@ namespace CamRent_Infrastructure.Weaviate
 		Task EnsureSchemaAsync(CancellationToken ct = default);
 		Task UpsertAsync(string @class, Guid id, object properties, float[]? vector = null, CancellationToken ct = default);
 		Task<WeaviateQueryResult> NearTextAsync(string @class, string query, int limit = 5, CancellationToken ct = default);
+		Task<WeaviateQueryResult> NearVectorAsync(string @class, float[] vector, int limit = 5, CancellationToken ct = default);
 	}
 
 	internal sealed class WeaviateClient : IWeaviateClient
@@ -52,11 +53,7 @@ namespace CamRent_Infrastructure.Weaviate
 			{
 				@class,
 				description = $"{@class} entity for semantic search",
-				vectorizer = "text2vec-openai", // Expect server-side vectorization; if not available, user can switch to 'none'
-				moduleConfig = new Dictionary<string, object>
-				{
-					{ "text2vec-openai", new Dictionary<string, object>() }
-				},
+				vectorizer = "none",
 				properties = new object[]
 				{
 					new { name = "name", dataType = new[] { "text" } },
@@ -120,6 +117,32 @@ namespace CamRent_Infrastructure.Weaviate
 			}
 			""";
 
+			var body = new { query = gql };
+			using var res = await _http.PostAsJsonAsync("/v1/graphql", body, JsonOptions, ct);
+			var text = await res.Content.ReadAsStringAsync(ct);
+			res.EnsureSuccessStatusCode();
+			return JsonSerializer.Deserialize<WeaviateQueryResult>(text, JsonOptions) ?? new WeaviateQueryResult();
+		}
+
+		public async Task<WeaviateQueryResult> NearVectorAsync(string @class, float[] vector, int limit = 5, CancellationToken ct = default)
+		{
+			var vectorString = string.Join(",", vector.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+			var gql = $$"""
+			{
+			  Get {
+			    {{@class}}(
+			      limit: {{limit}},
+			      nearVector: { vector: [{{vectorString}}] }
+			    ){
+			      _additional { id distance }
+			      name
+			      description
+			      category
+			      priceInfo
+			    }
+			  }
+			}
+			""";
 			var body = new { query = gql };
 			using var res = await _http.PostAsJsonAsync("/v1/graphql", body, JsonOptions, ct);
 			var text = await res.Content.ReadAsStringAsync(ct);
