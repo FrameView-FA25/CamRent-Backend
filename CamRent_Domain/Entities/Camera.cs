@@ -13,8 +13,8 @@ namespace CamRent_Domain.Entities
         public Guid? OwnerUserId { get; set; }
         public User? OwnerUser { get; set; }
 
-        public Guid BranchId { get; set; }
-        public Branch Branch { get; set; } = default!;
+        public Guid? BranchId { get; set; }
+        public Branch? Branch { get; set; } 
 
         // Pricing base
         public decimal BaseDailyRate { get; set; } = 0;

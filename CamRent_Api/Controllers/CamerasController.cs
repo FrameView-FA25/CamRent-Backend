@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -68,17 +69,20 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
+		[Authorize(Policy ="Owner")]
 		public async Task<IActionResult> CreateCamera([FromBody] CameraRequest cameraRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
-			var result = await _cameraService.CreateAsync(camera);
 			camera.OwnerUserId = Guid.Parse(userId);
-			camera.DepositPercent= 0.2m; // Default deposit percent
-			camera.PlatformFeePercent= 0.2m; // Default platform fee percent
-			camera.BaseDailyRate= 100000m; // Default base daily rate
+			camera.DepositPercent = 0.2m; // Default deposit percent
+			camera.PlatformFeePercent = 0.2m; // Default platform fee percent
+			camera.BaseDailyRate = 100000m; // Default base daily rate
+			camera.Ownership = OwnershipType.Owner;
+			var result = await _cameraService.CreateAsync(camera);
+			
 			return Ok();
 		}
 
