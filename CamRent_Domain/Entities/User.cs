@@ -27,6 +27,16 @@ namespace CamRent_Domain.Entities
         public ICollection<Booking> StaffBookings { get; set; } = new List<Booking>();
 	}
 
+    public class ResetPasswordToken : BaseEntity
+    {
+        public Guid UserId { get; set; }
+        public User User { get; set; } = default!;
+        public string Token { get; set; } = string.Empty; // random, single-use
+        public DateTime ExpiresAt { get; set; }
+        public DateTime? UsedAt { get; set; }
+        public bool IsUsed { get; set; }
+    }
+
     public class UserRoleMapping : BaseEntity
     {
         public Guid UserId { get; set; }
