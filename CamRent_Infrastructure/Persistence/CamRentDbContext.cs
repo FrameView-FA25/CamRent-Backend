@@ -39,6 +39,7 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
 		public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
+        public DbSet<ResetPasswordToken> ResetPasswordTokens => Set<ResetPasswordToken>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -223,6 +224,11 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(v => v.TargetUser)
                 .WithMany()
                 .HasForeignKey(v => v.TargetUserId);
+
+            modelBuilder.Entity<ResetPasswordToken>()
+                .HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId);
 
             modelBuilder.Entity<VerificationRequest>()
                 .HasOne(v => v.Branch)

@@ -14,9 +14,11 @@ namespace CamRent_Api.Controllers
 	public class AuthsController : ControllerBase
 	{
 		private readonly IAuthService _authService;
-		public AuthsController(IAuthService authService)
+		private readonly IPasswordResetService _passwordReset;
+		public AuthsController(IAuthService authService, IPasswordResetService passwordReset)
 		{
 			_authService = authService;
+			_passwordReset = passwordReset;
 		}
 		[AllowAnonymous]
 		[HttpPost("Login")]
@@ -63,6 +65,24 @@ namespace CamRent_Api.Controllers
 			if (!result)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
+		}
+
+		[AllowAnonymous]
+		[HttpPost("forgot-password")]
+		public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
+		{
+			await _passwordReset.RequestResetAsync(req.Email, req.ContinueUrl, HttpContext.RequestAborted);
+			// Always 200 to avoid user enumeration
+			return Ok(new { ok = true });
+		}
+
+		[AllowAnonymous]
+		[HttpPost("reset-password")]
+		public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+		{
+			var ok = await _passwordReset.ResetAsync(req.Email, req.Token, req.NewPassword, HttpContext.RequestAborted);
+			if (!ok) return BadRequest(new { ok = false });
+			return Ok(new { ok = true });
 		}
 	}
 }
