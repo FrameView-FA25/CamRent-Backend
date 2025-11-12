@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using CamRent_Infrastructure.Email;
 using CamRent_Application.Common;
 using CamRent_Application.IServices;
+using CamRent_Infrastructure.Embeddings;
 
 namespace CamRent_Infrastructure
 {
@@ -47,6 +48,10 @@ namespace CamRent_Infrastructure
 
 			// VNPay
 			services.Configure<VnPayOptions>(config.GetSection("VNPay"));
+
+			// Embeddings (Gemini)
+			services.Configure<GeminiOptions>(config.GetSection("Gemini"));
+			services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
 			return services;
 		}
 	}
