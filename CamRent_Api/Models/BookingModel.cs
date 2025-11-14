@@ -18,14 +18,14 @@ namespace CamRent_Api.Models
 		public class AddToCartRequest
 		{
 			public Guid Id { get; set; }
-			public BookingItemType Type { get; set; }
+			public ItemType Type { get; set; }
 			public int Quantity { get; set; } = 1;
 		}
 
 		public class RemoveFromCartRequest
 		{
 			public Guid Id { get; set; }
-			public BookingItemType Type { get; set; }
+			public ItemType Type { get; set; }
 		}
 
 		public class SettlementRequest

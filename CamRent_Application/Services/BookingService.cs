@@ -175,7 +175,7 @@ namespace CamRent_Application.Services
 			return results;
 		}
 
-		public async Task<int> AddToCart(Guid renterId, Guid id, BookingItemType type, int quantity)
+		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity)
 		{
 			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
@@ -195,7 +195,7 @@ namespace CamRent_Application.Services
 
 			BookingItem? bookingItem = null;
 
-			if (type == BookingItemType.Camera)
+			if (type == ItemType.Camera)
 			{
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
@@ -210,7 +210,7 @@ namespace CamRent_Application.Services
 					DepositAmount = camera.EstimatedValueVnd * camera.DepositPercent
 				};
 			}
-			if (type == BookingItemType.Accessory)
+			if (type == ItemType.Accessory)
 			{
 				var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Accessory not found");
@@ -225,7 +225,7 @@ namespace CamRent_Application.Services
 					DepositAmount = accessory.EstimatedValueVnd * accessory.DepositPercent
 				};
 			}
-			if (type == BookingItemType.Combo)
+			if (type == ItemType.Combo)
 			{
 				var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Combo not found");
@@ -248,16 +248,16 @@ namespace CamRent_Application.Services
 		}
 
 
-		public async Task<int> RemoveFromCart(Guid renterId, Guid id, BookingItemType type)
+		public async Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type)
 		{
 			var booking = _unitOfWork.Repository<Booking>().ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
 				).Result.FirstOrDefault();
 			var items = _unitOfWork.Repository<BookingItem>().ListAsync(
 				filter: bi => bi.BookingId == booking!.Id &&
-				((type == BookingItemType.Camera && bi.CameraId == id) ||
-				(type == BookingItemType.Accessory && bi.AccessoryId == id) ||
-				(type == BookingItemType.Combo && bi.ComboId == id))
+				((type == ItemType.Camera && bi.CameraId == id) ||
+				(type == ItemType.Accessory && bi.AccessoryId == id) ||
+				(type == ItemType.Combo && bi.ComboId == id))
 				).Result.FirstOrDefault();
 			await _unitOfWork.Repository<BookingItem>().DeleteAsync(items.Id);
 			return await _unitOfWork.Complete();

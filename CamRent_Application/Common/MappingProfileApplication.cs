@@ -6,6 +6,7 @@ using static CamRent_Application.DTOs.AccessoryDTO;
 using static CamRent_Application.DTOs.BookingDTO;
 using static CamRent_Application.DTOs.BranchDTO;
 using static CamRent_Application.DTOs.CameraDTO;
+using static CamRent_Application.DTOs.InspectionDTO;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
 
 namespace CamRent_Application.Common
@@ -39,14 +40,14 @@ namespace CamRent_Application.Common
 					: null
 				))
 
-				// Map loại item (nếu em có enum BookingItemType)
+				// Map loại item (nếu em có enum ItemType)
 				.ForMember(d => d.ItemType, opt => opt.MapFrom(s =>
 					s.CameraId != null
-						? BookingItemType.Camera.ToString()
+						? ItemType.Camera.ToString()
 					: s.AccessoryId != null
-						? BookingItemType.Accessory.ToString()
+						? ItemType.Accessory.ToString()
 					: s.ComboId != null
-						? BookingItemType.Combo.ToString()
+						? ItemType.Combo.ToString()
 					: null
 				)); ;
 			CreateMap<Booking,Cart>();
@@ -80,6 +81,16 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.Address,
 					opt => opt.MapFrom(s => s.Branch.Address.District + " " + s.Branch.Address.Province));
 			CreateMap<CreateVerificationRequestDTO, VerificationRequest>();
+			CreateMap<Inspection, InspectionResponseDTO>();
+			CreateMap<InspectionRequest, Inspection>()
+				 .ForMember(d => d.BookingId,
+					opt => opt.MapFrom(s => s.Type == InspectionType.Booking
+						? s.InspectionTypeId
+						: null))
+				 .ForMember(d => d.VerifyRequestId,
+					opt => opt.MapFrom(s => s.Type == InspectionType.Verification
+						? s.InspectionTypeId
+						: null));
 		}
 	}
 }

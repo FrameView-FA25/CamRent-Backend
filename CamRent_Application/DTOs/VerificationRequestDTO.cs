@@ -11,6 +11,7 @@ namespace CamRent_Application.DTOs
 	{
 		public class VerificationResponseDTO
 		{
+			public Guid Id { get; set; }
 			public string? Name { get; set; }
 			public string? PhoneNumber { get; set; }
 			public DateTime InspectionDate { get; set; }

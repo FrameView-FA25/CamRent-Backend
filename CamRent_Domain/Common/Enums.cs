@@ -23,7 +23,7 @@ namespace CamRent_Domain.Common
 		Accessory = 2,
 		UserAvatar = 3,
         Combo = 4,
-		InspectionReport = 5,
+		Inspection = 5,
         ContractDocument = 6
 	}
 	public enum DeviceCategory
@@ -80,8 +80,8 @@ namespace CamRent_Domain.Common
 
     public enum InspectionType
     {
-        Pre = 1,
-        Post = 2
+        Booking = 1,
+		Verification = 2
     }
 
 
@@ -120,7 +120,7 @@ namespace CamRent_Domain.Common
         Flagged       // Bị báo cáo
     }
 
-    public enum BookingItemType
+    public enum ItemType
     {
         Camera = 1,
         Accessory = 2,

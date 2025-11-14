@@ -20,7 +20,7 @@ namespace CamRent_Application.DTOs
 
 			public string BranchName { get; set; }
 
-			public BookingItemType BookingItemType => BookingItemType.Accessory;
+			public ItemType ItemType => ItemType.Accessory;
 
 			// Pricing base
 			public decimal BaseDailyRate { get; set; }

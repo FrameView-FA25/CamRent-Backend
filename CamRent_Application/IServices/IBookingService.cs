@@ -13,9 +13,9 @@ namespace CamRent_Application.IServices
 		Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId);
 		Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId);
 
-		Task<int> AddToCart(Guid renterId, Guid id, BookingItemType type, int quantity);
+		Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity);
 
-		Task<int> RemoveFromCart(Guid renterId, Guid id, BookingItemType type);
+		Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type);
 		Task<Cart?> GetCartByRenterIdAsync(Guid renterId);
 		Task<List<BookingStatusDTO>> GetBookingStatusesAsync();
 	}

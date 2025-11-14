@@ -19,7 +19,7 @@ namespace CamRent_Application.DTOs
 			public string? SerialNumber { get; set; }
 			public string BranchName { get; set; }
 
-			public BookingItemType BookingItemType => BookingItemType.Camera;
+			public ItemType ItemType => ItemType.Camera;
 			// Pricing base
 			public decimal BaseDailyRate { get; set; }
 
