@@ -59,6 +59,11 @@ namespace CamRent_Api
 			{
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
 
+				c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+				{
+					Type = "string",
+					Format = "binary"
+				});
 				// FIX schemaId conflict
 				c.CustomSchemaIds(type =>
 				{
