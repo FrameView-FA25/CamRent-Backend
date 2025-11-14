@@ -39,7 +39,7 @@ builder.Services
 	.AddApplicationDI()
 	.AddSwaggerGen()
 	.AddJwtAuthentication(builder.Configuration)
-	.AddApiDI();
+	.AddApiDI(builder.Configuration);
 
 // Options
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VNPay"));

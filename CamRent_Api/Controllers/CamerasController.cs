@@ -16,10 +16,12 @@ namespace CamRent_Api.Controllers
 	{
 		private readonly ICameraService _cameraService;
 		private readonly IMapper _autoMapper;
-		public CamerasController( ICameraService cameraService, IMapper autoMapper)
+		private readonly IFileStorageService _fileStorageService;
+		public CamerasController( ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService)
 		{
 			_cameraService = cameraService;
 			_autoMapper = autoMapper;
+			_fileStorageService = fileStorageService;
 		}
 
 		[HttpGet]
@@ -69,21 +71,47 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
-		[Authorize(Policy ="Owner")]
-		public async Task<IActionResult> CreateCamera([FromBody] CameraRequest cameraRequest)
+		[Authorize(Policy = "Owner")]
+		[Consumes("multipart/form-data")]
+		public async Task<IActionResult> CreateCamera([FromForm] CameraRequest cameraRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
+
+			if (string.IsNullOrEmpty(userId))
+			{
+				return Unauthorized();
+			}
+
+			// Map field text sang entity
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
 			camera.OwnerUserId = Guid.Parse(userId);
-			camera.DepositPercent = 0.2m; // Default deposit percent
-			camera.PlatformFeePercent = 0.2m; // Default platform fee percent
-			camera.BaseDailyRate = 100000m; // Default base daily rate
-			camera.Ownership = OwnershipType.Owner;
+
+			camera.Media ??= new List<FileAsset>();
+
+			// ✅ Upload từng file lên Cloudinary và tạo FileAsset
+			if (cameraRequest.MediaFiles != null)
+			{
+				foreach (var file in cameraRequest.MediaFiles)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: camera.Id,
+						ownerType: FileOwnerType.Camera,
+						folder: $"camrent/cameras/{camera.Id}",     // tuỳ bạn muốn đổi
+						label: $"{camera.Brand} {camera.Model}"    // gắn nhãn cho dễ tìm
+					);
+					camera.Media.Add(asset);
+				}
+			}
+
 			var result = await _cameraService.CreateAsync(camera);
-			
-			return Ok();
+
+			// Có thể trả về camera vừa tạo (DTO) thay vì Ok()
+			return Ok(new { success = result > 0 });
 		}
 
 		[HttpPut("{id:guid}")]

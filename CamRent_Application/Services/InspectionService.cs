@@ -24,27 +24,12 @@ namespace CamRent_Application.Services
 				Type = type,
 				Notes = notes ?? string.Empty,
 				PerformedAt = DateTime.UtcNow,
-				PerformedByUserId = performedByUserId,
+				StaffId = performedByUserId,
 				BranchId = branchId,
 				CreatedAt = DateTime.UtcNow,
 				IsDeleted = false
 			};
 			await _unitOfWork.Repository<Inspection>().AddAsync(inspection);
-
-			foreach (var it in items)
-			{
-				var item = new InspectionItem
-				{
-					Id = Guid.NewGuid(),
-					InspectionId = inspection.Id,
-					Section = it.section,
-					Label = it.label,
-					Value = it.value,
-					Passed = it.passed,
-					Notes = it.notes
-				};
-				await _unitOfWork.Repository<InspectionItem>().AddAsync(item);
-			}
 
 			// status transitions
 			if (type == InspectionType.Pre && booking.Status == BookingStatus.Confirmed)
