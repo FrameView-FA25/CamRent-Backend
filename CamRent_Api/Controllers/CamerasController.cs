@@ -109,9 +109,12 @@ namespace CamRent_Api.Controllers
 			}
 
 			var result = await _cameraService.CreateAsync(camera);
-
+			if(result <= 0)
+			{
+				return BadRequest("Failed to create camera.");
+			}
 			// Có thể trả về camera vừa tạo (DTO) thay vì Ok()
-			return Ok(new { success = result > 0 });
+			return Ok(new { success = "Create camera successful" });
 		}
 
 		[HttpPut("{id:guid}")]
