@@ -87,6 +87,7 @@ namespace CamRent_Api.Controllers
 			// Map field text sang entity
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
 			camera.OwnerUserId = Guid.Parse(userId);
+			var result = await _cameraService.CreateAsync(camera);
 
 			camera.Media ??= new List<FileAsset>();
 
@@ -108,7 +109,6 @@ namespace CamRent_Api.Controllers
 				}
 			}
 
-			var result = await _cameraService.CreateAsync(camera);
 			if(result <= 0)
 			{
 				return BadRequest("Failed to create camera.");
