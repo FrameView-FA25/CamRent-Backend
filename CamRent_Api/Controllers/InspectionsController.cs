@@ -16,19 +16,6 @@ namespace CamRent_Api.Controllers
 			_inspectionService = inspectionService;
 		}
 
-		[HttpPost]
-		[Authorize(Policy = "Staff")]
-		public async Task<ActionResult<Guid>> Create([FromBody] CreateInspectionRequest request)
-		{
-			var id = await _inspectionService.CreateInspectionAsync(
-				request.BookingId,
-				request.Type,
-				request.PerformedByUserId,
-				request.BranchId,
-				request.Notes,
-				request.Items.Select(i => (i.Section, i.Label, i.Value, i.Passed, i.Notes))
-			);
-			return Ok(id);
-		}
+		
 	}
 }

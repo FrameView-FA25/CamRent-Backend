@@ -215,9 +215,9 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(bi => bi.ComboId);
 
             modelBuilder.Entity<VerificationRequest>()
-                .HasOne(v => v.TargetUser)
+                .HasOne(v => v.Staff)
                 .WithMany()
-                .HasForeignKey(v => v.TargetUserId);
+                .HasForeignKey(v => v.StaffId);
 
             modelBuilder.Entity<ResetPasswordToken>()
                 .HasOne(t => t.User)
@@ -240,9 +240,9 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(i => i.VerifyRequestId);
 
             modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Staff)
+                .HasOne(i => i.Manager)
                 .WithMany()
-                .HasForeignKey(i => i.StaffId);
+                .HasForeignKey(i => i.ManagerId);
 
             modelBuilder.Entity<Inspection>()
                 .HasOne(i => i.Branch)

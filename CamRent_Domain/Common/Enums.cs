@@ -84,6 +84,7 @@ namespace CamRent_Domain.Common
         Post = 2
     }
 
+
     public enum DeliveryTaskStatus
     {
         Assigned = 1,
