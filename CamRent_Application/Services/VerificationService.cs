@@ -17,7 +17,6 @@ namespace CamRent_Application.Services
 			var request = new VerificationRequest
 			{
 				Id = Guid.NewGuid(),
-				Type = targetUserId.HasValue ? "user_kyc" : "device_verification",
 				Status = "pending",
 				TargetUserId = targetUserId,
 				BranchId = branchId,
