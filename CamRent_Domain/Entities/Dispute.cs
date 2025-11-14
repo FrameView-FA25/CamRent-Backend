@@ -1,4 +1,5 @@
 using CamRent_Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CamRent_Domain.Entities
 {
@@ -13,7 +14,8 @@ namespace CamRent_Domain.Entities
         public string Status { get; set; } = "open"; // open, under_review, resolved, rejected
 
         public ICollection<DisputeItem> Items { get; set; } = new List<DisputeItem>();
-        public ICollection<FileAsset> Evidence { get; set; } = new List<FileAsset>();
+		[NotMapped]
+		public ICollection<FileAsset> Evidence { get; set; } = new List<FileAsset>();
 
         // Snapshot tổng số tiền người thuê phải trả cho dispute (sum các DisputeItem.Amount)
         public decimal TotalAmount { get; set; }

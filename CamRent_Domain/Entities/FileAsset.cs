@@ -1,4 +1,4 @@
-using CamRent_Domain.Common;
+﻿using CamRent_Domain.Common;
 
 namespace CamRent_Domain.Entities
 {
@@ -10,6 +10,11 @@ namespace CamRent_Domain.Entities
         public string? Label { get; set; }
         public string? Provider { get; set; }
         public string? ProviderKey { get; set; }
-    }
+		// 🔹 Ai là chủ file (Camera / Accessory / User / ...)
+		public Guid? OwnerId { get; set; }
+
+		// 🔹 Loại owner
+		public FileOwnerType? OwnerType { get; set; }
+	}
 }
 

@@ -17,7 +17,15 @@ namespace CamRent_Domain.Common
         Ban = 0,
         Active = 1,
 	}
-
+	public enum FileOwnerType
+	{
+		Camera = 1,
+		Accessory = 2,
+		UserAvatar = 3,
+        Combo = 4,
+		InspectionReport = 5,
+        ContractDocument = 6
+	}
 	public enum DeviceCategory
     {
         Camera = 1,

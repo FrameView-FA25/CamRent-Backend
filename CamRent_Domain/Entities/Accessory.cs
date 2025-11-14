@@ -1,4 +1,5 @@
 using CamRent_Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CamRent_Domain.Entities
 {
@@ -26,7 +27,8 @@ namespace CamRent_Domain.Entities
         public decimal? DepositCapMinVnd { get; set; }
         public decimal? DepositCapMaxVnd { get; set; }
 
-        public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
+		[NotMapped]
+		public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
         public string? SpecsJson { get; set; }
         public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
     }

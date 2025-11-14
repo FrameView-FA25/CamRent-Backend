@@ -1,4 +1,5 @@
 using CamRent_Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CamRent_Domain.Entities
 {
@@ -25,6 +26,8 @@ namespace CamRent_Domain.Entities
         public ICollection<UserBranchMembership> BranchMemberships { get; set; } = new List<UserBranchMembership>();
         public ICollection<Booking> RenterBookings { get; set; } = new List<Booking>();
         public ICollection<Booking> StaffBookings { get; set; } = new List<Booking>();
+		[NotMapped]
+		public ICollection<FileAsset> Avatar { get; set; } = new List<FileAsset>();
 	}
 
     public class ResetPasswordToken : BaseEntity
