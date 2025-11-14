@@ -78,6 +78,25 @@ namespace CamRent_Api.Controllers
 			return BadRequest(new { ok = false });
 		}
 
+		// VNPay IPN (server-to-server)
+		[HttpPost("vnpay-ipn")]
+		[AllowAnonymous]
+		public async Task<IActionResult> VnPayIpn()
+		{
+			// VNPay IPN gửi form-encoded hoặc query
+			var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			if (HttpContext.Request.HasFormContentType)
+			{
+				var form = await HttpContext.Request.ReadFormAsync();
+				foreach (var kv in form) dict[kv.Key] = kv.Value.ToString();
+			}
+			foreach (var kv in HttpContext.Request.Query) dict[kv.Key] = kv.Value.ToString();
+
+			var ok = await _vnPayService.ProcessIpnAsync(dict, HttpContext.RequestAborted);
+			// VNPay yêu cầu trả "OK" nếu nhận thành công
+			return Content(ok ? "OK" : "ERROR");
+		}
+
 		// Test-only: confirm capture after manual transfer verification
 		[HttpPost("{id:guid}/confirm-test")]
 		[Authorize(Policy = "BranchManager")]

@@ -29,6 +29,7 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Transaction> Transactions => Set<Transaction>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<PaymentLine> PaymentLines => Set<PaymentLine>();
+        public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
         public DbSet<Dispute> Disputes => Set<Dispute>();
         public DbSet<DisputeItem> DisputeItems => Set<DisputeItem>();
         public DbSet<Category> Categories => Set<Category>();
@@ -158,6 +159,11 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(l => l.Payment)
                 .WithMany(p => p.Lines)
                 .HasForeignKey(l => l.PaymentId);
+
+            modelBuilder.Entity<PaymentEvent>(e =>
+            {
+                e.HasIndex(x => x.RequestHash).IsUnique();
+            });
 
             modelBuilder.Entity<DisputeItem>()
                 .HasOne(i => i.Dispute)

@@ -12,6 +12,9 @@ namespace CamRent_Application.IServices
 
 		// Validate return query from VNPay and update payment status accordingly
 		Task<bool> ProcessReturnAsync(IDictionary<string, string> queryParams, CancellationToken ct = default);
+
+		// Handle VNPay IPN (server-to-server)
+		Task<bool> ProcessIpnAsync(IDictionary<string, string> queryParams, CancellationToken ct = default);
 	}
 }
 

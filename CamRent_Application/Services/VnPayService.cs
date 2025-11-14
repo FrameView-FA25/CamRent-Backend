@@ -87,6 +87,91 @@ namespace CamRent_Application.Services
 			}
 		}
 
+		// Server-to-server IPN with idempotency
+		public async Task<bool> ProcessIpnAsync(IDictionary<string, string> queryParams, CancellationToken ct = default)
+		{
+			// Canonicalize and verify hash
+			var receivedHash = queryParams.TryGetValue("vnp_SecureHash", out var h) ? h : string.Empty;
+			var sorted = new SortedDictionary<string, string>(queryParams
+				.Where(kv => !string.Equals(kv.Key, "vnp_SecureHash", StringComparison.OrdinalIgnoreCase) && kv.Key.StartsWith("vnp_"))
+				.ToDictionary(kv => kv.Key, kv => kv.Value));
+			var dataToSign = BuildDataToSign(sorted);
+			var computed = HmacSHA512(_options.HashSecret, dataToSign);
+			var requestHash = Sha256(dataToSign);
+
+			// Idempotency
+			var existing = (await _uow.Repository<PaymentEvent>().ListAsync(e => e.RequestHash == requestHash)).FirstOrDefault();
+			if (existing != null)
+			{
+				return string.Equals(existing.Status, "verified", StringComparison.OrdinalIgnoreCase);
+			}
+
+			// Create audit event
+			var ev = new PaymentEvent
+			{
+				Id = Guid.NewGuid(),
+				Type = "ipn",
+				Status = "received",
+				RequestHash = requestHash,
+				RawData = string.Join("&", queryParams.Select(kv => $"{kv.Key}={kv.Value}")),
+				ResponseCode = queryParams.TryGetValue("vnp_ResponseCode", out var rc) ? rc : null,
+				TransactionNo = queryParams.TryGetValue("vnp_TransactionNo", out var tn) ? tn : null,
+				BankCode = queryParams.TryGetValue("vnp_BankCode", out var bc) ? bc : null,
+				CardType = queryParams.TryGetValue("vnp_CardType", out var ct2) ? ct2 : null,
+				Amount = queryParams.TryGetValue("vnp_Amount", out var am) && long.TryParse(am, out var lam) ? lam / 100m : null,
+				CreatedAt = DateTime.UtcNow
+			};
+			await _uow.Repository<PaymentEvent>().AddAsync(ev);
+
+			// Verify signature
+			if (!string.Equals(receivedHash, computed, StringComparison.OrdinalIgnoreCase))
+			{
+				ev.Status = "failed";
+				await _uow.Repository<PaymentEvent>().UpdateAsync(ev);
+				await _uow.Complete();
+				return false;
+			}
+
+			// Extract ids and amount
+			var txnRef = queryParams.TryGetValue("vnp_TxnRef", out var refValue) ? refValue : string.Empty;
+			if (!Guid.TryParseExact(txnRef, "N", out var paymentId))
+			{
+				ev.Status = "failed";
+				await _uow.Repository<PaymentEvent>().UpdateAsync(ev);
+				await _uow.Complete();
+				return false;
+			}
+			ev.PaymentId = paymentId;
+
+			var payment = await _uow.Repository<Payment>().GetByIdAsync(paymentId);
+			if (payment == null)
+			{
+				ev.Status = "failed";
+				await _uow.Repository<PaymentEvent>().UpdateAsync(ev);
+				await _uow.Complete();
+				return false;
+			}
+
+			var responseCode = queryParams.TryGetValue("vnp_ResponseCode", out var code) ? code : string.Empty;
+			var amountOk = ev.Amount.HasValue && ev.Amount.Value == payment.AuthorizedAmount;
+
+			if (responseCode == "00" && amountOk)
+			{
+				payment.Status = PaymentStatus.Captured;
+				payment.CapturedAmount = payment.AuthorizedAmount;
+				await _uow.Repository<Payment>().UpdateAsync(payment);
+				ev.Status = "verified";
+			}
+			else
+			{
+				ev.Status = "failed";
+			}
+
+			await _uow.Repository<PaymentEvent>().UpdateAsync(ev);
+			await _uow.Complete();
+			return ev.Status == "verified";
+		}
+
 		private static string BuildQuery(SortedDictionary<string, string> dict)
 		{
 			return string.Join("&", dict.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
@@ -102,6 +187,13 @@ namespace CamRent_Application.Services
 			using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(key));
 			var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
 			return BitConverter.ToString(hash).Replace("-", string.Empty);
+		}
+
+		private static string Sha256(string data)
+		{
+			using var sha = SHA256.Create();
+			var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(data));
+			return BitConverter.ToString(bytes).Replace("-", string.Empty);
 		}
 	}
 }
