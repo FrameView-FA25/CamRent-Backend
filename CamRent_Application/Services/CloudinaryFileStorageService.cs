@@ -61,6 +61,7 @@ namespace CamRent_Application.Services
 				OwnerType = ownerType
 			};
 			await _unitOfWork.Repository<FileAsset>().AddAsync(asset);
+			await _unitOfWork.Complete();
 			return asset;
 		}
 
