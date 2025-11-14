@@ -15,12 +15,12 @@ namespace CamRent_Domain.Entities
         public DateTime? PerformedAt { get; set; }
 		public string? RenterSignatureUrl { get; set; }
 		public string? StaffSignatureUrl { get; set; }
-		public Guid BookingId { get; set; }
-        public Booking Booking { get; set; } = default!;
-		public Guid VerifyRequestId { get; set; }
-		public VerificationRequest VerifyRequest { get; set; }
-		public Guid? StaffId { get; set; }
-        public User? Staff { get; set; }
+		public Guid? BookingId { get; set; }
+        public Booking? Booking { get; set; } = default!;
+		public Guid? VerifyRequestId { get; set; }
+		public VerificationRequest? VerifyRequest { get; set; }
+		public Guid? ManagerId { get; set; }
+        public User? Manager { get; set; }
         public Guid? BranchId { get; set; }
         public Branch? Branch { get; set; }
 		[NotMapped]

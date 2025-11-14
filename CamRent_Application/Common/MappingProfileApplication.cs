@@ -6,6 +6,7 @@ using static CamRent_Application.DTOs.AccessoryDTO;
 using static CamRent_Application.DTOs.BookingDTO;
 using static CamRent_Application.DTOs.BranchDTO;
 using static CamRent_Application.DTOs.CameraDTO;
+using static CamRent_Application.DTOs.VerificationRequestDTO;
 
 namespace CamRent_Application.Common
 {
@@ -69,6 +70,16 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(s => s.SizeBytes))
 				.ForMember(d => d.Label,
 					opt => opt.MapFrom(s => s.Label));
+			CreateMap<VerificationRequest, VerificationResponseDTO>()
+				.ForMember(d => d.StaffId,
+					opt => opt.MapFrom(s => s.StaffId))
+				.ForMember(d => d.StaffName,
+					opt => opt.MapFrom(s => s.Staff.FullName))
+				.ForMember(d => d.BranchName,
+					opt => opt.MapFrom(s => s.Branch.Name))
+				.ForMember(d => d.Address,
+					opt => opt.MapFrom(s => s.Branch.Address.District + " " + s.Branch.Address.Province));
+			CreateMap<CreateVerificationRequestDTO, VerificationRequest>();
 		}
 	}
 }

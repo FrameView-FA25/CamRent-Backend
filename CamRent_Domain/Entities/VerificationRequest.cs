@@ -9,8 +9,8 @@ namespace CamRent_Domain.Entities
 		public DateTime InspectionDate { get; set; }
 		public string Status { get; set; } = "pending"; // pending, approved, rejected
 
-		public Guid? TargetUserId { get; set; }
-        public User? TargetUser { get; set; }
+		public Guid? StaffId { get; set; }
+        public User? Staff { get; set; }
         
         public Guid? BranchId { get; set; }
         public Branch? Branch { get; set; }
