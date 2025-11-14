@@ -19,7 +19,6 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Accessory> Accessories => Set<Accessory>();
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
-        public DbSet<InspectionItem> InspectionItems => Set<InspectionItem>();
         public DbSet<ContractTemplate> ContractTemplates => Set<ContractTemplate>();
         public DbSet<ContractInstance> Contracts => Set<ContractInstance>();
         public DbSet<ContractSigner> ContractSigners => Set<ContractSigner>();
@@ -114,11 +113,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(b => b.Branch)
                 .WithMany(br => br.Bookings)
                 .HasForeignKey(b => b.BranchId);
-
-			modelBuilder.Entity<InspectionItem>()
-                .HasOne(i => i.Inspection)
-                .WithMany(p => p.Items)
-                .HasForeignKey(i => i.InspectionId);
 
             modelBuilder.Entity<ContractInstance>()
                 .HasOne(c => c.Booking)
@@ -237,7 +231,7 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<Inspection>()
                 .HasOne(i => i.Booking)
-                .WithMany()
+                .WithMany(b => b.Inspections)
                 .HasForeignKey(i => i.BookingId);
 
             modelBuilder.Entity<Inspection>()
@@ -246,9 +240,9 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(i => i.VerifyRequestId);
 
             modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.PerformedByUser)
+                .HasOne(i => i.Staff)
                 .WithMany()
-                .HasForeignKey(i => i.PerformedByUserId);
+                .HasForeignKey(i => i.StaffId);
 
             modelBuilder.Entity<Inspection>()
                 .HasOne(i => i.Branch)
