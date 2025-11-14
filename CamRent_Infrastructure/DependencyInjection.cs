@@ -41,6 +41,8 @@ namespace CamRent_Infrastructure
 				}
 			});
 			services.AddSingleton<IVectorStore, WeaviateVectorStore>();
+			services.AddSingleton<IIndexingService, IndexingBackgroundService>();
+			services.AddHostedService(sp => (IndexingBackgroundService)sp.GetRequiredService<IIndexingService>());
 
 			// Email
 			services.Configure<EmailOptions>(config.GetSection("Email"));

@@ -7,9 +7,11 @@ namespace CamRent_Application.Services
 	public class ComboService : IComboService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		public ComboService(IUnitOfWork unitOfWork)
+		private readonly IIndexingService _indexing;
+		public ComboService(IUnitOfWork unitOfWork, IIndexingService indexing)
 		{
 			_unitOfWork = unitOfWork;
+			_indexing = indexing;
 		}
 
 		public async Task<Guid> CreateAsync(string name, string? description, decimal? priceOverride)
@@ -17,6 +19,7 @@ namespace CamRent_Application.Services
 			var combo = new Combo { Id = Guid.NewGuid(), Name = name, Description = description, PriceOverride = priceOverride, CreatedAt = DateTime.UtcNow };
 			await _unitOfWork.Repository<Combo>().AddAsync(combo);
 			await _unitOfWork.Complete();
+			_indexing.EnqueueUpsert("Combo", combo.Id);
 			return combo.Id;
 		}
 
@@ -27,12 +30,15 @@ namespace CamRent_Application.Services
 			var item = new ComboItem { Id = Guid.NewGuid(), ComboId = comboId, CameraId = cameraId, AccessoryId = accessoryId, Quantity = quantity, CreatedAt = DateTime.UtcNow };
 			await _unitOfWork.Repository<ComboItem>().AddAsync(item);
 			await _unitOfWork.Complete();
+			_indexing.EnqueueUpsert("Combo", comboId);
 		}
 
 		public async Task RemoveItemAsync(Guid comboItemId)
 		{
+			var item = await _unitOfWork.Repository<ComboItem>().GetByIdAsync(comboItemId) ?? throw new InvalidOperationException("Combo item not found");
 			await _unitOfWork.Repository<ComboItem>().DeleteAsync(comboItemId);
 			await _unitOfWork.Complete();
+			_indexing.EnqueueUpsert("Combo", item.ComboId);
 		}
 
 		public async Task<(Guid id, string name, string? description, decimal? priceOverride, List<(Guid? cameraId, Guid? accessoryId, int quantity)> items)> GetAsync(Guid comboId)

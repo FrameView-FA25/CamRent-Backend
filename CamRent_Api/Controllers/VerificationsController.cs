@@ -19,7 +19,7 @@ namespace CamRent_Api.Controllers
 			_verificationService = verificationService;
 		}
 		[HttpGet("get_by_user_id")]
-		[Authorize(Roles = "2,3,4")]
+		[Authorize]
 		public async Task<IActionResult> GetAllByUserId()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)

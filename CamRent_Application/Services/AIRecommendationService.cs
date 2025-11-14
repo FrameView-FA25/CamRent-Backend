@@ -10,11 +10,13 @@ namespace CamRent_Application.Services
 	{
 		private readonly IUnitOfWork _uow;
 		private readonly IVectorStore _vector;
+		private readonly IEmbeddingService _embed;
 
-		public AIRecommendationService(IUnitOfWork uow, IVectorStore vector)
+		public AIRecommendationService(IUnitOfWork uow, IVectorStore vector, IEmbeddingService embed)
 		{
 			_uow = uow;
 			_vector = vector;
+			_embed = embed;
 		}
 
 		public async Task ReindexAllAsync(CancellationToken ct = default)
@@ -32,7 +34,9 @@ namespace CamRent_Application.Services
 					{ "category", "Camera" },
 					{ "priceInfo", $"BaseDailyRate: {c.BaseDailyRate:N0} VND, Deposit%: {c.DepositPercent}" }
 				};
-				await _vector.UpsertAsync(new VectorUpsertItem { Id = c.Id, Class = "Camera", Properties = props }, ct);
+				var text = $"{props["name"]}. {props["description"]}. {props["category"]}. {props["priceInfo"]}";
+				var vec = await _embed.EmbedAsync(text, ct);
+				await _vector.UpsertAsync(new VectorUpsertItem { Id = c.Id, Class = "Camera", Properties = props, Vector = vec }, ct);
 			}
 
 			// Accessories
@@ -46,7 +50,9 @@ namespace CamRent_Application.Services
 					{ "category", "Accessory" },
 					{ "priceInfo", $"BaseDailyRate: {a.BaseDailyRate:N0} VND, Deposit%: {a.DepositPercent}" }
 				};
-				await _vector.UpsertAsync(new VectorUpsertItem { Id = a.Id, Class = "Accessory", Properties = props }, ct);
+				var text = $"{props["name"]}. {props["description"]}. {props["category"]}. {props["priceInfo"]}";
+				var vec = await _embed.EmbedAsync(text, ct);
+				await _vector.UpsertAsync(new VectorUpsertItem { Id = a.Id, Class = "Accessory", Properties = props, Vector = vec }, ct);
 			}
 
 			// Combos
@@ -68,7 +74,9 @@ namespace CamRent_Application.Services
 					{ "category", "Combo" },
 					{ "priceInfo", combo.PriceOverride.HasValue ? $"ComboPrice: {combo.PriceOverride.Value:N0} VND" : "ComboPrice: N/A" }
 				};
-				await _vector.UpsertAsync(new VectorUpsertItem { Id = combo.Id, Class = "Combo", Properties = props }, ct);
+				var text = $"{props["name"]}. {props["description"]}. {props["category"]}. {props["priceInfo"]}";
+				var vec = await _embed.EmbedAsync(text, ct);
+				await _vector.UpsertAsync(new VectorUpsertItem { Id = combo.Id, Class = "Combo", Properties = props, Vector = vec }, ct);
 			}
 		}
 

@@ -13,15 +13,18 @@ namespace CamRent_Application.Services
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMapper _mapper;
-		public CameraService(IUnitOfWork unitOfWork, IMapper mapper)
+		private readonly IIndexingService _indexing;
+		public CameraService(IUnitOfWork unitOfWork, IMapper mapper, IIndexingService indexing)
 		{
 			_unitOfWork = unitOfWork;
 			_mapper = mapper;
+			_indexing = indexing;
 		}
 		public async Task<int> CreateAsync(Camera camera)
 		{
 			await _unitOfWork.Repository<Camera>().AddAsync(camera);
 			var result = await _unitOfWork.Complete();
+			if (result > 0) _indexing.EnqueueUpsert("Camera", camera.Id);
 			return result;
 		}
 
@@ -29,6 +32,7 @@ namespace CamRent_Application.Services
 		{
 			await _unitOfWork.Repository<Camera>().DeleteAsync(id);
 			var result = await _unitOfWork.Complete();
+			if (result > 0) _indexing.EnqueueDelete("Camera", id);
 			return result;
 		}
 
@@ -71,6 +75,7 @@ namespace CamRent_Application.Services
 		{
 			await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
 			var result = await _unitOfWork.Complete();
+			if (result > 0) _indexing.EnqueueUpsert("Camera", camera.Id);
 			return result;
 		}
 	}
