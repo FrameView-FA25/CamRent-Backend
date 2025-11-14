@@ -39,6 +39,15 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(ubm => ubm.User.Phone))
 				.ForMember(bm => bm.Email,
 					opt => opt.MapFrom(ubm => ubm.User.Email));
+			CreateMap<FileAsset, FileAssetDTO>()
+				.ForMember(d => d.Url,
+					opt => opt.MapFrom(s => s.Url))
+				.ForMember(d => d.ContentType,
+					opt => opt.MapFrom(s => s.ContentType))
+				.ForMember(d => d.SizeBytes,
+					opt => opt.MapFrom(s => s.SizeBytes))
+				.ForMember(d => d.Label,
+					opt => opt.MapFrom(s => s.Label));
 		}
 	}
 }

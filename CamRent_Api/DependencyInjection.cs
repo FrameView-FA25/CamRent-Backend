@@ -98,7 +98,7 @@ namespace CamRent_Api
 			return services;
 		}
 
-		public static IServiceCollection AddApiDI(this IServiceCollection services)
+		public static IServiceCollection AddApiDI(this IServiceCollection services, IConfiguration config)
 		{
 
 			services.AddControllers()
@@ -113,6 +113,8 @@ namespace CamRent_Api
 			   typeof(MappingProfileApi).Assembly,
 			   typeof(MappingProfileApplication).Assembly // assembly của Application
 			);
+			services.Configure<CloudinarySettings>(
+			config.GetSection("Cloudinary"));
 			return services;
 		}
 

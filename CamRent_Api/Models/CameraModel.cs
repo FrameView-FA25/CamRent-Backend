@@ -13,7 +13,7 @@ namespace CamRent_Api.Models
 			public string? SerialNumber { get; set; }
 			public decimal EstimatedValueVnd { get; set; }
 			public string? SpecsJson { get; set; }
-			public List<IFormFile>? Media { get; set; } 
+			public List<IFormFile>? MediaFiles { get; set; } 
 			
 		}
 	}
