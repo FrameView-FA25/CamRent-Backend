@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
@@ -140,6 +140,10 @@ namespace CamRent_Application.Services
 		public async Task<List<BookingResponseDTO>> GetAllAsync()
 		{
 			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items));
+			foreach(var booking in bookings)
+			{
+				booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
+			}
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
@@ -175,7 +179,8 @@ namespace CamRent_Application.Services
 		{
 			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
-				)).FirstOrDefault();
+			)).FirstOrDefault();
+
 			if (booking == null)
 			{
 				booking = new Booking
@@ -187,51 +192,61 @@ namespace CamRent_Application.Services
 				};
 				await _unitOfWork.Repository<Booking>().AddAsync(booking);
 			}
+
+			BookingItem? bookingItem = null;
+
 			if (type == BookingItemType.Camera)
 			{
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
-				var cameraItem = new BookingItem
+
+				bookingItem = new BookingItem
 				{
 					Id = Guid.NewGuid(),
-					BookingId = booking!.Id,
+					BookingId = booking.Id,
 					CameraId = camera.Id,
 					Quantity = quantity,
 					UnitPrice = camera.BaseDailyRate,
-					DepositAmount = camera.EstimatedValueVnd * camera.DepositPercent 
+					DepositAmount = camera.EstimatedValueVnd * camera.DepositPercent
 				};
-				booking.Items.Add(cameraItem);
 			}
 			if (type == BookingItemType.Accessory)
 			{
 				var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Accessory not found");
-				var accessoryItem = new BookingItem
+
+				bookingItem = new BookingItem
 				{
 					Id = Guid.NewGuid(),
-					BookingId = booking!.Id,
+					BookingId = booking.Id,
 					AccessoryId = accessory.Id,
 					Quantity = quantity,
 					UnitPrice = accessory.BaseDailyRate,
-					DepositAmount = accessory.EstimatedValueVnd * accessory.DepositPercent 
+					DepositAmount = accessory.EstimatedValueVnd * accessory.DepositPercent
 				};
-				booking.Items.Add(accessoryItem);
 			}
-			if(type == BookingItemType.Combo)
+			if (type == BookingItemType.Combo)
 			{
 				var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Combo not found");
-				var comboItem = new BookingItem
+
+				bookingItem = new BookingItem
 				{
 					Id = Guid.NewGuid(),
-					BookingId = booking!.Id,
+					BookingId = booking.Id,
 					ComboId = combo.Id,
 					Quantity = quantity
 				};
-				booking.Items.Add(comboItem);
+			}
+
+			// Phòng trường hợp enum có thêm value mới mà chưa xử lý
+			if (bookingItem != null)
+			{
+				await _unitOfWork.Repository<BookingItem>().AddAsync(bookingItem);
 			}
 			return await _unitOfWork.Complete();
 		}
+
 
 		public async Task<int> RemoveFromCart(Guid renterId, Guid id, BookingItemType type)
 		{
@@ -254,6 +269,7 @@ namespace CamRent_Application.Services
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft,
 				include: b => b.Include(b => b.Items)
 			)).FirstOrDefault();
+			booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
 			if(booking == null)
 			{
 				booking = new Booking

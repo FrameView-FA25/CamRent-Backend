@@ -118,6 +118,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPut("{id:guid}")]
+		[Consumes("multipart/form-data")]
 		public async Task<IActionResult> UpdateCamera(Guid id, [FromBody] CameraRequest cameraRequest)
 		{
 			var existingCamera = await _cameraService.GetByIdAsync(id);
