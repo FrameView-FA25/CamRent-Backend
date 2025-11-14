@@ -12,6 +12,7 @@ namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[Consumes("multipart/form-data")]
 	public class CamerasController : ControllerBase
 	{
 		private readonly ICameraService _cameraService;
@@ -72,7 +73,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Policy = "Owner")]
-		[Consumes("multipart/form-data")]
+		
 		public async Task<IActionResult> CreateCamera([FromForm] CameraRequest cameraRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)

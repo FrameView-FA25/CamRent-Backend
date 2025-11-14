@@ -5,7 +5,7 @@ namespace CamRent_Domain.Entities
 {
     public class Inspection : BaseEntity
     {
-        public InspectionType Type { get; set; }
+        public InspectionType? Type { get; set; }
 		public string Section { get; set; } = string.Empty;
 		public string Label { get; set; } = string.Empty;
 		public string? Value { get; set; }
@@ -15,6 +15,8 @@ namespace CamRent_Domain.Entities
         public DateTime? PerformedAt { get; set; }
 		public string? RenterSignatureUrl { get; set; }
 		public string? StaffSignatureUrl { get; set; }
+		public Guid? ItemId { get; set; }
+		public ItemType? ItemType { get; set; }
 		public Guid? BookingId { get; set; }
         public Booking? Booking { get; set; } = default!;
 		public Guid? VerifyRequestId { get; set; }

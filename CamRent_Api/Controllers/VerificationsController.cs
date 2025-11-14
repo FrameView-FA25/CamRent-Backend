@@ -18,9 +18,9 @@ namespace CamRent_Api.Controllers
 		{
 			_verificationService = verificationService;
 		}
-		[HttpGet]
+		[HttpGet("get_by_user_id")]
 		[Authorize(Roles = "2,3,4")]
-		public async Task<IActionResult> GetAllByUserId(Guid verificationId)
+		public async Task<IActionResult> GetAllByUserId()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
@@ -46,7 +46,7 @@ namespace CamRent_Api.Controllers
 			return Ok(verifications);
 		}
 		[HttpPost]
-		[Authorize(Policy = "Renter")]
+		[Authorize(Policy = "Owner")]
 		public async Task<IActionResult> Create([FromBody] CreateVerificationRequestDTO request)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -60,6 +60,16 @@ namespace CamRent_Api.Controllers
 			return BadRequest("Failed to create verification request.");
 		}
 
-
+		[HttpPut("assign_staff")]
+		[Authorize(Policy = "Manager")]
+		public async Task<IActionResult> AssignStaffToVerification(Guid verificationId, Guid staffId)
+		{
+			var result = await _verificationService.AssignStaffToVerification(staffId,verificationId);
+			if (result > 0)
+			{
+				return Ok(new { success = "Assign staff to verification request successful" });
+			}
+			return BadRequest("Failed to assign staff to verification request.");
+		}
 	}
 }
