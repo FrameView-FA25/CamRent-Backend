@@ -104,7 +104,7 @@ namespace CamRent_Api.Controllers
 			var result = await _bookingService.AddToCart(Guid.Parse(userId), request.Id, request.Type, request.Quantity);
 			if (result > 0)
 			{
-				return NoContent();
+				return Ok();
 			}
 			return BadRequest();
 		}

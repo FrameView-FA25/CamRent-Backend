@@ -48,18 +48,14 @@ namespace CamRent_Application.DTOs
 		}
 		public class BookingItemDTO
 		{
-			public Guid? CameraId { get; set; }
-			public string? CameraName { get; set; }
+			public Guid? ItemId { get; set; }
+			public string? ItemName { get; set; }
 
-			public Guid? AccessoryId { get; set; }
-			public string? AccessoryName { get; set; }
-
-			public Guid? ComboId { get; set; }
-			public string? ComboName { get; set; }
+			public string ItemType { get; set; }
 
 			public int Quantity { get; set; } = 1;
 			public decimal UnitPrice { get; set; }
-			public decimal DepositAmount { get; set; }
+
 		}
 	}
 }

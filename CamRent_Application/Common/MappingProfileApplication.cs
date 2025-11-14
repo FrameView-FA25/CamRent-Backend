@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CamRent_Application.DTOs;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using static CamRent_Application.DTOs.AccessoryDTO;
 using static CamRent_Application.DTOs.BookingDTO;
@@ -22,12 +23,32 @@ namespace CamRent_Application.Common
 			.ForMember(d => d.StatusText,
 				opt => opt.MapFrom(s => s.Status.GetDisplayName()));
 			CreateMap<BookingItem, BookingItemDTO>()
-				.ForMember(d => d.CameraName,
-					opt => opt.MapFrom(s => s.Camera.Brand + " " + s.Camera.Model))
-				.ForMember(d => d.AccessoryName,
-					opt => opt.MapFrom(s => s.Accessory.Brand + " " + s.Accessory.Model))
-				.ForMember(d => d.ComboName,
-					opt => opt.MapFrom(s => s.Combo.Name));
+				// Map ItemId: ưu tiên Camera → Accessory → Combo
+				.ForMember(d => d.ItemId,
+					opt => opt.MapFrom(s => s.CameraId ?? s.AccessoryId ?? s.ComboId))
+
+				// Map ItemName: ưu tiên theo loại nào có dữ liệu
+				.ForMember(d => d.ItemName, opt => opt.MapFrom(s =>
+					s.Camera != null
+						? s.Camera.Brand + " " + s.Camera.Model
+					: s.Accessory != null
+						? s.Accessory.Brand + " " + s.Accessory.Model
+					: s.Combo != null
+						? s.Combo.Name
+					: null
+				))
+
+				// Map loại item (nếu em có enum BookingItemType)
+				.ForMember(d => d.ItemType, opt => opt.MapFrom(s =>
+					s.CameraId != null
+						? BookingItemType.Camera.ToString()
+					: s.AccessoryId != null
+						? BookingItemType.Accessory.ToString()
+					: s.ComboId != null
+						? BookingItemType.Combo.ToString()
+					: null
+				)); ;
+			CreateMap<Booking,Cart>();
 			CreateMap<Branch, BranchResponse>()
 				.ForMember(b => b.ManagerName, 
 				opt => opt.MapFrom(b => b.Manager.FullName));
