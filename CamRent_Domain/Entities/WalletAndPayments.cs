@@ -28,7 +28,7 @@ namespace CamRent_Domain.Entities
         public Booking Booking { get; set; } = default!;
 
         public PaymentStatus Status { get; set; }
-        public string Provider { get; set; } = "VNPay";
+        public string Provider { get; set; } = "PayOS";
         public string? ProviderPaymentId { get; set; }
         public decimal AuthorizedAmount { get; set; }
         public decimal CapturedAmount { get; set; }

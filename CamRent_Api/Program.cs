@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using CamRent_Application.Common;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,11 +38,6 @@ builder.Services
 	.AddSwaggerGen()
 	.AddJwtAuthentication(builder.Configuration)
 	.AddApiDI(builder.Configuration);
-
-// Options
-builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VNPay"));
-
-// Hosted services
 
 var app = builder.Build();
 
