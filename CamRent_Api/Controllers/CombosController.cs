@@ -1,4 +1,5 @@
 using CamRent_Application.IServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.ComboModel;
 
@@ -23,6 +24,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("{id:guid}")]
+		[AllowAnonymous]
 		public async Task<ActionResult<object>> Get(Guid id)
 		{
 			var combo = await _comboService.GetAsync(id);
