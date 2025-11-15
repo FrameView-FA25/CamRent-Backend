@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using static CamRent_Api.Models.CameraModel;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -18,7 +19,7 @@ namespace CamRent_Api.Controllers
 		private readonly ICameraService _cameraService;
 		private readonly IMapper _autoMapper;
 		private readonly IFileStorageService _fileStorageService;
-		public CamerasController( ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService)
+		public CamerasController(ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService)
 		{
 			_cameraService = cameraService;
 			_autoMapper = autoMapper;
@@ -27,6 +28,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpGet]
 		[AllowAnonymous]
+		[SwaggerOperation(Summary = "Lấy danh sách camera", Description = "Trả về danh sách camera (phân trang). Hỗ trợ tìm kiếm và sắp xếp. Quyền: Công khai")]
 		public async Task<IActionResult> GetAllCameras([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? q = null, [FromQuery] string? sortBy = "createdAt", [FromQuery] string sortDir = "desc")
 		{
 			page = Math.Max(1, page);
@@ -37,7 +39,6 @@ namespace CamRent_Api.Controllers
 				var term = q.Trim().ToLowerInvariant();
 				cameras = cameras.Where(c => ($"{c.Brand} {c.Model} {c.Variant}").ToLower().Contains(term)).ToList();
 			}
-			// Simple sort: createdAt desc by default (if present)
 			IEnumerable<dynamic> sorted = cameras;
 			if (string.Equals(sortBy, "brand", StringComparison.OrdinalIgnoreCase))
 				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Brand) : cameras.OrderByDescending(c => c.Brand));
@@ -52,6 +53,8 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("{id:guid}")]
+		[AllowAnonymous]
+		[SwaggerOperation(Summary = "Lấy camera theo id", Description = "Trả về thông tin camera theo id. Quyền: Công khai")]
 		public async Task<IActionResult> GetCameraById(Guid id)
 		{
 			var camera = await _cameraService.GetByIdAsync(id);
@@ -62,6 +65,7 @@ namespace CamRent_Api.Controllers
 			return Ok(camera);
 		}
 		[HttpGet("GetCamerasByOwnerId")]
+		[SwaggerOperation(Summary = "Lấy camera của chủ sở hữu", Description = "Trả về các camera thuộc về người dùng đang xác thực. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> GetCamerasByOwnerId()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -73,7 +77,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Policy = "Owner")]
-		
+		[SwaggerOperation(Summary = "Tạo camera", Description = "Tạo mới camera. Chấp nhận multipart/form-data kèm file media. Quyền: Owner, Admin")]
 		public async Task<IActionResult> CreateCamera([FromForm] CameraRequest cameraRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -85,14 +89,12 @@ namespace CamRent_Api.Controllers
 				return Unauthorized();
 			}
 
-			// Map field text sang entity
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
 			camera.OwnerUserId = Guid.Parse(userId);
 			var result = await _cameraService.CreateAsync(camera);
 
 			camera.Media ??= new List<FileAsset>();
 
-			// ✅ Upload từng file lên Cloudinary và tạo FileAsset
 			if (cameraRequest.MediaFiles != null)
 			{
 				foreach (var file in cameraRequest.MediaFiles)
@@ -103,23 +105,23 @@ namespace CamRent_Api.Controllers
 						file,
 						ownerId: camera.Id,
 						ownerType: FileOwnerType.Camera,
-						folder: $"camrent/cameras/{camera.Id}",     // tuỳ bạn muốn đổi
-						label: $"{camera.Brand} {camera.Model}"    // gắn nhãn cho dễ tìm
+						folder: $"camrent/cameras/{camera.Id}",
+						label: $"{camera.Brand} {camera.Model}"
 					);
 					camera.Media.Add(asset);
 				}
 			}
 
-			if(result <= 0)
+			if (result <= 0)
 			{
-				return BadRequest("Failed to create camera.");
+				return BadRequest("Tạo camera thất bại.");
 			}
-			// Có thể trả về camera vừa tạo (DTO) thay vì Ok()
-			return Ok(new { success = "Create camera successful" });
+			return Ok(new { Message = "Tạo camera thành công." });
 		}
 
 		[HttpPut("{id:guid}")]
 		[Consumes("multipart/form-data")]
+		[SwaggerOperation(Summary = "Cập nhật camera", Description = "Cập nhật thông tin camera. Chấp nhận multipart/form-data. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> UpdateCamera(Guid id, [FromBody] CameraRequest cameraRequest)
 		{
 			var existingCamera = await _cameraService.GetByIdAsync(id);
@@ -130,10 +132,11 @@ namespace CamRent_Api.Controllers
 			var cameraToUpdate = _autoMapper.Map<Camera>(cameraRequest);
 			cameraToUpdate.Id = id;
 			var result = await _cameraService.UpdateAsync(cameraToUpdate);
-			return Ok();
+			return Ok(new { Message = "Cập nhật camera thành công." });
 		}
 
 		[HttpDelete("{id:guid}")]
+		[SwaggerOperation(Summary = "Xóa camera", Description = "Xóa camera theo id. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> DeleteCamera(Guid id)
 		{
 			var existingCamera = await _cameraService.GetByIdAsync(id);

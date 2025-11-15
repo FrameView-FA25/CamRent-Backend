@@ -20,9 +20,11 @@ namespace CamRent_Infrastructure.Data
 			_context = context;
 			_serviceProvider = serviceProvider;
 		}
+
 		public IGenericRepository<TEntity> Repository<TEntity>() where TEntity : BaseEntity
 		{
-			return _serviceProvider.GetRequiredService<IGenericRepository<TEntity>>();
+			// Resolve concrete GenericRepository<TEntity> from DI
+			return _serviceProvider.GetRequiredService<GenericRepository<TEntity>>();
 		}
 
 		public async Task<int> Complete()
@@ -33,13 +35,10 @@ namespace CamRent_Infrastructure.Data
 			}
 			catch (DbUpdateException ex)
 			{
-				// Kiểm tra lỗi nội bộ từ database
 				var innerMessage = ex.InnerException?.Message ?? "No inner exception";
 				Console.WriteLine($"DbUpdateException: {ex.Message}");
 				Console.WriteLine($"Inner Exception: {innerMessage}");
-
-				// Nếu cần, có thể log lỗi vào file hoặc hệ thống giám sát
-				throw; // Ném lại lỗi để debug dễ hơn
+				throw;
 			}
 			catch (Exception ex)
 			{

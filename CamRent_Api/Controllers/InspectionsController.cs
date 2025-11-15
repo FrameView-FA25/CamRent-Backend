@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.InspectionModel;
 using static CamRent_Application.DTOs.InspectionDTO;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -23,6 +24,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Roles = "Staff")]
+		[SwaggerOperation(Summary = "Tạo inspection", Description = "Tạo một inspection và tải lên các file liên quan. Các file tải lên sẽ được gắn với inspection vừa tạo. Quyền: Staff")]
 		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile> files)
 		{
 			if (!ModelState.IsValid)
@@ -32,7 +34,7 @@ namespace CamRent_Api.Controllers
 			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequestModel);
 			if(inspectionId == Guid.Empty)
 			{
-				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create inspection.");
+				return StatusCode(StatusCodes.Status500InternalServerError, "Tạo inspection thất bại.");
 			}
 			// 2. Nếu có file thì upload, ownerId = inspectionId
 			if (files != null && files.Count > 0)
@@ -51,7 +53,7 @@ namespace CamRent_Api.Controllers
 				}
 			}
 
-			return Ok(new{Message = "Inspection created successfully."});
+			return Ok(new{Message = "Tạo inspection thành công."});
 		}
 
 	}

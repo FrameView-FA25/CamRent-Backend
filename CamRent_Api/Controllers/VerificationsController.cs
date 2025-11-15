@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using static CamRent_Api.Models.VerificationModel;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -19,7 +20,8 @@ namespace CamRent_Api.Controllers
 			_verificationService = verificationService;
 		}
 		[HttpGet("get_by_user_id")]
-		[Authorize]
+		[Authorize(Policy ="OwnerOrManagerOrStaff")]
+		[SwaggerOperation(Summary = "Lấy verification theo người dùng", Description = "Trả về các yêu cầu verification mà người dùng hiện tại có quyền xem, phụ thuộc vào vai trò. Quyền: Owner, BranchManager, Staff, Admin")]
 		public async Task<IActionResult> GetAllByUserId()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -41,12 +43,13 @@ namespace CamRent_Api.Controllers
 			}
 			if (verifications == null || verifications.Count == 0)
 			{
-				return NotFound("No verification requests found for the user.");
+				return NotFound("Không tìm thấy yêu cầu xác minh nào cho người dùng.");
 			}
 			return Ok(verifications);
 		}
 		[HttpPost]
 		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(Summary = "Tạo yêu cầu xác minh", Description = "Tạo một yêu cầu xác minh thay mặt chủ sở hữu. Quyền: Owner, Admin")]
 		public async Task<IActionResult> Create([FromBody] CreateVerificationRequestDTO request)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -55,21 +58,22 @@ namespace CamRent_Api.Controllers
 			var result = await _verificationService.CreateVerificationAsync(request, Guid.Parse(userId));
 			if (result > 0)
 			{
-				return Ok(new { success = "Create verification request successful" });
+				return Ok(new { Message = "Tạo yêu cầu xác minh thành công." });
 			}
-			return BadRequest("Failed to create verification request.");
+			return BadRequest(new { Message = "Tạo yêu cầu xác minh thất bại." });
 		}
 
 		[HttpPut("assign_staff")]
-		[Authorize(Policy = "Manager")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(Summary = "Gán nhân viên cho yêu cầu xác minh", Description = "Gán một nhân viên phụ trách cho yêu cầu xác minh. Quyền: BranchManager, Admin")]
 		public async Task<IActionResult> AssignStaffToVerification(Guid verificationId, Guid staffId)
 		{
-			var result = await _verificationService.AssignStaffToVerification(staffId,verificationId);
+			var result = await _verificationService.AssignStaffToVerification(staffId, verificationId);
 			if (result > 0)
 			{
-				return Ok(new { success = "Assign staff to verification request successful" });
+				return Ok(new { Message = "Gán nhân viên thành công." });
 			}
-			return BadRequest("Failed to assign staff to verification request.");
+			return BadRequest(new { Message = "Gán nhân viên thất bại." });
 		}
 	}
 }

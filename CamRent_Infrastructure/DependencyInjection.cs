@@ -23,6 +23,8 @@ namespace CamRent_Infrastructure
 			services.AddScoped<DemoDataSeeder>();
 
 			services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+			// Register concrete open-generic so concrete type can be resolved explicitly
+			services.AddScoped(typeof(GenericRepository<>));
 			services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 			// Weaviate

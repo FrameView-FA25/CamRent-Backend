@@ -6,6 +6,9 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using static CamRent_Application.DTOs.AuthDTO;
+using System.Reflection;
+using CamRent_Api.Swagger;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api
 {
@@ -44,6 +47,7 @@ namespace CamRent_Api
 				options.AddPolicy("Staff", p => p.RequireRole("Staff", "Admin"));
 				options.AddPolicy("Owner", p => p.RequireRole("Owner", "Admin"));
 				options.AddPolicy("Renter", p => p.RequireRole("Renter", "Admin"));
+				options.AddPolicy("OwnerOrManagerOrStaff", p => p.RequireRole("Owner", "BranchManager", "Staff", "Admin"));
 				// Require auth by default unless [AllowAnonymous]
 				options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
 					.RequireAuthenticatedUser()
@@ -55,17 +59,18 @@ namespace CamRent_Api
 
 		public static IServiceCollection AddSwaggerGen(this IServiceCollection services)
 		{
-			services.AddSwaggerGen(c =>
+			services.AddSwaggerGen(options =>
 			{
-				c.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
+				options.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
 
-				c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+				options.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
 				{
 					Type = "string",
 					Format = "binary"
 				});
+
 				// FIX schemaId conflict
-				c.CustomSchemaIds(type =>
+				options.CustomSchemaIds(type =>
 				{
 					if (type.IsGenericType)
 					{
@@ -76,18 +81,21 @@ namespace CamRent_Api
 					return (type.FullName ?? type.Name).Replace("+", ".");
 				});
 
+				// Enable annotations if you use [SwaggerOperation], [SwaggerResponse], etc.
+				options.EnableAnnotations();
+
 				// JWT bearer (chỉ cần nhập token, Swagger tự thêm "Bearer ")
-				c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+				options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
 				{
 					Description = "Dán JWT access token.",
 					Name = "Authorization",
 					In = ParameterLocation.Header,
-					Type = SecuritySchemeType.Http,  // <-- quan trọng
-					Scheme = "bearer",               // <-- quan trọng
+					Type = SecuritySchemeType.Http,
+					Scheme = "bearer",
 					BearerFormat = "JWT"
 				});
 
-				c.AddSecurityRequirement(new OpenApiSecurityRequirement
+				options.AddSecurityRequirement(new OpenApiSecurityRequirement
 				{
 					{
 						new OpenApiSecurityScheme {
@@ -99,6 +107,17 @@ namespace CamRent_Api
 						Array.Empty<string>()
 					}
 				});
+
+				// Operation filter to: add lock icon per-action + append roles to summaries
+				options.OperationFilter<AuthorizeCheckOperationFilter>();
+
+				// Optional: include XML comments for better summaries/descriptions
+				var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+				var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+				if (File.Exists(xmlPath))
+				{
+					options.IncludeXmlComments(xmlPath);
+				}
 			});
 			return services;
 		}
