@@ -22,7 +22,6 @@ namespace CamRent_Application
 			services.AddScoped<IPricingService, PricingService>();
 			services.AddScoped<IAvailabilityService, AvailabilityService>();
 			services.AddScoped<IPaymentService, PaymentService>();
-			// Removed VietQR in favor of VNPay
 			services.AddScoped<IContractService, ContractService>();
 			services.AddScoped<IContractTemplateService, ContractTemplateService>();
 			services.AddScoped<IInspectionService, InspectionService>();

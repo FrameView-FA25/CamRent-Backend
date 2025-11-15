@@ -42,16 +42,6 @@ namespace CamRent_Api.Models
 			[Url]
 			public string CancelUrl { get; set; } = string.Empty;
 		}
-
-		public class VietQrResponse
-		{
-			public Guid PaymentId { get; set; }
-			public decimal Amount { get; set; }
-			public string Content { get; set; } = string.Empty;
-			public string Payload { get; set; } = string.Empty;
-			public string PngBase64 { get; set; } = string.Empty;
-			public DateTime ExpiresAt { get; set; }
-		}
 	}
 }
 
