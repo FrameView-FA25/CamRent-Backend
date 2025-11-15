@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using CamRent_Infrastructure.Email;
 using CamRent_Application.Common;
 using CamRent_Application.IServices;
+using CamRent_Application.Services;
 using CamRent_Infrastructure.Embeddings;
 
 namespace CamRent_Infrastructure
@@ -50,8 +51,13 @@ namespace CamRent_Infrastructure
 			services.Configure<EmailOptions>(config.GetSection("Email"));
 			services.AddScoped<IEmailService, SmtpEmailService>();
 
-			// VNPay
-			services.Configure<VnPayOptions>(config.GetSection("VNPay"));
+			// PayOS
+			services.Configure<PayOsOptions>(config.GetSection("PayOS"));
+			services.AddHttpClient<IPayOsService, PayOsService>((sp, http) =>
+			{
+				var o = sp.GetRequiredService<IOptions<PayOsOptions>>().Value;
+				http.BaseAddress = new Uri(o.Endpoint.TrimEnd('/'));
+			});
 
 			// Embeddings (Gemini)
 			services.Configure<GeminiOptions>(config.GetSection("Gemini"));
