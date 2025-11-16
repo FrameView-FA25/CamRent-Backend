@@ -67,17 +67,24 @@ namespace CamRent_Application.Services
 
 		public async Task<AuthResponse> GetToken(string email, string password)
 		{
-			var user = (await _unitOfWork.Repository<User>()
-				.ListAsync(u => u.Email == email.Trim()))
-				.FirstOrDefault();
+			var identifier = email.Trim();
+
+			// Cho phép đăng nhập bằng email hoặc số điện thoại
+			var users = await _unitOfWork.Repository<User>()
+				.ListAsync(u => identifier.Contains("@")
+					? u.Email == identifier
+					: u.Phone == identifier);
+
+			var user = users.FirstOrDefault();
+			if (user is null)
+				throw new Exception("Sai thông tin đăng nhập.");
+
 			user.Roles = (await _unitOfWork.Repository<UserRoleMapping>()
 				.ListAsync(r => r.UserId == user.Id)).ToList();
-			if (user is null)
-				throw new Exception("Sai email hoặc mật khẩu.");
 
 			var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, password);
 			if (result == PasswordVerificationResult.Failed)
-				throw new Exception("Sai email hoặc mật khẩu.");
+				throw new Exception("Sai thông tin đăng nhập.");
 
 			if (user.Status != UserStatus.Active)
 				throw new Exception("Tài khoản chưa hoạt động hoặc bị khóa.");

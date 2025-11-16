@@ -200,6 +200,13 @@ namespace CamRent_Application.Services
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
 
+				// Gắn chi nhánh cho booking nếu chưa có (book với sàn/owner qua chi nhánh camera)
+				if (booking.BranchId == null)
+				{
+					booking.BranchId = camera.BranchId;
+					await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+				}
+
 				bookingItem = new BookingItem
 				{
 					Id = Guid.NewGuid(),
@@ -215,6 +222,12 @@ namespace CamRent_Application.Services
 				var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Accessory not found");
 
+				if (booking.BranchId == null)
+				{
+					booking.BranchId = accessory.BranchId;
+					await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+				}
+
 				bookingItem = new BookingItem
 				{
 					Id = Guid.NewGuid(),
@@ -229,6 +242,32 @@ namespace CamRent_Application.Services
 			{
 				var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Combo not found");
+
+				// Với combo, có thể chọn chi nhánh từ item đầu tiên thuộc combo (nếu booking chưa có Branch)
+				if (booking.BranchId == null)
+				{
+					var comboItem = (await _unitOfWork.Repository<ComboItem>()
+						.ListAsync(ci => ci.ComboId == combo.Id))
+						.FirstOrDefault();
+					if (comboItem?.CameraId != null)
+					{
+						var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(comboItem.CameraId.Value);
+						if (cam != null)
+						{
+							booking.BranchId = cam.BranchId;
+							await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+						}
+					}
+					else if (comboItem?.AccessoryId != null)
+					{
+						var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(comboItem.AccessoryId.Value);
+						if (acc != null)
+						{
+							booking.BranchId = acc.BranchId;
+							await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+						}
+					}
+				}
 
 				bookingItem = new BookingItem
 				{

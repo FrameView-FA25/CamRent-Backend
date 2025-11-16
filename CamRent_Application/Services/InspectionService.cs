@@ -51,5 +51,12 @@ namespace CamRent_Application.Services
 		{
 			throw new NotImplementedException();
 		}
+
+		public async Task<List<InspectionResponseDTO>> GetByBookingAsync(Guid bookingId)
+		{
+			var inspections = await _unitOfWork.Repository<Inspection>()
+				.ListAsync(i => i.BookingId == bookingId);
+			return _mapper.Map<List<InspectionResponseDTO>>(inspections);
+		}
 	}
 }

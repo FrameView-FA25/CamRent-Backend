@@ -71,6 +71,20 @@ namespace CamRent_Application.Services
 			return _mapper.Map<List<CameraResponseDTO>>(cameras);
 		}
 
+		public async Task<List<CameraResponseDTO>> GetByBranchManagerAsync(Guid managerId)
+		{
+			var cameras = await _unitOfWork.Repository<Camera>()
+				.ListAsync(
+					filter: c => c.Branch.ManagerId == managerId,
+					include: c => c.Include(c => c.Branch));
+			foreach (var camera in cameras)
+			{
+				camera.Media = (await _unitOfWork.Repository<FileAsset>()
+					.ListAsync(f => f.OwnerType == FileOwnerType.Camera && f.OwnerId == camera.Id)).ToList();
+			}
+			return _mapper.Map<List<CameraResponseDTO>>(cameras);
+		}
+
 		public async Task<int> UpdateAsync(Camera camera)
 		{
 			await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
