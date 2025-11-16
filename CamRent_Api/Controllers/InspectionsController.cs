@@ -56,5 +56,15 @@ namespace CamRent_Api.Controllers
 			return Ok(new{Message = "Tạo inspection thành công."});
 		}
 
+		// Biên lai inspection cho một booking (nhận/trả máy)
+		[HttpGet("booking/{bookingId:guid}/receipts")]
+		[Authorize]
+		[SwaggerOperation(Summary = "Biên lai inspection của booking", Description = "Trả về danh sách inspection (nhận/trả máy) cho một booking. FE có thể dùng Label để hiển thị 'Nhận máy ảnh' / 'Đã trả máy ảnh'.")]
+		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetBookingReceipts(Guid bookingId)
+		{
+			var inspections = await _inspectionService.GetByBookingAsync(bookingId);
+			return Ok(inspections);
+		}
+
 	}
 }

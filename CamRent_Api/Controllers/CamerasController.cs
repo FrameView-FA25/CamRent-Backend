@@ -52,6 +52,28 @@ namespace CamRent_Api.Controllers
 			return Ok(new { page, pageSize, total, items });
 		}
 
+		// Camera theo chi nhánh mà Manager quản lý
+		[HttpGet("my-branch")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(Summary = "Danh sách camera của chi nhánh manager", Description = "Trả về danh sách camera thuộc chi nhánh mà BranchManager đang quản lý.")]
+		public async Task<IActionResult> GetCamerasForMyBranch([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+		{
+			page = Math.Max(1, page);
+			pageSize = Math.Clamp(pageSize, 1, 100);
+
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+			var managerId = Guid.Parse(userId);
+			var cameras = await _cameraService.GetByBranchManagerAsync(managerId);
+
+			var total = cameras.Count;
+			var items = cameras.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+			return Ok(new { page, pageSize, total, items });
+		}
+
 		[HttpGet("{id:guid}")]
 		[AllowAnonymous]
 		[SwaggerOperation(Summary = "Lấy camera theo id", Description = "Trả về thông tin camera theo id. Quyền: Công khai")]
@@ -146,6 +168,20 @@ namespace CamRent_Api.Controllers
 			}
 			var result = await _cameraService.DeleteAsync(id);
 			return NoContent();
+		}
+
+		// So sánh tối đa 3 camera
+		[HttpGet("compare")]
+		[AllowAnonymous]
+		[SwaggerOperation(Summary = "So sánh tối đa 3 camera", Description = "Trả về thông tin chi tiết của tối đa 3 camera để client hiển thị bảng so sánh.")]
+		public async Task<IActionResult> Compare([FromQuery] Guid[] ids)
+		{
+			if (ids == null || ids.Length == 0) return BadRequest("Cần cung cấp ít nhất 1 id.");
+			if (ids.Length > 3) return BadRequest("Chỉ được so sánh tối đa 3 camera.");
+
+			var all = await _cameraService.GetAllAsync();
+			var list = all.Where(c => ids.Contains(c.Id)).ToList();
+			return Ok(list);
 		}
 	}
 }
