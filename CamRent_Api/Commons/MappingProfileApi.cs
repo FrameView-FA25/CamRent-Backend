@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CamRent_Domain.Entities;
 using static CamRent_Api.Models.AccessoryModel;
+using static CamRent_Api.Models.BookingModel;
 using static CamRent_Api.Models.CameraModel;
 
 namespace CamRent_Api.Commons

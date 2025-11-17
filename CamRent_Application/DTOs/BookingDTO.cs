@@ -2,6 +2,7 @@
 using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,14 @@ namespace CamRent_Application.DTOs
 {
 	public class BookingDTO
 	{
+		public class CreateBookingRequest
+		{
+			public Address PickupLocation { get; set; }
+			[Required]
+			public DateTime PickupAt { get; set; }
+			[Required]
+			public DateTime ReturnAt { get; set; }
+		}
 		public class BookingResponseDTO
 		{
 			public Guid Id { get; set; }

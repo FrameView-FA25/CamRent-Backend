@@ -39,6 +39,19 @@ namespace CamRent_Api.Controllers
 			return Ok(booking);
 		}
 
+		[HttpPost()]
+		[Authorize(Policy = "Renter")]
+		public async Task<ActionResult> CreateBooking([FromBody] CreateBookingRequest request)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var booking = await _bookingService.CreateBookingAsync(request, Guid.Parse(userId));
+			if (booking == 0) return BadRequest("Tạo booking thất bại.");
+			return Ok("Tạo đơn hàng thành công");
+
+		}
+
 		[HttpGet("renterbookings")]
 		[Authorize(Policy = "Renter")]
 		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByRenterId()
@@ -123,6 +136,8 @@ namespace CamRent_Api.Controllers
 			}
 			return BadRequest();
 		}
+
+		
 
 		[HttpGet("{id:guid}/quote")]
 		public async Task<ActionResult<PricingQuoteResult>> Quote(Guid id, [FromQuery] decimal? platformFeePercent, [FromQuery] decimal ownerShareRatio = 0.75m)
