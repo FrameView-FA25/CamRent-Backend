@@ -48,10 +48,12 @@ namespace CamRent_Api
 				options.AddPolicy("Owner", p => p.RequireRole("Owner", "Admin"));
 				options.AddPolicy("Renter", p => p.RequireRole("Renter", "Admin"));
 				options.AddPolicy("OwnerOrManagerOrStaff", p => p.RequireRole("Owner", "BranchManager", "Staff", "Admin"));
-				// Require auth by default unless [AllowAnonymous]
-				options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-					.RequireAuthenticatedUser()
-					.Build();
+
+				// ⚠️ Bỏ FallbackPolicy để Swagger và các endpoint không có [Authorize] không bị ép đăng nhập
+				// Nếu muốn tất cả API (trừ [AllowAnonymous]) bắt buộc đăng nhập, cần dùng [Authorize] ở controller/action.
+				// options.FallbackPolicy = new AuthorizationPolicyBuilder()
+				// 	.RequireAuthenticatedUser()
+				// 	.Build();
 			});
 
 			return services;
