@@ -19,7 +19,7 @@ namespace CamRent_Application.Services
 				?? throw new InvalidOperationException("Booking not found");
 			var template = await _unitOfWork.Repository<ContractTemplate>().GetByIdAsync(templateId)
 				?? throw new InvalidOperationException("Contract template not found");
-			var instance = new ContractInstance
+			var instance = new Contract
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
@@ -27,18 +27,18 @@ namespace CamRent_Application.Services
 				Status = ContractStatus.Sent,
 				CreatedAt = DateTime.UtcNow
 			};
-			await _unitOfWork.Repository<ContractInstance>().AddAsync(instance);
+			await _unitOfWork.Repository<Contract>().AddAsync(instance);
 			await _unitOfWork.Complete();
 			return instance.Id;
 		}
 
 		public async Task MarkSignedAsync(Guid contractInstanceId, string? signedFileUrl)
 		{
-			var instance = await _unitOfWork.Repository<ContractInstance>().GetByIdAsync(contractInstanceId)
+			var instance = await _unitOfWork.Repository<Contract>().GetByIdAsync(contractInstanceId)
 				?? throw new InvalidOperationException("Contract instance not found");
 			instance.Status = ContractStatus.Signed;
 			instance.SignedFileUrl = signedFileUrl;
-			await _unitOfWork.Repository<ContractInstance>().UpdateAsync(instance);
+			await _unitOfWork.Repository<Contract>().UpdateAsync(instance);
 			await _unitOfWork.Complete();
 		}
 	}

@@ -33,13 +33,16 @@ namespace CamRent_Domain.Common
         Accessory = 3
     }
 
-    public enum OwnershipType
-    {
-        Owner = 1,
-        Platform = 2
-    }
+	public enum AssetLocation
+	{
+		Platform = 0,   // At platform / branch / warehouse
+        WithOwner = 1,  // Currently with owner
+		WithRenter = 2, // Currently with renter
+		InDelivery = 3,  // Being delivered
+		Maintenance = 4 // Under maintenance / inspection
+	}
 
-    public enum BookingStatus
+	public enum BookingStatus
     {
 		[Display(Name = "Giỏ hàng")]
 		Draft = 0,
@@ -125,6 +128,18 @@ namespace CamRent_Domain.Common
         Camera = 1,
         Accessory = 2,
         Combo = 3
+	}
+
+	public enum HandoverType
+	{
+		Pickup = 0,  // Giao / nhận lúc bắt đầu
+		Return = 1   // Giao / nhận lúc kết thúc
+	}
+
+	public enum HandoverPartyType
+	{
+		Owner = 0,
+		Renter = 1
 	}
 }
 

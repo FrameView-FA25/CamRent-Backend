@@ -1,18 +1,17 @@
+using System;
+
 namespace CamRent_Domain.Common
 {
     public abstract class BaseEntity
-	{
+    {
         public Guid Id { get; set; }
 
-        public DateTime CreatedAt { get; set; }
+        // store as DateTimeOffset to include timezone offset (we will use +07:00 for VN)
+        public DateTimeOffset CreatedAt { get; set; }
         public Guid? CreatedByUserId { get; set; }
 
-        public DateTime? UpdatedAt { get; set; }
+        public DateTimeOffset? UpdatedAt { get; set; }
         public Guid? UpdatedByUserId { get; set; }
-
-        public bool IsDeleted { get; set; }
-
-        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }
 }
 

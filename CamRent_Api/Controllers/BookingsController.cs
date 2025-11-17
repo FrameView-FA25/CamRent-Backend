@@ -139,13 +139,6 @@ namespace CamRent_Api.Controllers
 			return Ok(result);
 		}
 
-		public class FinalizeRequest { public decimal OwnerShareRatio { get; set; } = 0.75m; public Guid PlatformUserId { get; set; } }
-		[HttpPost("{id:guid}/finalize")]
-		[Authorize(Policy = "BranchManager")]
-		public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest req)
-		{
-			await _bookingService.FinalizeAsync(id, req.OwnerShareRatio, req.PlatformUserId);
-			return NoContent();
-		}
+		
 	}
 }

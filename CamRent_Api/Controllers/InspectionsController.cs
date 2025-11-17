@@ -25,7 +25,7 @@ namespace CamRent_Api.Controllers
 		[HttpPost]
 		[Authorize(Roles = "Staff")]
 		[SwaggerOperation(Summary = "Tạo inspection", Description = "Tạo một inspection và tải lên các file liên quan. Các file tải lên sẽ được gắn với inspection vừa tạo. Quyền: Staff")]
-		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile> files)
+		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile>? files)
 		{
 			if (!ModelState.IsValid)
 				return BadRequest(ModelState);

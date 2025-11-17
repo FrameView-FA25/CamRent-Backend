@@ -33,7 +33,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("base_daily_rate");
 
-                    b.Property<Guid>("BranchId")
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
@@ -42,7 +42,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("brand");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -66,9 +66,18 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("estimated_value_vnd");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_confirmed");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("location");
 
                     b.Property<string>("Model")
                         .IsRequired()
@@ -79,19 +88,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
 
-                    b.Property<int>("Ownership")
-                        .HasColumnType("integer")
-                        .HasColumnName("ownership");
-
                     b.Property<decimal>("PlatformFeePercent")
                         .HasColumnType("numeric")
                         .HasColumnName("platform_fee_percent");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("SerialNumber")
                         .HasColumnType("text")
@@ -101,7 +100,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("specs_json");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -133,17 +132,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<DateTime>("PickupAt")
                         .HasColumnType("timestamp with time zone")
@@ -156,12 +151,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("ReturnAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("return_at");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<decimal>("SnapshotBaseDailyRate")
                         .HasColumnType("numeric")
@@ -187,15 +176,17 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("staff_id");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("integer")
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
                         .HasColumnName("type");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -207,7 +198,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("RenterId");
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("StaffId");
 
@@ -237,7 +228,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("combo_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -249,25 +240,15 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("deposit_amount");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric")
                         .HasColumnName("unit_price");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -295,17 +276,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<Guid?>("ManagerId")
                         .HasColumnType("uuid")
@@ -316,13 +293,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -357,7 +328,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("brand");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -381,9 +352,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("estimated_value_vnd");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("location");
 
                     b.Property<string>("Model")
                         .IsRequired()
@@ -394,19 +366,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
 
-                    b.Property<int>("Ownership")
-                        .HasColumnType("integer")
-                        .HasColumnName("ownership");
-
                     b.Property<decimal>("PlatformFeePercent")
                         .HasColumnType("numeric")
                         .HasColumnName("platform_fee_percent");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("SerialNumber")
                         .HasColumnType("text")
@@ -416,7 +378,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("specs_json");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -444,17 +406,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -465,13 +423,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -493,7 +445,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -509,9 +461,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_confirmed");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -522,13 +478,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("price_override");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -560,7 +510,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("combo_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -568,21 +518,11 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -601,6 +541,70 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("combo_items");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.Contract", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
+
+                    b.Property<string>("SignedFileUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("signed_file_url");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid?>("VerificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("verification_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("VerificationId");
+
+                    b.ToTable("contracts");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.ContractEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -612,7 +616,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("contract_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -625,26 +629,16 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("data_json");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("occurred_at");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("type");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -659,76 +653,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("contract_events");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.ContractInstance", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BookingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("booking_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("Provider")
-                        .HasColumnType("text")
-                        .HasColumnName("provider");
-
-                    b.Property<string>("ProviderEnvelopeId")
-                        .HasColumnType("text")
-                        .HasColumnName("provider_envelope_id");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<string>("SignedFileUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("signed_file_url");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("TemplateId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("template_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("TemplateId");
-
-                    b.ToTable("contracts");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.ContractSigner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -740,7 +664,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("contract_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -758,20 +682,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("full_name");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("role");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<int>("SignOrder")
                         .HasColumnType("integer")
@@ -786,7 +700,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -808,7 +722,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -816,27 +730,17 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("TemplateUrl")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("template_url");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -869,7 +773,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("booking_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -885,10 +789,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("delivery_fee");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");
@@ -897,21 +797,16 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("picked_up_at");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
+                    b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
+                        .HasColumnType("text")
                         .HasColumnName("status");
 
                     b.Property<string>("TrackingCode")
                         .HasColumnType("text")
                         .HasColumnName("tracking_code");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -947,7 +842,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("category_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -955,17 +850,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -995,7 +880,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("booking_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1007,16 +892,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("Severity")
                         .IsRequired()
@@ -1037,7 +912,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("total_amount");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1063,7 +938,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("amount");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1075,26 +950,16 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("dispute_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("type");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1121,17 +986,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("content_type");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<string>("Label")
                         .HasColumnType("text")
@@ -1141,8 +1002,8 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");
 
-                    b.Property<int?>("OwnerType")
-                        .HasColumnType("integer")
+                    b.Property<string>("OwnerType")
+                        .HasColumnType("text")
                         .HasColumnName("owner_type");
 
                     b.Property<string>("Provider")
@@ -1153,17 +1014,11 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("provider_key");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
                     b.Property<long?>("SizeBytes")
                         .HasColumnType("bigint")
                         .HasColumnName("size_bytes");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1181,6 +1036,94 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("files");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.HandoverReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("ConditionNote")
+                        .HasColumnType("text")
+                        .HasColumnName("condition_note");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contract_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime>("HandoverAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("handover_at");
+
+                    b.Property<Guid?>("InspectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inspection_id");
+
+                    b.Property<string>("ItemsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("items_json");
+
+                    b.Property<string>("PartySignatureUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("party_signature_url");
+
+                    b.Property<string>("PartyType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("party_type");
+
+                    b.Property<string>("ReceiptPdfUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("receipt_pdf_url");
+
+                    b.Property<string>("StaffSignatureUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("staff_signature_url");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("InspectionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("handover_receipts");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.Inspection", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1196,11 +1139,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
-                    b.Property<string>("ChecklistTemplateVersion")
-                        .HasColumnType("text")
-                        .HasColumnName("checklist_template_version");
-
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1208,16 +1147,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<Guid?>("ItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("item_id");
 
-                    b.Property<int?>("ItemType")
-                        .HasColumnType("integer")
+                    b.Property<string>("ItemType")
+                        .HasColumnType("text")
                         .HasColumnName("item_type");
 
                     b.Property<string>("Label")
@@ -1246,12 +1181,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("renter_signature_url");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
                     b.Property<string>("Section")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1261,11 +1190,11 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("staff_signature_url");
 
-                    b.Property<int?>("Type")
-                        .HasColumnType("integer")
+                    b.Property<string>("Type")
+                        .HasColumnType("text")
                         .HasColumnName("type");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1277,9 +1206,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("value");
 
-                    b.Property<Guid?>("VerifyRequestId")
+                    b.Property<Guid?>("VerificationId")
                         .HasColumnType("uuid")
-                        .HasColumnName("verify_request_id");
+                        .HasColumnName("verification_id");
 
                     b.HasKey("Id");
 
@@ -1287,9 +1216,11 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("CreatedByUserId");
+
                     b.HasIndex("ManagerId");
 
-                    b.HasIndex("VerifyRequestId");
+                    b.HasIndex("VerificationId");
 
                     b.ToTable("inspections");
                 });
@@ -1313,17 +1244,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("captured_amount");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<string>("Provider")
                         .IsRequired()
@@ -1338,17 +1265,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("refunded_amount");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
+                    b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
+                        .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1361,6 +1283,90 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId");
 
                     b.ToTable("payments");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.PaymentEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("Amount")
+                        .HasColumnType("numeric")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("BankCode")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_code");
+
+                    b.Property<string>("CardType")
+                        .HasColumnType("text")
+                        .HasColumnName("card_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("RawData")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("raw_data");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("request_hash");
+
+                    b.Property<string>("ResponseCode")
+                        .HasColumnType("text")
+                        .HasColumnName("response_code");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TransactionNo")
+                        .HasColumnType("text")
+                        .HasColumnName("transaction_no");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestHash")
+                        .IsUnique();
+
+                    b.ToTable("payment_events");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.PaymentLine", b =>
@@ -1378,7 +1384,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("captured_amount");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1391,10 +1397,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("currency");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<Guid>("PaymentId")
                         .HasColumnType("uuid")
                         .HasColumnName("payment_id");
@@ -1403,18 +1405,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("refunded_amount");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("type");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1436,7 +1432,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1448,26 +1444,16 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
                     b.Property<bool>("IsUsed")
                         .HasColumnType("boolean")
                         .HasColumnName("is_used");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
 
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("token");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1506,17 +1492,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("content");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<string>("ModerationNotes")
                         .HasColumnType("text")
@@ -1534,14 +1516,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("reviewed_by_staff_id");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
+                    b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
+                        .HasColumnType("text")
                         .HasColumnName("status");
 
                     b.Property<Guid?>("TargetAccessoryId")
@@ -1552,7 +1529,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("target_camera_id");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1598,74 +1575,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("SeedHistories", (string)null);
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Transaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("amount");
-
-                    b.Property<Guid?>("BookingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("booking_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("currency");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("Reference")
-                        .HasColumnType("text")
-                        .HasColumnName("reference");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.Property<Guid>("WalletId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("wallet_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("WalletId");
-
-                    b.ToTable("transactions");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1685,7 +1594,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("bank_name");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1702,10 +1611,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("full_name");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<string>("KycStatus")
                         .IsRequired()
@@ -1731,17 +1636,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("phone");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
+                    b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
+                        .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1765,7 +1665,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1773,17 +1673,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1811,7 +1701,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1819,21 +1709,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer")
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
                         .HasColumnName("role");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1863,7 +1744,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1874,10 +1755,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("InspectionDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("inspection_date");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<string>("Name")
                         .HasColumnType("text")
@@ -1891,12 +1768,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("phone_number");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
                     b.Property<Guid?>("StaffId")
                         .HasColumnType("uuid")
                         .HasColumnName("staff_id");
@@ -1906,7 +1777,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1918,23 +1789,29 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("CreatedByUserId");
+
                     b.HasIndex("StaffId");
 
                     b.ToTable("verification_requests");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Wallet", b =>
+            modelBuilder.Entity("CamRent_Domain.Entities.VerificationRequestItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("numeric")
-                        .HasColumnName("balance");
+                    b.Property<Guid?>("AccessoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accessory_id");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<Guid?>("CameraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("camera_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
@@ -1942,21 +1819,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<Guid>("OwnerUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_user_id");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("row_version");
-
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -1964,20 +1827,26 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by_user_id");
 
+                    b.Property<Guid>("VerificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("verification_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerUserId");
+                    b.HasIndex("AccessoryId");
 
-                    b.ToTable("wallets");
+                    b.HasIndex("CameraId");
+
+                    b.HasIndex("VerificationId");
+
+                    b.ToTable("verification_request_items");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Accessory", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Branch", "Branch")
                         .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("BranchId");
 
                     b.HasOne("CamRent_Domain.Entities.User", "OwnerUser")
                         .WithMany()
@@ -1996,7 +1865,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
                     b.HasOne("CamRent_Domain.Entities.User", "Renter")
                         .WithMany("RenterBookings")
-                        .HasForeignKey("RenterId");
+                        .HasForeignKey("CreatedByUserId");
 
                     b.HasOne("CamRent_Domain.Entities.User", "Staff")
                         .WithMany("StaffBookings")
@@ -2015,28 +1884,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
-                            b1.Property<double?>("Latitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("Line1")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Line2")
-                                .HasColumnType("text");
-
-                            b1.Property<double?>("Longitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasColumnType("text");
-
                             b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Ward")
                                 .IsRequired()
                                 .HasColumnType("text");
 
@@ -2107,28 +1955,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
-                            b1.Property<double?>("Latitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("Line1")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Line2")
-                                .HasColumnType("text");
-
-                            b1.Property<double?>("Longitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasColumnType("text");
-
                             b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Ward")
                                 .IsRequired()
                                 .HasColumnType("text");
 
@@ -2193,9 +2020,32 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Combo");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.Contract", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId");
+
+                    b.HasOne("CamRent_Domain.Entities.ContractTemplate", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CamRent_Domain.Entities.VerificationRequest", "Verification")
+                        .WithMany()
+                        .HasForeignKey("VerificationId");
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Template");
+
+                    b.Navigation("Verification");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.ContractEvent", b =>
                 {
-                    b.HasOne("CamRent_Domain.Entities.ContractInstance", "Contract")
+                    b.HasOne("CamRent_Domain.Entities.Contract", "Contract")
                         .WithMany("Events")
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2204,28 +2054,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Contract");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.ContractInstance", b =>
-                {
-                    b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CamRent_Domain.Entities.ContractTemplate", "Template")
-                        .WithMany()
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Template");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.ContractSigner", b =>
                 {
-                    b.HasOne("CamRent_Domain.Entities.ContractInstance", "Contract")
+                    b.HasOne("CamRent_Domain.Entities.Contract", "Contract")
                         .WithMany("Signers")
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2259,28 +2090,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
-                            b1.Property<double?>("Latitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("Line1")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Line2")
-                                .HasColumnType("text");
-
-                            b1.Property<double?>("Longitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasColumnType("text");
-
                             b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Ward")
                                 .IsRequired()
                                 .HasColumnType("text");
 
@@ -2305,28 +2115,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
-                            b1.Property<double?>("Latitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("Line1")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Line2")
-                                .HasColumnType("text");
-
-                            b1.Property<double?>("Longitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasColumnType("text");
-
                             b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Ward")
                                 .IsRequired()
                                 .HasColumnType("text");
 
@@ -2392,6 +2181,41 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Dispute");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.HandoverReceipt", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId");
+
+                    b.HasOne("CamRent_Domain.Entities.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CamRent_Domain.Entities.User", "Staff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.HasOne("CamRent_Domain.Entities.Inspection", "Inspection")
+                        .WithMany()
+                        .HasForeignKey("InspectionId");
+
+                    b.HasOne("CamRent_Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Inspection");
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.Inspection", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
@@ -2402,13 +2226,17 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("BranchId");
 
+                    b.HasOne("CamRent_Domain.Entities.User", "Staff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
                     b.HasOne("CamRent_Domain.Entities.User", "Manager")
                         .WithMany()
                         .HasForeignKey("ManagerId");
 
-                    b.HasOne("CamRent_Domain.Entities.VerificationRequest", "VerifyRequest")
+                    b.HasOne("CamRent_Domain.Entities.VerificationRequest", "Verification")
                         .WithMany("Inspections")
-                        .HasForeignKey("VerifyRequestId");
+                        .HasForeignKey("VerificationId");
 
                     b.Navigation("Booking");
 
@@ -2416,7 +2244,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
                     b.Navigation("Manager");
 
-                    b.Navigation("VerifyRequest");
+                    b.Navigation("Staff");
+
+                    b.Navigation("Verification");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Payment", b =>
@@ -2481,23 +2311,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("TargetCamera");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Transaction", b =>
-                {
-                    b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId");
-
-                    b.HasOne("CamRent_Domain.Entities.Wallet", "Wallet")
-                        .WithMany()
-                        .HasForeignKey("WalletId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Wallet");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.User", b =>
                 {
                     b.OwnsOne("CamRent_Domain.Common.Address", "Address", b1 =>
@@ -2513,28 +2326,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
-                            b1.Property<double?>("Latitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("Line1")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Line2")
-                                .HasColumnType("text");
-
-                            b1.Property<double?>("Longitude")
-                                .HasColumnType("double precision");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasColumnType("text");
-
                             b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Ward")
                                 .IsRequired()
                                 .HasColumnType("text");
 
@@ -2585,24 +2377,42 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("BranchId");
 
+                    b.HasOne("CamRent_Domain.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId");
+
                     b.HasOne("CamRent_Domain.Entities.User", "Staff")
                         .WithMany()
                         .HasForeignKey("StaffId");
 
                     b.Navigation("Branch");
 
+                    b.Navigation("Owner");
+
                     b.Navigation("Staff");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Wallet", b =>
+            modelBuilder.Entity("CamRent_Domain.Entities.VerificationRequestItem", b =>
                 {
-                    b.HasOne("CamRent_Domain.Entities.User", "OwnerUser")
+                    b.HasOne("CamRent_Domain.Entities.Accessory", "Accessory")
                         .WithMany()
-                        .HasForeignKey("OwnerUserId")
+                        .HasForeignKey("AccessoryId");
+
+                    b.HasOne("CamRent_Domain.Entities.Camera", "Camera")
+                        .WithMany()
+                        .HasForeignKey("CameraId");
+
+                    b.HasOne("CamRent_Domain.Entities.VerificationRequest", "VerificationRequest")
+                        .WithMany("Items")
+                        .HasForeignKey("VerificationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("OwnerUser");
+                    b.Navigation("Accessory");
+
+                    b.Navigation("Camera");
+
+                    b.Navigation("VerificationRequest");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Accessory", b =>
@@ -2634,7 +2444,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.ContractInstance", b =>
+            modelBuilder.Entity("CamRent_Domain.Entities.Contract", b =>
                 {
                     b.Navigation("Events");
 
@@ -2665,6 +2475,8 @@ namespace CamRent_Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CamRent_Domain.Entities.VerificationRequest", b =>
                 {
                     b.Navigation("Inspections");
+
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

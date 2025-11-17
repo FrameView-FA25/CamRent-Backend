@@ -11,10 +11,10 @@ namespace CamRent_Api.Models
 			public string Model { get; set; } = string.Empty;
 			public string? Variant { get; set; }
 			public string? SerialNumber { get; set; }
-			public decimal EstimatedValueVnd { get; set; }
 			public string? SpecsJson { get; set; }
-			public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
-			public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
+			public decimal BaseDailyRate { get; set; }
+			public decimal EstimatedValueVnd { get; set; }
+			public List<IFormFile>? MediaFiles { get; set; }
 		}
 
 	}
