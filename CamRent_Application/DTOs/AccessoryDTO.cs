@@ -18,7 +18,10 @@ namespace CamRent_Application.DTOs
 			public string? Variant { get; set; }
 			public string? SerialNumber { get; set; }
 
+			public string? SpecsJson { get; set; }
+
 			public string BranchName { get; set; }
+			public string BranchAddress { get; set; }
 
 			public ItemType ItemType => ItemType.Accessory;
 
@@ -32,9 +35,14 @@ namespace CamRent_Application.DTOs
 			public decimal? DepositCapMinVnd { get; set; }
 			public decimal? DepositCapMaxVnd { get; set; }
 
+			public bool IsConfirmed { get; set; } 
+			public bool IsAvailable { get; set; } 
+			public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
+			public Guid? OwnerUserId { get; set; }
+			public User? OwnerName { get; set; }
+
 			public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
-			public string? SpecsJson { get; set; }
-			public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
+			
 		}
 	}
 }

@@ -19,6 +19,8 @@ namespace CamRent_Application.DTOs
 			public string? SerialNumber { get; set; }
 			public string BranchName { get; set; }
 
+			public string BranchAddress { get; set; }
+
 			public ItemType ItemType => ItemType.Camera;
 			// Pricing base
 			public decimal BaseDailyRate { get; set; }
@@ -29,6 +31,12 @@ namespace CamRent_Application.DTOs
 			public decimal? DepositCapMinVnd { get; set; }
 			public decimal? DepositCapMaxVnd { get; set; }
 			public string? SpecsJson { get; set; }
+
+			public bool IsConfirmed { get; set; } = false;
+			public bool IsAvailable { get; set; } = false;
+			public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
+			public Guid? OwnerUserId { get; set; }
+			public User? OwnerName { get; set; }
 			public List<FileAssetDTO> Media { get; set; } = new();
 		}
 	}
