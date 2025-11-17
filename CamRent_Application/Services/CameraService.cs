@@ -85,6 +85,55 @@ namespace CamRent_Application.Services
 			return _mapper.Map<List<CameraResponseDTO>>(cameras);
 		}
 
+		public async Task<CameraHistoryDTO> GetHistoryForQrAsync(Guid cameraId)
+		{
+			// Camera
+			var camera = (await _unitOfWork.Repository<Camera>()
+				.ListAsync(filter: c => c.Id == cameraId,
+					include: c => c.Include(c => c.Branch)))
+				.FirstOrDefault() ?? throw new InvalidOperationException("Camera not found");
+
+			camera.Media = (await _unitOfWork.Repository<FileAsset>()
+				.ListAsync(f => f.OwnerType == FileOwnerType.Camera && f.OwnerId == camera.Id)).ToList();
+
+			var cameraDto = _mapper.Map<CameraResponseDTO>(camera);
+
+			// Booking history (simple)
+			var bookingItems = await _unitOfWork.Repository<BookingItem>()
+				.ListAsync(bi => bi.CameraId == cameraId,
+					include: q => q
+						.Include(bi => bi.Booking)!.ThenInclude(b => b.Renter));
+
+			var bookingHistory = bookingItems
+				.Where(bi => bi.Booking != null)
+				.Select(bi => bi.Booking!)
+				.Distinct()
+				.OrderByDescending(b => b.PickupAt)
+				.Take(10)
+				.Select(b => new CameraBookingHistoryItem
+				{
+					BookingId = b.Id,
+					PickupAt = b.PickupAt,
+					ReturnAt = b.ReturnAt,
+					Status = b.Status,
+					StatusText = b.Status.GetDisplayName(),
+					RenterName = b.Renter?.FullName
+				})
+				.ToList();
+
+			// Inspections liên quan tới camera
+			var inspections = await _unitOfWork.Repository<Inspection>()
+				.ListAsync(i => i.ItemId == cameraId && i.ItemType == ItemType.Camera);
+			var inspectionDtos = _mapper.Map<List<InspectionDTO.InspectionResponseDTO>>(inspections);
+
+			return new CameraHistoryDTO
+			{
+				Camera = cameraDto,
+				Bookings = bookingHistory,
+				Inspections = inspectionDtos
+			};
+		}
+
 		public async Task<int> UpdateAsync(Camera camera)
 		{
 			await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
