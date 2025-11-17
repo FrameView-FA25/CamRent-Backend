@@ -86,26 +86,6 @@ namespace CamRent_Api.Controllers
 			}
 			return Ok(camera);
 		}
-
-		// Chi tiết + lịch sử camera (cho QR scan) - chỉ Manager/Staff được phép
-		[HttpGet("{id:guid}/history")]
-		[Authorize(Roles = "BranchManager,Staff")]
-		[SwaggerOperation(Summary = "Chi tiết + lịch sử camera", Description = "Trả về thông tin camera và lịch sử booking/inspection liên quan. Dùng cho luồng QR. Quyền: BranchManager, Staff")]
-		public async Task<IActionResult> GetCameraHistory(Guid id, [FromServices] IBookingService bookingService, [FromServices] IInspectionService inspectionService)
-		{
-			var camera = await _cameraService.GetByIdAsync(id);
-			if (camera == null) return NotFound();
-
-			var bookings = await bookingService.GetBookingsByCameraIdAsync(id);
-			var inspections = await inspectionService.GetByCameraAsync(id);
-
-			return Ok(new
-			{
-				camera,
-				bookings,
-				inspections
-			});
-		}
 		[HttpGet("GetCamerasByOwnerId")]
 		[SwaggerOperation(Summary = "Lấy camera của chủ sở hữu", Description = "Trả về các camera thuộc về người dùng đang xác thực. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> GetCamerasByOwnerId()
