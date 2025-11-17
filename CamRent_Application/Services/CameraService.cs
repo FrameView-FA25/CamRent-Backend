@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CamRent_Application.DTOs;
+using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
