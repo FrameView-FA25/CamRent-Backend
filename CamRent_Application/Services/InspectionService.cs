@@ -58,12 +58,5 @@ namespace CamRent_Application.Services
 				.ListAsync(i => i.BookingId == bookingId);
 			return _mapper.Map<List<InspectionResponseDTO>>(inspections);
 		}
-
-		public async Task<List<InspectionResponseDTO>> GetByCameraAsync(Guid cameraId)
-		{
-			var inspections = await _unitOfWork.Repository<Inspection>()
-				.ListAsync(i => i.ItemId == cameraId && i.ItemType == ItemType.Camera);
-			return _mapper.Map<List<InspectionResponseDTO>>(inspections);
-		}
 	}
 }

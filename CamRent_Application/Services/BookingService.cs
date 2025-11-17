@@ -175,22 +175,6 @@ namespace CamRent_Application.Services
 			return results;
 		}
 
-		public async Task<List<BookingResponseDTO>> GetBookingsByCameraIdAsync(Guid cameraId)
-		{
-			// Tìm tất cả bookingId có BookingItem trỏ tới cameraId
-			var items = await _unitOfWork.Repository<BookingItem>()
-				.ListAsync(bi => bi.CameraId == cameraId);
-			var bookingIds = items.Select(i => i.BookingId).Distinct().ToList();
-			if (!bookingIds.Any()) return new List<BookingResponseDTO>();
-
-			var bookings = await _unitOfWork.Repository<Booking>()
-				.ListAsync(b => bookingIds.Contains(b.Id),
-					include: b => b.Include(b => b.Items));
-
-			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
-			return results;
-		}
-
 		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity)
 		{
 			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
