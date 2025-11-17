@@ -12,5 +12,6 @@ namespace CamRent_Application.IServices
 		Task<List<Inspection>> GetInspectionsByStaffId(Guid staffId);
 		Task<Guid> CreateInspectionAsync(InspectionRequest inspectionRequest);
 		Task<List<InspectionResponseDTO>> GetByBookingAsync(Guid bookingId);
+		Task<List<InspectionResponseDTO>> GetByCameraAsync(Guid cameraId);
 	}
 }

@@ -12,6 +12,7 @@ namespace CamRent_Application.IServices
 		Task<int> AssignStaffToBookingsAsync(Guid bookingId, Guid staffUserId);
 		Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId);
 		Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId);
+		Task<List<BookingResponseDTO>> GetBookingsByCameraIdAsync(Guid cameraId);
 
 		Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity);
 
