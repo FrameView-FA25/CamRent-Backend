@@ -2,6 +2,13 @@ using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using CamRent_Infrastructure.Persistence.SeedData;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CamRent_Infrastructure.Persistence
 {
@@ -20,13 +27,11 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
         public DbSet<ContractTemplate> ContractTemplates => Set<ContractTemplate>();
-        public DbSet<ContractInstance> Contracts => Set<ContractInstance>();
+        public DbSet<Contract> Contracts => Set<Contract>();
         public DbSet<ContractSigner> ContractSigners => Set<ContractSigner>();
         public DbSet<ContractEvent> ContractEvents => Set<ContractEvent>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<DeliveryTask> DeliveryTasks => Set<DeliveryTask>();
-        public DbSet<Wallet> Wallets => Set<Wallet>();
-        public DbSet<Transaction> Transactions => Set<Transaction>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<PaymentLine> PaymentLines => Set<PaymentLine>();
         public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
@@ -38,8 +43,11 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<ComboItem> ComboItems => Set<ComboItem>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
+        public DbSet<VerificationRequestItem> VerificationRequestItems => Set<VerificationRequestItem>();
 		public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
         public DbSet<ResetPasswordToken> ResetPasswordTokens => Set<ResetPasswordToken>();
+
+        public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -53,13 +61,31 @@ namespace CamRent_Infrastructure.Persistence
                 }
             }
 
-            // RowVersion concurrency
+
+            // Store enums as their string names in the database (e.g. "Confirmed" / "Active" / "Pending")
             foreach (var et in modelBuilder.Model.GetEntityTypes())
             {
-                var prop = et.FindProperty(nameof(BaseEntity.RowVersion));
-                if (prop != null)
+                foreach (var prop in et.GetProperties())
                 {
-                    prop.IsConcurrencyToken = true;
+                    var clrType = prop.ClrType;
+                    Type? enumType = null;
+
+                    if (clrType.IsEnum)
+                        enumType = clrType;
+                    else
+                    {
+                        var underlying = Nullable.GetUnderlyingType(clrType);
+                        if (underlying != null && underlying.IsEnum)
+                            enumType = underlying;
+                    }
+
+                    if (enumType != null)
+                    {
+                        var converterType = typeof(EnumToStringConverter<>).MakeGenericType(enumType);
+                        var converter = Activator.CreateInstance(converterType) as ValueConverter;
+                        if (converter != null)
+                            prop.SetValueConverter(converter);
+                    }
                 }
             }
 
@@ -105,7 +131,7 @@ namespace CamRent_Infrastructure.Persistence
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Renter)
                 .WithMany(u => u.RenterBookings)
-                .HasForeignKey(b => b.RenterId);
+                .HasForeignKey(b => b.CreatedByUserId);
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Staff)
                 .WithMany(u => u.StaffBookings)
@@ -115,12 +141,16 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany(br => br.Bookings)
                 .HasForeignKey(b => b.BranchId);
 
-            modelBuilder.Entity<ContractInstance>()
+            modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Booking)
                 .WithMany()
                 .HasForeignKey(c => c.BookingId);
+            modelBuilder.Entity<Contract>()
+                .HasOne(c => c.Verification)
+                .WithMany()
+                .HasForeignKey(c => c.VerificationId);
 
-            modelBuilder.Entity<ContractInstance>()
+			modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Template)
                 .WithMany()
                 .HasForeignKey(c => c.TemplateId);
@@ -139,16 +169,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(t => t.Booking)
                 .WithMany()
                 .HasForeignKey(t => t.BookingId);
-
-            modelBuilder.Entity<Wallet>()
-                .HasOne(w => w.OwnerUser)
-                .WithMany()
-                .HasForeignKey(w => w.OwnerUserId);
-
-            modelBuilder.Entity<Transaction>()
-                .HasOne(t => t.Wallet)
-                .WithMany()
-                .HasForeignKey(t => t.WalletId);
 
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Booking)
@@ -219,31 +239,46 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(bi => bi.Combo)
                 .WithMany()
                 .HasForeignKey(bi => bi.ComboId);
+			modelBuilder.Entity<ResetPasswordToken>()
+	            .HasOne(t => t.User)
+	            .WithMany()
+	            .HasForeignKey(t => t.UserId);
 
-            modelBuilder.Entity<VerificationRequest>()
+			modelBuilder.Entity<VerificationRequest>()
                 .HasOne(v => v.Staff)
                 .WithMany()
                 .HasForeignKey(v => v.StaffId);
-
-            modelBuilder.Entity<ResetPasswordToken>()
-                .HasOne(t => t.User)
-                .WithMany()
-                .HasForeignKey(t => t.UserId);
-
             modelBuilder.Entity<VerificationRequest>()
+                .HasOne(v => v.Owner)
+                .WithMany()
+                .HasForeignKey(v => v.CreatedByUserId);
+			modelBuilder.Entity<VerificationRequest>()
                 .HasOne(v => v.Branch)
                 .WithMany()
                 .HasForeignKey(v => v.BranchId);
 
-            modelBuilder.Entity<Inspection>()
+            modelBuilder.Entity<VerificationRequestItem>()
+                .HasOne(vi => vi.VerificationRequest)
+                .WithMany(v => v.Items)
+                .HasForeignKey(vi => vi.VerificationId);
+            modelBuilder.Entity<VerificationRequestItem>()
+                .HasOne(vi => vi.Camera)
+                .WithMany()
+                .HasForeignKey(vi => vi.CameraId);
+            modelBuilder.Entity<VerificationRequestItem>()
+                .HasOne(vi => vi.Accessory)
+                .WithMany()
+                .HasForeignKey(vi => vi.AccessoryId);
+
+			modelBuilder.Entity<Inspection>()
                 .HasOne(i => i.Booking)
                 .WithMany(b => b.Inspections)
                 .HasForeignKey(i => i.BookingId);
 
             modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.VerifyRequest)
+                .HasOne(i => i.Verification)
                 .WithMany(v => v.Inspections)
-                .HasForeignKey(i => i.VerifyRequestId);
+                .HasForeignKey(i => i.VerificationId);
 
             modelBuilder.Entity<Inspection>()
                 .HasOne(i => i.Manager)
@@ -254,7 +289,32 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(i => i.Branch)
                 .WithMany()
                 .HasForeignKey(i => i.BranchId);
-        }
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.Staff)
+                .WithMany()
+                .HasForeignKey(i => i.CreatedByUserId);
+
+            modelBuilder.Entity<HandoverReceipt>()
+                .HasOne(hr => hr.Contract)
+                .WithMany()
+                .HasForeignKey(hr => hr.ContractId);
+            modelBuilder.Entity<HandoverReceipt>()
+                .HasOne(hr => hr.User)
+                .WithMany()
+                .HasForeignKey(hr => hr.UserId);
+            modelBuilder.Entity<HandoverReceipt>()
+                .HasOne(hr => hr.Staff)
+                .WithMany()
+                .HasForeignKey(hr => hr.CreatedByUserId);
+            modelBuilder.Entity<HandoverReceipt>()
+                .HasOne(hr => hr.Branch)
+                .WithMany()
+                .HasForeignKey(hr => hr.BranchId);
+            modelBuilder.Entity<HandoverReceipt>()
+                .HasOne(hr => hr.Inspection)
+                .WithMany()
+                .HasForeignKey(hr => hr.InspectionId);
+		}
 
         private static string ToSnakeCase(string name)
         {
@@ -274,6 +334,43 @@ namespace CamRent_Infrastructure.Persistence
                 }
             }
             return new string(chars.ToArray());
+        }
+
+        private static TimeSpan VietnamOffset => TimeSpan.FromHours(7);
+
+        private static DateTimeOffset VietnamNow() => DateTimeOffset.UtcNow.ToOffset(VietnamOffset);
+
+        public override int SaveChanges()
+        {
+            UpdateTimestamps();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            UpdateTimestamps();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void UpdateTimestamps()
+        {
+            var now = VietnamNow();
+            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    // CreatedAt and UpdatedAt as VN time
+                    if (entry.Property(nameof(BaseEntity.CreatedAt)) != null)
+                        entry.Property(nameof(BaseEntity.CreatedAt)).CurrentValue = now;
+                    if (entry.Property(nameof(BaseEntity.UpdatedAt)) != null)
+                        entry.Property(nameof(BaseEntity.UpdatedAt)).CurrentValue = now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    if (entry.Property(nameof(BaseEntity.UpdatedAt)) != null)
+                        entry.Property(nameof(BaseEntity.UpdatedAt)).CurrentValue = now;
+                }
+            }
         }
     }
 }

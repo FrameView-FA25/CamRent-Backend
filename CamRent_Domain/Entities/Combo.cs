@@ -8,7 +8,8 @@ namespace CamRent_Domain.Entities
         public string? Description { get; set; }
         public decimal? PriceOverride { get; set; }
         public decimal? DepositOverride { get; set; }
-
+		public bool IsConfirmed { get; set; } = false;
+		public bool IsAvailable { get; set; } = false;
 		public ICollection<ComboItem> Items { get; set; } = new List<ComboItem>();
     }
 

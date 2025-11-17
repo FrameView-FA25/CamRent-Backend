@@ -87,7 +87,7 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(s => s.Type == InspectionType.Booking
 						? s.InspectionTypeId
 						: null))
-				 .ForMember(d => d.VerifyRequestId,
+				 .ForMember(d => d.VerificationId,
 					opt => opt.MapFrom(s => s.Type == InspectionType.Verification
 						? s.InspectionTypeId
 						: null));

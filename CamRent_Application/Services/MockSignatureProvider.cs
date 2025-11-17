@@ -24,10 +24,10 @@ namespace CamRent_Application.Services
 			var dict = parts.Select(p => p.Split('=')).Where(x => x.Length == 2).ToDictionary(x => x[0], x => Uri.UnescapeDataString(x[1]));
 			if (!dict.TryGetValue("contractId", out var idStr)) return;
 			if (!Guid.TryParse(idStr, out var id)) return;
-			var contract = await _uow.Repository<ContractInstance>().GetByIdAsync(id);
+			var contract = await _uow.Repository<Contract>().GetByIdAsync(id);
 			if (contract == null) return;
 			contract.Status = ContractStatus.Completed;
-			await _uow.Repository<ContractInstance>().UpdateAsync(contract);
+			await _uow.Repository<Contract>().UpdateAsync(contract);
 			await _uow.Complete();
 		}
 	}

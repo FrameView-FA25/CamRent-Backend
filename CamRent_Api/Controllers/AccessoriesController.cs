@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
+using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using static CamRent_Api.Models.AccessoryModel;
@@ -11,14 +13,18 @@ namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	[Consumes("multipart/form-data")]
 	public class AccessoriesController : ControllerBase
 	{
 		private readonly IAccessoryService _accessoryService;
 		private readonly IMapper _mapper;
-		public AccessoriesController(IAccessoryService accessoryService, IMapper mapper)
+		private readonly IFileStorageService _fileStorageService;
+
+		public AccessoriesController(IAccessoryService accessoryService, IMapper mapper, IFileStorageService fileStorageService)
 		{
 			_accessoryService = accessoryService;
 			_mapper = mapper;
+			_fileStorageService = fileStorageService;
 		}
 
 		[HttpGet]
@@ -75,23 +81,47 @@ namespace CamRent_Api.Controllers
 			return Ok(accessories);
 		}
 
-		[Authorize]
+		[Authorize(Policy = "Owner")]
 		[HttpPost]
-		[SwaggerOperation(Summary = "Tạo phụ kiện", Description = "Tạo mới một phụ kiện. Chủ sở hữu lấy từ người dùng đang xác thực. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> CreateAccessory([FromBody] AccessoryRequest accessoryCreateModel)
+		[SwaggerOperation(Summary = "Tạo phụ kiện", Description = "Tạo mới một phụ kiện. Chấp nhận multipart/form-data kèm file media. Chủ sở hữu lấy từ người dùng đang xác thực. Quyền: Owner, Admin")]
+		public async Task<IActionResult> CreateAccessory([FromForm] AccessoryRequest accessoryCreateModel)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 				  ?? User.FindFirst("sub")?.Value
 				  ?? User.FindFirst("uid")?.Value;
 
 			if (string.IsNullOrEmpty(userId))
-				return Forbid();
+				return Unauthorized();
 
 			var accessory = _mapper.Map<Accessory>(accessoryCreateModel);
 			accessory.OwnerUserId = Guid.Parse(userId);
 
 			var result = await _accessoryService.CreateAccessoryAsync(accessory);
-			return result > 0 ? Ok(new { Message = "Tạo phụ kiện thành công." }) : BadRequest(new { Message = "Tạo phụ kiện thất bại." });
+
+			accessory.Media ??= new List<FileAsset>();
+
+			if (accessoryCreateModel.MediaFiles != null)
+			{
+				foreach (var file in accessoryCreateModel.MediaFiles)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: accessory.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/accessories/{accessory.Id}",
+						label: $"{accessory.Brand} {accessory.Model}"
+					);
+					accessory.Media.Add(asset);
+				}
+			}
+
+			if (result <= 0)
+			{
+				return BadRequest("Tạo phụ kiện thất bại.");
+			}
+			return Ok(new { Message = "Tạo phụ kiện thành công." });
 		}
 
 		[HttpPut("{id}")]

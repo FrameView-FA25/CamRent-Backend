@@ -11,22 +11,21 @@ namespace CamRent_Domain.Entities
 		public string? Value { get; set; }
         public bool? Passed { get; set; }
         public string Notes { get; set; } = string.Empty;
-		public string? ChecklistTemplateVersion { get; set; }
-        public DateTime? PerformedAt { get; set; }
+		public User? Staff { get; set; }
 		public string? RenterSignatureUrl { get; set; }
 		public string? StaffSignatureUrl { get; set; }
+		public DateTime? PerformedAt { get; set; }
+		public Guid? ManagerId { get; set; }
+		public User? Manager { get; set; }
+		public Guid? BranchId { get; set; }
+		public Branch? Branch { get; set; }
 		public Guid? ItemId { get; set; }
 		public ItemType? ItemType { get; set; }
 		public Guid? BookingId { get; set; }
         public Booking? Booking { get; set; } = default!;
-		public Guid? VerifyRequestId { get; set; }
-		public VerificationRequest? VerifyRequest { get; set; }
-		public Guid? ManagerId { get; set; }
-        public User? Manager { get; set; }
-        public Guid? BranchId { get; set; }
-        public Branch? Branch { get; set; }
-		[NotMapped]
-		public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
+		public Guid? VerificationId { get; set; }
+		public VerificationRequest? Verification { get; set; }
+
     }
 }
 
