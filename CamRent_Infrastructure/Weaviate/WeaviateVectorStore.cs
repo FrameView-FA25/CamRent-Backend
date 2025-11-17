@@ -1,5 +1,5 @@
 using CamRent_Application.Interfaces;
-using CamRent_Application.Services.Models;
+using CamRent_Application.DTOs;
 using Microsoft.Extensions.Logging;
 
 namespace CamRent_Infrastructure.Weaviate
@@ -7,11 +7,13 @@ namespace CamRent_Infrastructure.Weaviate
 	public sealed class WeaviateVectorStore : IVectorStore
 	{
 		private readonly IWeaviateClient _client;
+		private readonly CamRent_Application.IServices.IEmbeddingService _embed;
 		private readonly ILogger<WeaviateVectorStore> _logger;
 
-		public WeaviateVectorStore(IWeaviateClient client, ILogger<WeaviateVectorStore> logger)
+		public WeaviateVectorStore(IWeaviateClient client, CamRent_Application.IServices.IEmbeddingService embed, ILogger<WeaviateVectorStore> logger)
 		{
 			_client = client;
+			_embed = embed;
 			_logger = logger;
 		}
 
@@ -22,7 +24,9 @@ namespace CamRent_Infrastructure.Weaviate
 
 		public async Task<IReadOnlyList<VectorSearchResult>> SearchAsync(string query, string @class, int topK = 5, CancellationToken ct = default)
 		{
-			var res = await _client.NearTextAsync(@class, query, topK, ct);
+			// Client-side embedding for query
+			var qvec = await _embed.EmbedAsync(query, ct);
+			var res = await _client.NearVectorAsync(@class, qvec, topK, ct);
 			var list = new List<VectorSearchResult>();
 			var results = @class switch
 			{

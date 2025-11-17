@@ -31,22 +31,16 @@ namespace CamRent_Api.Models
 			public decimal Amount { get; set; }
 		}
 
-		public class InitVietQrRequest
+		public class InitPayOsRequest
 		{
 			[Range(0.01, double.MaxValue)]
 			public decimal Amount { get; set; }
 			[StringLength(100)]
 			public string? Description { get; set; }
-		}
-
-		public class VietQrResponse
-		{
-			public Guid PaymentId { get; set; }
-			public decimal Amount { get; set; }
-			public string Content { get; set; } = string.Empty;
-			public string Payload { get; set; } = string.Empty;
-			public string PngBase64 { get; set; } = string.Empty;
-			public DateTime ExpiresAt { get; set; }
+			[Url]
+			public string ReturnUrl { get; set; } = string.Empty;
+			[Url]
+			public string CancelUrl { get; set; } = string.Empty;
 		}
 	}
 }

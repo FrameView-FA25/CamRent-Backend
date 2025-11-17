@@ -9,9 +9,10 @@ namespace CamRent_Api.Commons
 	{
 		public MappingProfileApi()
 		{
-			CreateMap<CameraRequest, Camera>();
+			CreateMap<CameraRequest, Camera>()
+				.ForMember(dest => dest.Media, opt => opt.Ignore());
 			CreateMap<AccessoryRequest, Accessory>()
-			.ForMember(d => d.OwnerUserId, opt => opt.Ignore());
+				.ForMember(d => d.OwnerUserId, opt => opt.Ignore());
 		}
 	}
 }

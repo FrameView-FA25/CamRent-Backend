@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using CamRent_Domain.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace CamRent_Api.Models
 {
@@ -14,25 +15,17 @@ namespace CamRent_Api.Models
 			public DateTime ReturnAt { get; set; }
 		}
 
-		public class AddItemRequest
+		public class AddToCartRequest
 		{
-			public Guid? CameraId { get; set; }
-			public Guid? AccessoryId { get; set; }
-			public Guid? ComboId { get; set; }
-			[Range(1, int.MaxValue)]
-			public int Quantity { get; set; }
-			[Range(0, double.MaxValue)]
-			public decimal UnitPrice { get; set; }
-			[Range(0, double.MaxValue)]
-			public decimal DepositAmount { get; set; }
+			public Guid Id { get; set; }
+			public ItemType Type { get; set; }
+			public int Quantity { get; set; } = 1;
 		}
 
-		public class UpdateTimesRequest
+		public class RemoveFromCartRequest
 		{
-			[Required]
-			public DateTime PickupAt { get; set; }
-			[Required]
-			public DateTime ReturnAt { get; set; }
+			public Guid Id { get; set; }
+			public ItemType Type { get; set; }
 		}
 
 		public class SettlementRequest

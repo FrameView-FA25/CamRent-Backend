@@ -17,8 +17,10 @@ namespace CamRent_Application.DTOs
 			public string Model { get; set; } = string.Empty;
 			public string? Variant { get; set; }
 			public string? SerialNumber { get; set; }
-			public Guid BranchId { get; set; }
-			public Branch Branch { get; set; } = default!;
+
+			public string BranchName { get; set; }
+
+			public ItemType ItemType => ItemType.Accessory;
 
 			// Pricing base
 			public decimal BaseDailyRate { get; set; }

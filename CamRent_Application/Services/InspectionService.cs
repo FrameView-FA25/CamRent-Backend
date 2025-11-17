@@ -1,65 +1,62 @@
+﻿using AutoMapper;
+using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Application.Services
 {
 	public class InspectionService : IInspectionService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		public InspectionService(IUnitOfWork unitOfWork)
+		private readonly IMapper _mapper;
+		public InspectionService(IUnitOfWork unitOfWork, IMapper mapper)
 		{
 			_unitOfWork = unitOfWork;
+			_mapper = mapper;
 		}
 
-		public async Task<Guid> CreateInspectionAsync(Guid bookingId, InspectionType type, Guid? performedByUserId, Guid? branchId, string? notes, IEnumerable<(string section, string label, string? value, bool? passed, string? notes)> items)
+		public async Task<Guid> CreateInspectionAsync(InspectionRequest inspectionRequest)
 		{
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
-				?? throw new InvalidOperationException("Booking not found");
-			var inspection = new Inspection
+			if (inspectionRequest == null)
 			{
-				Id = Guid.NewGuid(),
-				BookingId = bookingId,
-				Type = type,
-				Notes = notes ?? string.Empty,
-				PerformedAt = DateTime.UtcNow,
-				PerformedByUserId = performedByUserId,
-				BranchId = branchId,
-				CreatedAt = DateTime.UtcNow,
-				IsDeleted = false
-			};
+				throw new ArgumentNullException(nameof(inspectionRequest));
+			}
+
+			// Nếu là Booking/Verification mà không có Id tương ứng thì báo lỗi sớm
+			if ((inspectionRequest.Type == InspectionType.Booking ||
+				 inspectionRequest.Type == InspectionType.Verification)
+				&& inspectionRequest.InspectionTypeId == null)
+			{
+				throw new ArgumentException("InspectionTypeId is required for this inspection type.");
+			}
+
+			// Map từ DTO sang entity bằng AutoMapper (đã cấu hình profile trước đó)
+			var inspection = _mapper.Map<Inspection>(inspectionRequest);
+			
+			// Set thời điểm thực hiện inspection nếu chưa có
+			if (!inspection.PerformedAt.HasValue)
+			{
+				inspection.CreatedAt = DateTime.UtcNow;
+			}
+
 			await _unitOfWork.Repository<Inspection>().AddAsync(inspection);
-
-			foreach (var it in items)
-			{
-				var item = new InspectionItem
-				{
-					Id = Guid.NewGuid(),
-					InspectionId = inspection.Id,
-					Section = it.section,
-					Label = it.label,
-					Value = it.value,
-					Passed = it.passed,
-					Notes = it.notes
-				};
-				await _unitOfWork.Repository<InspectionItem>().AddAsync(item);
-			}
-
-			// status transitions
-			if (type == InspectionType.Pre && booking.Status == BookingStatus.Confirmed)
-			{
-				booking.Status = BookingStatus.InUse;
-				await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
-			}
-			else if (type == InspectionType.Post && (booking.Status == BookingStatus.InUse || booking.Status == BookingStatus.Overdue))
-			{
-				booking.Status = BookingStatus.Returned;
-				await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
-			}
-
 			await _unitOfWork.Complete();
 			return inspection.Id;
+		}
+
+		public Task<List<Inspection>> GetInspectionsByStaffId(Guid staffId)
+		{
+			throw new NotImplementedException();
+		}
+
+		public async Task<List<InspectionResponseDTO>> GetByBookingAsync(Guid bookingId)
+		{
+			var inspections = await _unitOfWork.Repository<Inspection>()
+				.ListAsync(i => i.BookingId == bookingId);
+			return _mapper.Map<List<InspectionResponseDTO>>(inspections);
 		}
 	}
 }

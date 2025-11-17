@@ -1,6 +1,4 @@
 ﻿using CamRent_Api;
-using CamRent_Api.HostedServices;
-using CamRent_Api.Validators;
 using CamRent_Application;
 using CamRent_Infrastructure;
 using CamRent_Infrastructure.Persistence;
@@ -12,8 +10,6 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using CamRent_Application.Common;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +19,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks();
 
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateBookingRequestValidator>();
 
 const string CorsAllowAll = "AllowAll";
 builder.Services.AddCors(options =>
@@ -42,13 +37,7 @@ builder.Services
 	.AddApplicationDI()
 	.AddSwaggerGen()
 	.AddJwtAuthentication(builder.Configuration)
-	.AddApiDI();
-
-// Options
-builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VNPay"));
-
-// Hosted services
-builder.Services.AddHostedService<BookingStatusHostedService>();
+	.AddApiDI(builder.Configuration);
 
 var app = builder.Build();
 
@@ -90,11 +79,13 @@ if (applyMigrations)
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Route gốc: chuyển sang Swagger hoặc trả JSON
-app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription(); // hoặc Results.Json(new { app="CamRent API", ok=true })
+// Public routes
+app.MapGet("/", () => Results.Redirect("/swagger"))
+   .AllowAnonymous()
+   .ExcludeFromDescription();
 
-// Health check
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health")
+   .AllowAnonymous();
 
 app.UseHttpsRedirection();
 
@@ -104,8 +95,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Đảm bảo preflight OPTIONS luôn 200
-app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok()).ExcludeFromDescription();
 
 app.Run();

@@ -1,13 +1,16 @@
+using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CamRent_Domain.Common;
-using CamRent_Domain.Entities;
+using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Application.IServices
 {
 	public interface IInspectionService
 	{
-		Task<Guid> CreateInspectionAsync(Guid bookingId, InspectionType type, Guid? performedByUserId, Guid? branchId, string? notes, IEnumerable<(string section, string label, string? value, bool? passed, string? notes)> items);
+		Task<List<Inspection>> GetInspectionsByStaffId(Guid staffId);
+		Task<Guid> CreateInspectionAsync(InspectionRequest inspectionRequest);
+		Task<List<InspectionResponseDTO>> GetByBookingAsync(Guid bookingId);
 	}
 }

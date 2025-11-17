@@ -17,7 +17,15 @@ namespace CamRent_Domain.Common
         Ban = 0,
         Active = 1,
 	}
-
+	public enum FileOwnerType
+	{
+		Camera = 1,
+		Accessory = 2,
+		UserAvatar = 3,
+        Combo = 4,
+		Inspection = 5,
+        ContractDocument = 6
+	}
 	public enum DeviceCategory
     {
         Camera = 1,
@@ -72,9 +80,10 @@ namespace CamRent_Domain.Common
 
     public enum InspectionType
     {
-        Pre = 1,
-        Post = 2
+        Booking = 1,
+		Verification = 2
     }
+
 
     public enum DeliveryTaskStatus
     {
@@ -90,8 +99,9 @@ namespace CamRent_Domain.Common
         Draft = 1,
         Sent = 2,
         Signed = 3,
-        Cancelled = 4
-    }
+        Cancelled = 4,
+		Completed = 5
+	}
 
     public enum PaymentStatus
     {
@@ -109,5 +119,12 @@ namespace CamRent_Domain.Common
         Rejected,     // Bị từ chối (bình luận xấu)
         Flagged       // Bị báo cáo
     }
+
+    public enum ItemType
+    {
+        Camera = 1,
+        Accessory = 2,
+        Combo = 3
+	}
 }
 

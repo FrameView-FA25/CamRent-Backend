@@ -7,8 +7,9 @@ namespace CamRent_Domain.Entities
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal? PriceOverride { get; set; }
+        public decimal? DepositOverride { get; set; }
 
-        public ICollection<ComboItem> Items { get; set; } = new List<ComboItem>();
+		public ICollection<ComboItem> Items { get; set; } = new List<ComboItem>();
     }
 
     public class ComboItem : BaseEntity

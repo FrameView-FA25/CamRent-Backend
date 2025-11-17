@@ -12,6 +12,9 @@ namespace CamRent_Infrastructure.Weaviate
 		Task EnsureSchemaAsync(CancellationToken ct = default);
 		Task UpsertAsync(string @class, Guid id, object properties, float[]? vector = null, CancellationToken ct = default);
 		Task<WeaviateQueryResult> NearTextAsync(string @class, string query, int limit = 5, CancellationToken ct = default);
+		Task<WeaviateQueryResult> NearVectorAsync(string @class, float[] vector, int limit = 5, CancellationToken ct = default);
+		Task<WeaviateQueryResult> HybridAsync(string @class, string query, float[]? vector, int limit = 5, float alpha = 0.5f, CancellationToken ct = default);
+		Task DeleteAsync(string @class, Guid id, CancellationToken ct = default);
 	}
 
 	internal sealed class WeaviateClient : IWeaviateClient
@@ -52,17 +55,14 @@ namespace CamRent_Infrastructure.Weaviate
 			{
 				@class,
 				description = $"{@class} entity for semantic search",
-				vectorizer = "text2vec-openai", // Expect server-side vectorization; if not available, user can switch to 'none'
-				moduleConfig = new Dictionary<string, object>
-				{
-					{ "text2vec-openai", new Dictionary<string, object>() }
-				},
+				vectorizer = "none",
 				properties = new object[]
 				{
 					new { name = "name", dataType = new[] { "text" } },
 					new { name = "description", dataType = new[] { "text" } },
 					new { name = "category", dataType = new[] { "text" } },
-					new { name = "priceInfo", dataType = new[] { "text" } }
+					new { name = "priceInfo", dataType = new[] { "text" } },
+					new { name = "priceDaily", dataType = new[] { "number" } }
 				}
 			};
 
@@ -127,7 +127,75 @@ namespace CamRent_Infrastructure.Weaviate
 			return JsonSerializer.Deserialize<WeaviateQueryResult>(text, JsonOptions) ?? new WeaviateQueryResult();
 		}
 
+		public async Task<WeaviateQueryResult> NearVectorAsync(string @class, float[] vector, int limit = 5, CancellationToken ct = default)
+		{
+			var vectorString = string.Join(",", vector.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+			var gql = $$"""
+			{
+			  Get {
+			    {{@class}}(
+			      limit: {{limit}},
+			      nearVector: { vector: [{{vectorString}}] }
+			    ){
+			      {{GraphQlFragments.DefaultFields}}
+			    }
+			  }
+			}
+			""";
+			var body = new { query = gql };
+			using var res = await _http.PostAsJsonAsync("/v1/graphql", body, JsonOptions, ct);
+			var text = await res.Content.ReadAsStringAsync(ct);
+			res.EnsureSuccessStatusCode();
+			return JsonSerializer.Deserialize<WeaviateQueryResult>(text, JsonOptions) ?? new WeaviateQueryResult();
+		}
+
+		public async Task<WeaviateQueryResult> HybridAsync(string @class, string query, float[]? vector, int limit = 5, float alpha = 0.5f, CancellationToken ct = default)
+		{
+			var vecPart = vector is { Length: > 0 }
+				? $"vector: [{string.Join(",", vector.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture)))}],"
+				: "";
+			var gql = $$"""
+			{
+			  Get {
+			    {{@class}}(
+			      limit: {{limit}},
+			      hybrid: { query: "{{EscapeGraphQl(query)}}", {{vecPart}} alpha: {{alpha.ToString(System.Globalization.CultureInfo.InvariantCulture)}} }
+			    ){
+			      {{GraphQlFragments.DefaultFields}}
+			    }
+			  }
+			}
+			""";
+			var body = new { query = gql };
+			using var res = await _http.PostAsJsonAsync("/v1/graphql", body, JsonOptions, ct);
+			var text = await res.Content.ReadAsStringAsync(ct);
+			res.EnsureSuccessStatusCode();
+			return JsonSerializer.Deserialize<WeaviateQueryResult>(text, JsonOptions) ?? new WeaviateQueryResult();
+		}
+
 		private static string EscapeGraphQl(string input) => input.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+		public async Task DeleteAsync(string @class, Guid id, CancellationToken ct = default)
+		{
+			var path = $"/v1/objects/{id}?class={Uri.EscapeDataString(@class)}";
+			using var res = await _http.DeleteAsync(path, ct);
+			// if not exists -> ignore
+			if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.NotFound)
+			{
+				var detail = await res.Content.ReadAsStringAsync(ct);
+				_logger.LogWarning("Weaviate delete failed for {Class}/{Id}. Status {Status}. Detail: {Detail}", @class, id, (int)res.StatusCode, detail);
+			}
+		}
+	}
+
+	public static class GraphQlFragments
+	{
+		public const string DefaultFields = @"
+			      _additional { id distance }
+			      name
+			      description
+			      category
+			      priceInfo";
 	}
 
 	public sealed class WeaviateQueryResult

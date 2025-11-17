@@ -1,4 +1,5 @@
 using CamRent_Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CamRent_Domain.Entities
 {
@@ -22,5 +23,8 @@ namespace CamRent_Domain.Entities
         public User? ReviewedByStaff { get; set; }
         public DateTime? ReviewedAt { get; set; }
         public string? ModerationNotes { get; set; }
-    }
+
+		[NotMapped]
+		public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
+	}
 }

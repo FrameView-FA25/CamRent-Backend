@@ -15,12 +15,12 @@ namespace CamRent_Api.Controllers
 	{
     	private readonly IPaymentService _paymentService;
     	private readonly IPricingService _pricingService;
-    	private readonly IVnPayService _vnPayService;
-    	public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IVnPayService vnPayService)
+    	private readonly IPayOsService _payOsService;
+    	public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IPayOsService payOsService)
 		{
 			_paymentService = paymentService;
 			_pricingService = pricingService;
-			_vnPayService = vnPayService;
+			_payOsService = payOsService;
 		}
 
 		[HttpPost("authorize")]
@@ -56,26 +56,13 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		// Init VNPay redirect URL
-		[HttpPost("{id:guid}/vnpay")]
+		// Init PayOS payment link
+		[HttpPost("{id:guid}/payos")]
 		[Authorize(Policy = "Renter")]
-		public async Task<ActionResult<string>> InitVnPay(Guid id, [FromBody] InitVietQrRequest request)
+		public async Task<ActionResult<string>> InitPayOs(Guid id, [FromBody] InitPayOsRequest request)
 		{
-			// Reuse request model: Amount, Description
-			var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-			var url = await _vnPayService.CreatePaymentUrlAsync(id, request.Amount, request.Description ?? $"CamRent Payment {id}", ip, HttpContext.RequestAborted);
+			var url = await _payOsService.CreatePaymentLinkAsync(id, request.Amount, request.Description ?? $"CamRent Payment {id}", request.ReturnUrl, request.CancelUrl, HttpContext.RequestAborted);
 			return Ok(new { redirectUrl = url });
-		}
-
-		// VNPay return URL
-		[HttpGet("vnpay-return")]
-		[AllowAnonymous]
-		public async Task<IActionResult> VnPayReturn()
-		{
-			var query = HttpContext.Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-			var ok = await _vnPayService.ProcessReturnAsync(query, HttpContext.RequestAborted);
-			if (ok) return Ok(new { ok = true });
-			return BadRequest(new { ok = false });
 		}
 
 		// Test-only: confirm capture after manual transfer verification

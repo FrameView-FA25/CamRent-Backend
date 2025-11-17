@@ -33,21 +33,29 @@ namespace CamRent_Application.DTOs
 
 			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
 		}
+		public class Cart
+		{
+			public Guid Id { get; set; }
+			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
 
+			public double TotalPrice { get; set; }
+		}
+
+		public class  BookingStatusDTO
+		{
+			public BookingStatus Status { get; set; }
+			public string StatusText { get; set; }
+		}
 		public class BookingItemDTO
 		{
-			public Guid? CameraId { get; set; }
-			public string? CameraName { get; set; }
+			public Guid? ItemId { get; set; }
+			public string? ItemName { get; set; }
 
-			public Guid? AccessoryId { get; set; }
-			public string? AccessoryName { get; set; }
-
-			public Guid? ComboId { get; set; }
-			public string? ComboName { get; set; }
+			public string ItemType { get; set; }
 
 			public int Quantity { get; set; } = 1;
 			public decimal UnitPrice { get; set; }
-			public decimal DepositAmount { get; set; }
+
 		}
 	}
 }

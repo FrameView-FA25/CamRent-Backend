@@ -13,6 +13,7 @@ namespace CamRent_Application
 		{
 			services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+			services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();
 			services.AddScoped<IBranchService, BranchService>();
 			services.AddScoped<IAccessoryService, AccessoryService>();
 			services.AddScoped<IAuthService, AuthService>();
@@ -21,7 +22,6 @@ namespace CamRent_Application
 			services.AddScoped<IPricingService, PricingService>();
 			services.AddScoped<IAvailabilityService, AvailabilityService>();
 			services.AddScoped<IPaymentService, PaymentService>();
-			// Removed VietQR in favor of VNPay
 			services.AddScoped<IContractService, ContractService>();
 			services.AddScoped<IContractTemplateService, ContractTemplateService>();
 			services.AddScoped<IInspectionService, InspectionService>();
@@ -32,7 +32,9 @@ namespace CamRent_Application
 			services.AddScoped<IComboService, ComboService>();
 			services.AddScoped<IUserService, UserService>();
 			services.AddScoped<IAIRecommendationService, AIRecommendationService>();
-			services.AddScoped<IVnPayService, VnPayService>();
+			services.AddScoped<IDisputeService, DisputeService>();
+			services.AddScoped<IContractSignatureProvider, MockSignatureProvider>();
+			services.AddScoped<IPasswordResetService, PasswordResetService>();
 			return services;
 		}
 	}
