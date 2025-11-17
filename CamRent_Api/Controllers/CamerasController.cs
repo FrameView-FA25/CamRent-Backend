@@ -170,6 +170,16 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
+		// QR: Owner/Admin scan để xem thông tin + lịch sử camera
+		[HttpGet("{id:guid}/qr-history")]
+		[Authorize(Roles = "Owner,Admin")]
+		[SwaggerOperation(Summary = "Thông tin camera cho QR scan", Description = "Owner/Admin quét QR code trên thân máy để xem thông tin chi tiết + lịch sử booking/inspection của camera.")]
+		public async Task<IActionResult> GetCameraQrHistory(Guid id)
+		{
+			var history = await _cameraService.GetHistoryForQrAsync(id);
+			return Ok(history);
+		}
+
 		// So sánh tối đa 3 camera
 		[HttpGet("compare")]
 		[AllowAnonymous]
