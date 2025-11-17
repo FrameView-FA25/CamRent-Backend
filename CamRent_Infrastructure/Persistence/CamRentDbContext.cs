@@ -1,4 +1,4 @@
-using CamRent_Domain.Common;
+﻿using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using CamRent_Infrastructure.Persistence.SeedData;
 using Microsoft.EntityFrameworkCore;
@@ -336,42 +336,41 @@ namespace CamRent_Infrastructure.Persistence
             return new string(chars.ToArray());
         }
 
-        private static TimeSpan VietnamOffset => TimeSpan.FromHours(7);
+		// Bỏ VietnamOffset + VietnamNow đi, thay bằng UtcNow:
+		private static DateTime UtcNow() => DateTime.UtcNow;
 
-        private static DateTimeOffset VietnamNow() => DateTimeOffset.UtcNow.ToOffset(VietnamOffset);
+		public override int SaveChanges()
+		{
+			UpdateTimestamps();
+			return base.SaveChanges();
+		}
 
-        public override int SaveChanges()
-        {
-            UpdateTimestamps();
-            return base.SaveChanges();
-        }
+		public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+		{
+			UpdateTimestamps();
+			return base.SaveChangesAsync(cancellationToken);
+		}
 
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            UpdateTimestamps();
-            return base.SaveChangesAsync(cancellationToken);
-        }
+		private void UpdateTimestamps()
+		{
+			var now = UtcNow(); // DateTime (UTC)
 
-        private void UpdateTimestamps()
-        {
-            var now = VietnamNow();
-            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-            {
-                if (entry.State == EntityState.Added)
-                {
-                    // CreatedAt and UpdatedAt as VN time
-                    if (entry.Property(nameof(BaseEntity.CreatedAt)) != null)
-                        entry.Property(nameof(BaseEntity.CreatedAt)).CurrentValue = now;
-                    if (entry.Property(nameof(BaseEntity.UpdatedAt)) != null)
-                        entry.Property(nameof(BaseEntity.UpdatedAt)).CurrentValue = now;
-                }
-                else if (entry.State == EntityState.Modified)
-                {
-                    if (entry.Property(nameof(BaseEntity.UpdatedAt)) != null)
-                        entry.Property(nameof(BaseEntity.UpdatedAt)).CurrentValue = now;
-                }
-            }
-        }
-    }
+			foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+			{
+				if (entry.State == EntityState.Added)
+				{
+					if (entry.Property(nameof(BaseEntity.CreatedAt)) != null)
+						entry.Property(nameof(BaseEntity.CreatedAt)).CurrentValue = now;
+					if (entry.Property(nameof(BaseEntity.UpdatedAt)) != null)
+						entry.Property(nameof(BaseEntity.UpdatedAt)).CurrentValue = now;
+				}
+				else if (entry.State == EntityState.Modified)
+				{
+					if (entry.Property(nameof(BaseEntity.UpdatedAt)) != null)
+						entry.Property(nameof(BaseEntity.UpdatedAt)).CurrentValue = now;
+				}
+			}
+		}
+	}
 }
 

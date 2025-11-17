@@ -17,10 +17,19 @@ namespace CamRent_Application.Common
 		{
 			CreateMap<Camera, CameraResponseDTO>()
 				.ForMember(c => c.BranchName,
-					opt => opt.MapFrom(s => s.Branch.Name));
+					opt => opt.MapFrom(s => s.Branch.Name))
+				.ForMember(c => c.BranchAddress,
+					opt => opt.MapFrom(s => s.Branch.Address.District + "," + s.Branch.Address.Province))
+				.ForMember(c => c.OwnerName,
+					opt => opt.MapFrom(s => s.OwnerUser.FullName));
+
 			CreateMap<Accessory, AccessoryResponseDTO>()
 				.ForMember(a => a.BranchName,
-					opt => opt.MapFrom(s => s.Branch.Name));
+					opt => opt.MapFrom(s => s.Branch.Name))
+				.ForMember(a => a.BranchAddress,
+					opt => opt.MapFrom(s => s.Branch.Address.District + "," + s.Branch.Address.Province))
+				.ForMember(a => a.OwnerName,
+					opt => opt.MapFrom(s => s.OwnerUser.FullName));
 			CreateMap<Booking, BookingResponseDTO>()
 			.ForMember(d => d.StatusText,
 				opt => opt.MapFrom(s => s.Status.GetDisplayName()));
