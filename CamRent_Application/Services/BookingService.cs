@@ -47,7 +47,7 @@ namespace CamRent_Application.Services
 		public async Task<List<BookingResponseDTO>> GetAllAsync()
 		{
 			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items));
-			foreach(var booking in bookings)
+			foreach (var booking in bookings)
 			{
 				booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
 			}
@@ -59,7 +59,7 @@ namespace CamRent_Application.Services
 		{
 			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
 				?? throw new InvalidOperationException("Booking not found");
-			if(booking == null)
+			if (booking == null)
 			{
 				return 0;
 			}
@@ -70,7 +70,7 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId)
 		{
-			var bookings = await  _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b.Include(b => b.Items));
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b.Include(b => b.Items));
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
@@ -216,7 +216,7 @@ namespace CamRent_Application.Services
 				include: b => b.Include(b => b.Items)
 			)).FirstOrDefault();
 			booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
-			if(booking == null)
+			if (booking == null)
 			{
 				booking = new Booking
 				{
@@ -244,6 +244,16 @@ namespace CamRent_Application.Services
 				})
 				.ToList();
 			return Task.FromResult(statuses);
+		}
+
+		public async Task<int> CreateBookingAsync(CreateBookingRequest createBookingRequest, Guid renterId)
+		{
+			var cart = (await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Renter) ,filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft)).FirstOrDefault();
+			_mapper.Map(createBookingRequest, cart);
+			cart.Status = BookingStatus.PendingApproval;
+			await _unitOfWork.Repository<Booking>().UpdateAsync(cart);
+			var result = await _unitOfWork.Complete();
+			return result;
 		}
 	}
 }
