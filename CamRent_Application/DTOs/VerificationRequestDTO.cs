@@ -23,6 +23,8 @@ namespace CamRent_Application.DTOs
 			public string? Address { get; set; }
 
 			public string? Notes { get; set; }
+
+			public Guid? CreatedByUserId { get; set; }
 		}
 
 		public class CreateVerificationRequestDTO
