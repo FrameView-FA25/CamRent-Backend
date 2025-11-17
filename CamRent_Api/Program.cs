@@ -96,7 +96,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Đảm bảo preflight OPTIONS luôn 200
-app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok()).ExcludeFromDescription();
-
 app.Run();
