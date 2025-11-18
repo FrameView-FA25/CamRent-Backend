@@ -18,12 +18,10 @@ namespace CamRent_Application.Services
 			_mapper = mapper;
 		}
 
-		public async Task<Guid> CreateInspectionAsync(InspectionRequest inspectionRequest)
+		public async Task<Guid> CreateInspectionAsync(InspectionRequest inspectionRequest, Guid staffId)
 		{
 			if (inspectionRequest == null)
-			{
 				throw new ArgumentNullException(nameof(inspectionRequest));
-			}
 
 			// Nếu là Booking/Verification mà không có Id tương ứng thì báo lỗi sớm
 			if ((inspectionRequest.Type == InspectionType.Booking ||
@@ -33,19 +31,19 @@ namespace CamRent_Application.Services
 				throw new ArgumentException("InspectionTypeId is required for this inspection type.");
 			}
 
-			// Map từ DTO sang entity bằng AutoMapper (đã cấu hình profile trước đó)
+			// Map từ DTO sang entity bằng AutoMapper
 			var inspection = _mapper.Map<Inspection>(inspectionRequest);
-			
-			// Set thời điểm thực hiện inspection nếu chưa có
-			if (!inspection.PerformedAt.HasValue)
-			{
-				inspection.CreatedAt = DateTime.UtcNow;
-			}
 
+			inspection.CreatedAt = DateTime.UtcNow;
+			inspection.CreatedByUserId = staffId;
+
+			// CreatedAt thì nên để DbContext/SaveChanges xử lý (BaseEntity)
 			await _unitOfWork.Repository<Inspection>().AddAsync(inspection);
 			await _unitOfWork.Complete();
+
 			return inspection.Id;
 		}
+
 
 		public Task<List<Inspection>> GetInspectionsByStaffId(Guid staffId)
 		{

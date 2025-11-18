@@ -12,15 +12,15 @@ namespace CamRent_Domain.Entities
         public bool? Passed { get; set; }
         public string Notes { get; set; } = string.Empty;
 		public User? Staff { get; set; }
-		public string? RenterSignatureUrl { get; set; }
-		public string? StaffSignatureUrl { get; set; }
 		public DateTime? PerformedAt { get; set; }
 		public Guid? ManagerId { get; set; }
 		public User? Manager { get; set; }
 		public Guid? BranchId { get; set; }
 		public Branch? Branch { get; set; }
-		public Guid? ItemId { get; set; }
-		public ItemType? ItemType { get; set; }
+		public Guid? CameraId { get; set; }
+		public Camera? Camera { get; set; }
+		public Guid? AccessoryId { get; set; }
+		public Accessory? Accessory { get; set; }
 		public Guid? BookingId { get; set; }
         public Booking? Booking { get; set; } = default!;
 		public Guid? VerificationId { get; set; }
