@@ -40,7 +40,7 @@ namespace CamRent_Application.Services
 			// đảm bảo EF hiểu quan hệ cha–con (nếu bạn dùng navigation)
 			foreach (var item in verification.Items)
 			{
-				item.VerificationRequest = verification;
+				await _unitOfWork.Repository<VerificationRequestItem>().AddAsync(item);
 				// KHÔNG cần gán VerificationId, EF sẽ tự set sau khi insert
 			}
 

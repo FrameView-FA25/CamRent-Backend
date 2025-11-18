@@ -30,8 +30,8 @@ namespace CamRent_Application.DTOs
 
 			public Guid? CreatedByUserId { get; set; }
 
-			public List<VerificationItemDTO> Items { get; set; } = new();
-			public List<InspectionResponseDTO> Inspections { get; set; } = new();
+			public List<VerificationItemDTO>? Items { get; set; } 
+			public List<InspectionResponseDTO>? Inspections { get; set; } 
 		}
 
 
@@ -42,7 +42,7 @@ namespace CamRent_Application.DTOs
 			public DateTime InspectionDate { get; set; }
 			public string? Notes { get; set; }
 			public Guid? BranchId { get; set; }
-			List<VerificationItemDTO> Items { get; set; } = new ();
+			public List<VerificationItemDTO>? Items { get; set; }
 		}
 
 		public class VerificationItemDTO

@@ -31,7 +31,7 @@ namespace CamRent_Application.Services
 			_jwt = jwt.Value;
 		}
 
-		public async Task<bool> Register(RegisterRequest request)
+		public async Task<bool> Register(RegisterRequest request, Guid? userId)
 		{
 			var email = request.Email.Trim();
 
@@ -48,9 +48,16 @@ namespace CamRent_Application.Services
 				Phone = request.Phone?.Trim() ?? string.Empty,
 				FullName = request.FullName?.Trim() ?? string.Empty,
 				Status = UserStatus.Active,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = DateTime.UtcNow,
 			};
-
+			if(userId != Guid.Empty)
+			{
+				user.CreatedByUserId = userId;
+			}
+			else
+			{
+				user.CreatedByUserId = user.Id;
+			}
 			user.PasswordHash = _hasher.HashPassword(user, request.Password);
 			await _unitOfWork.Repository<User>().AddAsync(user);
 

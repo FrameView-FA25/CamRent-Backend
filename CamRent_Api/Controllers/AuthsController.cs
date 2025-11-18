@@ -35,7 +35,7 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> RegisterAsRenter([FromBody] RegisterRequest request)
 		{
 			request.Role = UserRole.Renter;
-			var result = await _authService.Register(request);
+			var result = await _authService.Register(request, null);
 			if (!result)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
@@ -46,28 +46,7 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> RegisterAsOwner([FromBody] RegisterRequest request)
 		{
 			request.Role = UserRole.Owner;
-			var result = await _authService.Register(request);
-			if (!result)
-				return BadRequest("Email đã được đăng kí.");
-			return Ok("Đăng ký thành công.");
-		}
-
-		[HttpPost("BranchManagerRegister")]
-		[SwaggerOperation(Summary = "Đăng ký BranchManager", Description = "Đăng ký tài khoản với vai trò BranchManager. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> RegisterAsManager([FromBody] RegisterRequest request)
-		{
-			request.Role = UserRole.BranchManager;
-			var result = await _authService.Register(request);
-			if (!result)
-				return BadRequest("Email đã được đăng kí.");
-			return Ok("Đăng ký thành công.");
-		}
-		[HttpPost("StaffRegister")]
-		[SwaggerOperation(Summary = "Đăng ký Staff", Description = "Đăng ký tài khoản với vai trò Staff. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> RegisterAsStaff([FromBody] RegisterRequest request)
-		{
-			request.Role = UserRole.Staff;
-			var result = await _authService.Register(request);
+			var result = await _authService.Register(request, null);
 			if (!result)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");

@@ -63,7 +63,13 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId)
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.PendingApproval, include: b => b.Include(b => b.Items));
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.PendingApproval, 
+				include: b => b.Include(b => b.Items)
+							.ThenInclude(i => i.Camera)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Accessory)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Combo));
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}

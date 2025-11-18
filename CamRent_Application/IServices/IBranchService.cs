@@ -15,6 +15,7 @@ namespace CamRent_Application.IServices
 		Task<int> AssignStaffToBranchAsync(Guid branchId, Guid staffId);
 		Task<List<BranchResponse>> GetAllBranchesAsync();
 		Task<BranchResponse?> GetBranchByIdAsync(Guid branchId);
+		Task<Guid> GetBranchIdByManagerIdAsync(Guid managerId);
 		Task<List<BranchMembership>> GetBranchMembershipsAsync(Guid? branchId, Guid? managerId);
 	}
 }

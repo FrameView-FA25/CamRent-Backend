@@ -40,7 +40,11 @@ namespace CamRent_Application.Services
 			return user!;
 		}
 
-		
+		public async Task<Guid> GetUserIdByManagerId(Guid managerId)
+		{
+			var user = await _unitOfWork.Repository<User>().ListAsync();
+			return user!.FirstOrDefault(u => u.CreatedByUserId == managerId)?.Id ?? Guid.Empty;
+		}
 
 		public async Task<int> UpdateUser(User user)
 		{
