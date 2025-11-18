@@ -12,6 +12,7 @@ namespace CamRent_Application.IServices
 	public interface IFileStorageService
 	{
 		Task<FileAsset> UploadAsync(IFormFile file, Guid ownerId, FileOwnerType ownerType, string? folder = null, string? label = null);
+		Task<FileAsset> UploadAsync(byte[] content, string fileName, string contentType, Guid ownerId, FileOwnerType ownerType, string? folder = null, string? label = null);
 		Task DeleteAsync(string providerKey);
 
 	}

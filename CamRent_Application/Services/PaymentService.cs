@@ -9,9 +9,11 @@ namespace CamRent_Application.Services
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IEmailService? _email;
-		public PaymentService(IUnitOfWork unitOfWork, IEmailService? email = null)
+		private readonly IContractService _contractService;
+		public PaymentService(IUnitOfWork unitOfWork, IContractService contractService, IEmailService? email = null)
 		{
 			_unitOfWork = unitOfWork;
+			_contractService = contractService;
 			_email = email;
 		}
 
@@ -57,6 +59,10 @@ namespace CamRent_Application.Services
 			payment.Status = PaymentStatus.Captured;
 			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
 			await _unitOfWork.Complete();
+
+			// Sau khi capture thủ công (không qua PayOS), vẫn tự sinh hợp đồng
+			await _contractService.GenerateAndStoreContractAsync(payment.BookingId);
+
 			// Optional: notify renter via email if available (booking must be loaded to get renter email/code)
 		}
 
