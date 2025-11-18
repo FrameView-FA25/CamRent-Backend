@@ -99,25 +99,23 @@ namespace CamRent_Application.Services
 			var bookingRepo = _unitOfWork.Repository<Booking>();
 			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
 
-			// 1. Tìm booking Draft của renter
+			// Lấy booking Draft + include Items để check trùng
 			var booking = (await bookingRepo.ListAsync(
-				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
+				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft,
+				include: q => q.Include(b => b.Items)
 			)).FirstOrDefault();
-
-			var isNewBooking = false;
 
 			if (booking == null)
 			{
 				booking = new Booking
 				{
-					Id = Guid.NewGuid(),          // nếu DB tự generate thì có thể bỏ
+					Id = Guid.NewGuid(),
 					RenterId = renterId,
 					Status = BookingStatus.Draft,
-					CreatedAt = DateTime.UtcNow   
+					CreatedAt = DateTime.UtcNow
 				};
 
-				await bookingRepo.AddAsync(booking);   // EF sẽ track ở trạng thái Added
-				isNewBooking = true;
+				await bookingRepo.AddAsync(booking);
 			}
 
 			BookingItem? bookingItem = null;
@@ -127,21 +125,39 @@ namespace CamRent_Application.Services
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
 
-				// Gắn chi nhánh cho booking nếu chưa có
+				// Set branch nếu chưa có
 				if (booking.BranchId == null)
 				{
 					booking.BranchId = camera.BranchId;
 				}
 
-				bookingItem = new BookingItem
+				// 🔎 Tìm item đã tồn tại
+				bookingItem = booking.Items
+					.FirstOrDefault(bi => bi.CameraId == camera.Id && bi.ComboId == null && bi.AccessoryId == null);
+
+				if (bookingItem != null)
 				{
-					Id = Guid.NewGuid(),
-					BookingId = booking.Id,        // hoặc Booking = booking;
-					CameraId = camera.Id,
-					Quantity = quantity,
-					UnitPrice = camera.BaseDailyRate,
-					DepositAmount = CalculateDepositForCamera(camera)
-				};
+					// Đã có -> cộng dồn
+					bookingItem.Quantity += quantity;
+					bookingItem.UnitPrice = camera.BaseDailyRate;
+					bookingItem.DepositAmount = CalculateDepositForCamera(camera);
+				}
+				else
+				{
+					// Chưa có -> tạo mới
+					bookingItem = new BookingItem
+					{
+						Id = Guid.NewGuid(),
+						BookingId = booking.Id,
+						CameraId = camera.Id,
+						Quantity = quantity,
+						UnitPrice = camera.BaseDailyRate,
+						DepositAmount = CalculateDepositForCamera(camera)
+					};
+
+					booking.Items.Add(bookingItem);
+					await bookingItemRepo.AddAsync(bookingItem);
+				}
 			}
 			else if (type == ItemType.Accessory)
 			{
@@ -153,15 +169,30 @@ namespace CamRent_Application.Services
 					booking.BranchId = accessory.BranchId;
 				}
 
-				bookingItem = new BookingItem
+				bookingItem = booking.Items
+					.FirstOrDefault(bi => bi.AccessoryId == accessory.Id && bi.CameraId == null && bi.ComboId == null);
+
+				if (bookingItem != null)
 				{
-					Id = Guid.NewGuid(),
-					BookingId = booking.Id,
-					AccessoryId = accessory.Id,
-					Quantity = quantity,
-					UnitPrice = accessory.BaseDailyRate,
-					DepositAmount = CalculateDepositForAccessory(accessory)
-				};
+					bookingItem.Quantity += quantity;
+					bookingItem.UnitPrice = accessory.BaseDailyRate;
+					bookingItem.DepositAmount = CalculateDepositForAccessory(accessory);
+				}
+				else
+				{
+					bookingItem = new BookingItem
+					{
+						Id = Guid.NewGuid(),
+						BookingId = booking.Id,
+						AccessoryId = accessory.Id,
+						Quantity = quantity,
+						UnitPrice = accessory.BaseDailyRate,
+						DepositAmount = CalculateDepositForAccessory(accessory)
+					};
+
+					booking.Items.Add(bookingItem);
+					await bookingItemRepo.AddAsync(bookingItem);
+				}
 			}
 			else if (type == ItemType.Combo)
 			{
@@ -192,24 +223,35 @@ namespace CamRent_Application.Services
 					}
 				}
 
-				bookingItem = new BookingItem
-				{
-					Id = Guid.NewGuid(),
-					BookingId = booking.Id,
-					ComboId = combo.Id,
-					Quantity = quantity,
-					DepositAmount = (decimal)combo.DepositOverride,
-					UnitPrice = (decimal)combo.PriceOverride
-				};
-			}
+				bookingItem = booking.Items
+					.FirstOrDefault(bi => bi.ComboId == combo.Id && bi.CameraId == null && bi.AccessoryId == null);
 
-			if (bookingItem != null)
-			{
-				await bookingItemRepo.AddAsync(bookingItem);
+				if (bookingItem != null)
+				{
+					bookingItem.Quantity += quantity;
+					bookingItem.UnitPrice = combo.PriceOverride ?? bookingItem.UnitPrice;
+					bookingItem.DepositAmount = combo.DepositOverride ?? bookingItem.DepositAmount;
+				}
+				else
+				{
+					bookingItem = new BookingItem
+					{
+						Id = Guid.NewGuid(),
+						BookingId = booking.Id,
+						ComboId = combo.Id,
+						Quantity = quantity,
+						UnitPrice = combo.PriceOverride ?? 0m,
+						DepositAmount = combo.DepositOverride ?? 0m
+					};
+
+					booking.Items.Add(bookingItem);
+					await bookingItemRepo.AddAsync(bookingItem);
+				}
 			}
 
 			return await _unitOfWork.Complete();
 		}
+
 
 
 
