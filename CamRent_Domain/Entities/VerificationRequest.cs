@@ -18,8 +18,8 @@ namespace CamRent_Domain.Entities
 
         public string? Notes { get; set; }
         
-        public ICollection<VerificationRequestItem> Items { get; set; } = new List<VerificationRequestItem>();
-		public ICollection<Inspection> Inspections { get; set; } = new List<Inspection>();
+        public ICollection<VerificationRequestItem>? Items { get; set; } 
+		public ICollection<Inspection>? Inspections { get; set; }
     }
 
     public class VerificationRequestItem : BaseEntity

@@ -87,6 +87,7 @@ namespace CamRent_Api.Controllers
 			return Ok(camera);
 		}
 		[HttpGet("GetCamerasByOwnerId")]
+		[Authorize(Policy = "Owner")]
 		[SwaggerOperation(Summary = "Lấy camera của chủ sở hữu", Description = "Trả về các camera thuộc về người dùng đang xác thực. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> GetCamerasByOwnerId()
 		{

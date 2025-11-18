@@ -13,6 +13,7 @@ namespace CamRent_Application.IServices
 		
 		Task<List<User>> GetAllUsers();
 		Task<User> GetUserProfileById(Guid id);
+		Task<Guid> GetUserIdByManagerId(Guid managerId);
 		Task<int> UpdateUser(User user);
 		Task<int> DeleteUser(Guid id);
 

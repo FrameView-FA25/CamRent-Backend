@@ -10,6 +10,6 @@ namespace CamRent_Application.IServices
 	public interface IAuthService
 	{
 		Task<AuthResponse> GetToken(string email, string password);
-		Task<bool> Register(RegisterRequest user);
+		Task<bool> Register(RegisterRequest user, Guid? userId);
 	}
 }
