@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -57,6 +58,42 @@ namespace CamRent_Application.Services
 				Label = label,
 				Provider = "Cloudinary",
 				ProviderKey = result.PublicId,       // rất quan trọng để delete sau này
+				OwnerId = ownerId,
+				OwnerType = ownerType
+			};
+			await _unitOfWork.Repository<FileAsset>().AddAsync(asset);
+			await _unitOfWork.Complete();
+			return asset;
+		}
+
+		public async Task<FileAsset> UploadAsync(byte[] content, string fileName, string contentType, Guid ownerId, FileOwnerType ownerType, string? folder = null, string? label = null)
+		{
+			await using var stream = new MemoryStream(content);
+
+			var uploadParams = new RawUploadParams
+			{
+				File = new FileDescription(fileName, stream),
+				Folder = folder,
+				UseFilename = true,
+				UniqueFilename = true,
+				Overwrite = false
+			};
+
+			var result = await _cloudinary.UploadAsync(uploadParams);
+
+			if (result.StatusCode != System.Net.HttpStatusCode.OK)
+			{
+				throw new Exception($"Cloudinary upload failed: {result.Error?.Message}");
+			}
+
+			var asset = new FileAsset
+			{
+				Url = result.SecureUrl?.ToString() ?? string.Empty,
+				ContentType = contentType,
+				SizeBytes = content.LongLength,
+				Label = label,
+				Provider = "Cloudinary",
+				ProviderKey = result.PublicId,
 				OwnerId = ownerId,
 				OwnerType = ownerType
 			};

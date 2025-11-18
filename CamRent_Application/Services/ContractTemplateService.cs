@@ -24,13 +24,47 @@ namespace CamRent_Application.Services
 
         public async Task<byte[]> GeneratePreviewPdfAsync(Guid bookingId, CancellationToken cancellationToken = default)
         {
+            var booking = await LoadBookingAsync(bookingId, cancellationToken);
+
+            var document = BuildContractDocument(booking, isPreview: true, contractCode: null);
+
+            using var stream = new System.IO.MemoryStream();
+            document.GeneratePdf(stream);
+            return stream.ToArray();
+        }
+
+        public async Task<byte[]> GenerateContractPdfAsync(Guid contractId, CancellationToken cancellationToken = default)
+        {
+            var contract = await _unitOfWork.Repository<Contract>().GetByIdAsync(contractId)
+                ?? throw new InvalidOperationException("Contract not found");
+            if (contract.BookingId == null)
+                throw new InvalidOperationException("Contract is not linked to a booking");
+
+            var booking = await LoadBookingAsync(contract.BookingId.Value, cancellationToken);
+
+            // Use short code from contract Id for easier human reference
+            var contractCode = $"CR-{contract.CreatedAt:yyyyMMdd}-{contract.Id.ToString()[..8]}";
+
+            var document = BuildContractDocument(booking, isPreview: false, contractCode: contractCode);
+
+            using var stream = new System.IO.MemoryStream();
+            document.GeneratePdf(stream);
+            return stream.ToArray();
+        }
+
+        private async Task<Booking> LoadBookingAsync(Guid bookingId, CancellationToken cancellationToken)
+        {
             // Load booking with related data
             var bookings = await _unitOfWork.Repository<Booking>().ListAsync(
                 b => b.Id == bookingId,
                 include: IncludeGraph);
 
             var booking = bookings.FirstOrDefault() ?? throw new InvalidOperationException("Booking not found");
+            return booking;
+        }
 
+        private static IDocument BuildContractDocument(Booking booking, bool isPreview, string? contractCode)
+        {
             var renterName = booking.Renter?.FullName ?? "Unknown Renter";
             var start = booking.PickupAt.ToString("yyyy-MM-dd HH:mm");
             var end = booking.ReturnAt.ToString("yyyy-MM-dd HH:mm");
@@ -54,7 +88,6 @@ namespace CamRent_Application.Services
                 LineTotal = i.UnitPrice * i.Quantity
             }).ToList();
 
-            // Build PDF
             QuestPDF.Settings.License = LicenseType.Community;
 
             var document = Document.Create(container =>
@@ -70,7 +103,10 @@ namespace CamRent_Application.Services
                             row.RelativeItem().Column(col =>
                             {
                                 col.Item().Text("CamRent Rental Agreement").FontSize(20).SemiBold();
-                                col.Item().Text($"Contract Preview • Booking #{booking.Id}").FontSize(10).FontColor(Colors.Grey.Medium);
+                                var subtitle = isPreview
+                                    ? $"Contract Preview • Booking #{booking.Id}"
+                                    : $"Agreement No: {contractCode} • Booking #{booking.Id}";
+                                col.Item().Text(subtitle).FontSize(10).FontColor(Colors.Grey.Medium);
                             });
                         });
 
@@ -84,6 +120,7 @@ namespace CamRent_Application.Services
                             col.Item().Text("Parties").FontSize(12).SemiBold();
                             col.Item().Text($"Renter: {renterName}");
                             col.Item().Text($"Period: {start} → {end} ({days} days)");
+                            col.Item().Text($"Branch: {booking.BranchId}"); // simple identifier, FE có thể map sang tên chi nhánh
 
                             col.Item().PaddingTop(10).Text("Items").FontSize(12).SemiBold();
                             col.Item().Table(table =>
@@ -120,15 +157,25 @@ namespace CamRent_Application.Services
                                 {
                                     sum.Item().Row(x => { x.RelativeItem().Text("Subtotal"); x.ConstantItem(100).AlignRight().Text($"{subtotal:N0} VND"); });
                                     sum.Item().Row(x => { x.RelativeItem().Text("Deposit"); x.ConstantItem(100).AlignRight().Text($"{deposit:N0} VND"); });
-                                    sum.Item().BorderTop(1).BorderColor(Colors.Grey.Lighten2).Row(x => {
+                                    sum.Item().BorderTop(1).BorderColor(Colors.Grey.Lighten2).Row(x =>
+                                    {
                                         x.RelativeItem().Text("Total").SemiBold();
                                         x.ConstantItem(100).AlignRight().Text($"{total:N0} VND").SemiBold();
                                     });
                                 });
                             });
 
-                            col.Item().PaddingTop(16).Text("Terms").FontSize(12).SemiBold();
-                            col.Item().Text("By signing this agreement, the renter agrees to the CamRent rental terms, including care of equipment, return on time, and payment of any applicable late or damage fees.").FontColor(Colors.Grey.Darken1);
+                            col.Item().PaddingTop(16).Text("Key Terms").FontSize(12).SemiBold();
+                            col.Item().Text(text =>
+                            {
+                                text.Span("1. The renter is responsible for the equipment during the rental period, including loss, theft, or damage.");
+                                text.Line("");
+                                text.Span("2. Late returns may incur additional charges according to CamRent's fee schedule.");
+                                text.Line("");
+                                text.Span("3. Any damages or missing items may be deducted from the deposit or charged additionally to the renter.");
+                                text.Line("");
+                                text.Span("4. By confirming the booking and using the service, the renter agrees to CamRent's full terms and conditions published on the platform.");
+                            });
 
                             col.Item().PaddingTop(30).Row(r =>
                             {
@@ -149,13 +196,13 @@ namespace CamRent_Application.Services
 
                     page.Footer()
                         .AlignCenter()
-                        .Text($"Generated for preview • {DateTime.UtcNow:yyyy-MM-dd HH:mm 'UTC'}");
+                        .Text(isPreview
+                            ? $"Generated for preview • {DateTime.UtcNow:yyyy-MM-dd HH:mm 'UTC'}"
+                            : $"Electronically generated by CamRent • {DateTime.UtcNow:yyyy-MM-dd HH:mm 'UTC'}");
                 });
             });
 
-            using var stream = new System.IO.MemoryStream();
-            document.GeneratePdf(stream);
-            return stream.ToArray();
+            return document;
         }
 
         private static Func<IQueryable<Booking>, IIncludableQueryable<Booking, object>> IncludeGraph =>

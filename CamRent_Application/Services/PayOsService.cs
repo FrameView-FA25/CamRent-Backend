@@ -19,14 +19,16 @@ namespace CamRent_Application.Services
 		private readonly PayOsOptions _opts;
 		private readonly IUnitOfWork _uow;
 		private readonly ILogger<PayOsService> _logger;
+		private readonly IContractService _contractService;
 		private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
-		public PayOsService(HttpClient http, IOptions<PayOsOptions> opts, IUnitOfWork uow, ILogger<PayOsService> logger)
+		public PayOsService(HttpClient http, IOptions<PayOsOptions> opts, IUnitOfWork uow, ILogger<PayOsService> logger, IContractService contractService)
 		{
 			_http = http;
 			_opts = opts.Value;
 			_uow = uow;
 			_logger = logger;
+			_contractService = contractService;
 		}
 
 		public async Task<string> CreatePaymentLinkAsync(Guid paymentId, decimal amount, string description, string returnUrl, string cancelUrl, CancellationToken ct = default)
@@ -123,6 +125,16 @@ namespace CamRent_Application.Services
 				payment.Status = PaymentStatus.Captured;
 				payment.CapturedAmount = amount;
 				await _uow.Repository<Payment>().UpdateAsync(payment);
+
+				// Thanh toán thành công => tự sinh hợp đồng điện tử cho booking
+				try
+				{
+					await _contractService.GenerateAndStoreContractAsync(payment.BookingId, ct);
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Failed to generate contract for booking {BookingId} after PayOS payment", payment.BookingId);
+				}
 			}
 
 			await _uow.Complete();
