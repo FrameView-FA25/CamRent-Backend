@@ -58,7 +58,7 @@ namespace CamRent_Application.Common
 					: s.ComboId != null
 						? ItemType.Combo.ToString()
 					: null
-				)); ;
+				)); 
 			CreateMap<Booking,Cart>();
 			CreateMap<Branch, BranchResponse>()
 				.ForMember(b => b.ManagerName, 
@@ -88,18 +88,90 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.BranchName,
 					opt => opt.MapFrom(s => s.Branch.Name))
 				.ForMember(d => d.Address,
-					opt => opt.MapFrom(s => s.Branch.Address.District + " " + s.Branch.Address.Province));
-			CreateMap<CreateVerificationRequestDTO, VerificationRequest>();
-			CreateMap<Inspection, InspectionResponseDTO>();
+					opt => opt.MapFrom(s => s.Branch.Address.District + " " + s.Branch.Address.Province))
+				.ForMember(d => d.Items,
+					opt => opt.MapFrom(s => s.Items));
+			// CreateVerificationRequestDTO -> VerificationRequest
+			CreateMap<CreateVerificationRequestDTO, VerificationRequest>()
+				.ForMember(d => d.Status, o => o.MapFrom(_ => "pending"))
+				.ForMember(d => d.Owner, o => o.Ignore())
+				.ForMember(d => d.Staff, o => o.Ignore())
+				.ForMember(d => d.Inspections, o => o.Ignore());
+			// DTO -> Entity
+			CreateMap<VerificationItemDTO, VerificationRequestItem>()
+				.ForMember(d => d.CameraId,
+					o => o.MapFrom(s =>
+						s.ItemType == ItemType.Camera ? s.ItemId : (Guid?)null))
+				.ForMember(d => d.AccessoryId,
+					o => o.MapFrom(s =>
+						s.ItemType == ItemType.Accessory ? s.ItemId : (Guid?)null))
+				.ForMember(d => d.VerificationId, o => o.Ignore())
+				.ForMember(d => d.VerificationRequest, o => o.Ignore())
+				.ForMember(d => d.Camera, o => o.Ignore())
+				.ForMember(d => d.Accessory, o => o.Ignore());
+
+			// Entity -> DTO
+			CreateMap<VerificationRequestItem, VerificationItemDTO>()
+				.ForMember(d => d.ItemId,
+					o => o.MapFrom(s => s.CameraId ?? s.AccessoryId))
+				.ForMember(d => d.ItemName,
+					o => o.MapFrom(s =>
+						s.Camera != null ? s.Camera.Brand + " " + s.Camera.Model : // tuỳ field
+						s.Accessory != null ? s.Accessory.Brand + " " + s.Accessory.Model :
+						null))
+				.ForMember(d => d.ItemType,
+					o => o.MapFrom(s =>
+						s.CameraId != null ? ItemType.Camera :
+						s.AccessoryId != null ? ItemType.Accessory :
+						ItemType.Combo)); // fallback
+
+
+			// DTO -> Entity
 			CreateMap<InspectionRequest, Inspection>()
-				 .ForMember(d => d.BookingId,
-					opt => opt.MapFrom(s => s.Type == InspectionType.Booking
-						? s.InspectionTypeId
-						: null))
-				 .ForMember(d => d.VerificationId,
-					opt => opt.MapFrom(s => s.Type == InspectionType.Verification
-						? s.InspectionTypeId
-						: null));
+				// Map ItemId + ItemType -> CameraId / AccessoryId
+				.ForMember(d => d.CameraId,
+					opt => opt.MapFrom(s =>
+						s.ItemType == ItemType.Camera ? s.ItemId : (Guid?)null))
+				.ForMember(d => d.AccessoryId,
+					opt => opt.MapFrom(s =>
+						s.ItemType == ItemType.Accessory ? s.ItemId : (Guid?)null))
+
+				// Map BookingId / VerificationId theo InspectionType
+				.ForMember(d => d.BookingId,
+					opt => opt.MapFrom(s =>
+						s.Type == InspectionType.Booking ? s.InspectionTypeId : null))
+				.ForMember(d => d.VerificationId,
+					opt => opt.MapFrom(s =>
+						s.Type == InspectionType.Verification ? s.InspectionTypeId : null))
+
+				// Các navigation để Ignore, set ở service / EF
+				.ForMember(d => d.Booking, opt => opt.Ignore())
+				.ForMember(d => d.Verification, opt => opt.Ignore())
+				.ForMember(d => d.Branch, opt => opt.Ignore())
+				.ForMember(d => d.Staff, opt => opt.Ignore())
+				.ForMember(d => d.Manager, opt => opt.Ignore())
+				.ForMember(d => d.Camera, opt => opt.Ignore())
+				.ForMember(d => d.Accessory, opt => opt.Ignore())
+				.ForMember(d => d.PerformedAt, opt => opt.Ignore());
+
+			// Entity -> DTO
+			CreateMap<Inspection, InspectionResponseDTO>()
+				// ItemType: dựa theo CameraId / AccessoryId
+				.ForMember(d => d.ItemType,
+					opt => opt.MapFrom(s =>
+						s.CameraId != null ? ItemType.Camera :
+						s.AccessoryId != null ? ItemType.Accessory :
+						ItemType.Camera)) // fallback, hoặc bạn cho DTO nullable cũng được
+
+				// ItemName: lấy từ Camera / Accessory
+				.ForMember(d => d.ItemName,
+					opt => opt.MapFrom(s =>
+						s.Camera != null ? s.Camera.Brand + " " + s.Camera.Model :      // đổi theo field bạn thích
+						s.Accessory != null ? s.Accessory.Brand + " " + s.Accessory.Model :
+						null))
+
+				// Media: tuỳ bạn lấy từ FileAsset, tạm ignore trong mapping
+				.ForMember(d => d.Media, opt => opt.Ignore());
 		}
 	}
 }

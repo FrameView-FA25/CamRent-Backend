@@ -1,9 +1,11 @@
-﻿using CamRent_Domain.Entities;
+﻿using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Application.DTOs
 {
@@ -16,8 +18,10 @@ namespace CamRent_Application.DTOs
 			public string? PhoneNumber { get; set; }
 			public DateTime InspectionDate { get; set; }
 			public string Status { get; set; } = "pending"; // pending, approved, rejected
+
 			public Guid? StaffId { get; set; }
-			public string StaffName { get; set; } 
+			public string? StaffName { get; set; }   // nên cho nullable cho an toàn
+
 			public Guid? BranchId { get; set; }
 			public string? BranchName { get; set; }
 			public string? Address { get; set; }
@@ -25,7 +29,11 @@ namespace CamRent_Application.DTOs
 			public string? Notes { get; set; }
 
 			public Guid? CreatedByUserId { get; set; }
+
+			public List<VerificationItemDTO> Items { get; set; } = new();
+			public List<InspectionResponseDTO> Inspections { get; set; } = new();
 		}
+
 
 		public class CreateVerificationRequestDTO
 		{
@@ -34,6 +42,14 @@ namespace CamRent_Application.DTOs
 			public DateTime InspectionDate { get; set; }
 			public string? Notes { get; set; }
 			public Guid? BranchId { get; set; }
+			List<VerificationItemDTO> Items { get; set; } = new ();
+		}
+
+		public class VerificationItemDTO
+		{
+			public Guid? ItemId { get; set; }
+			public string? ItemName { get; set; }
+			public ItemType ItemType { get; set; }
 
 		}
 	}

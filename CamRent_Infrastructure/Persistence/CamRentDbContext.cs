@@ -293,8 +293,16 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(i => i.Staff)
                 .WithMany()
                 .HasForeignKey(i => i.CreatedByUserId);
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.Camera)
+                .WithMany()
+                .HasForeignKey(i => i.CameraId);
+            modelBuilder.Entity<Inspection>()
+                .HasOne(i => i.Accessory)
+                .WithMany()
+                .HasForeignKey(i => i.AccessoryId);
 
-            modelBuilder.Entity<HandoverReceipt>()
+			modelBuilder.Entity<HandoverReceipt>()
                 .HasOne(hr => hr.Contract)
                 .WithMany()
                 .HasForeignKey(hr => hr.ContractId);

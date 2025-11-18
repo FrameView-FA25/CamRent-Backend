@@ -124,7 +124,7 @@ namespace CamRent_Application.Services
 
 			// Inspections liên quan tới camera
 			var inspections = await _unitOfWork.Repository<Inspection>()
-				.ListAsync(i => i.ItemId == cameraId && i.ItemType == ItemType.Camera);
+				.ListAsync(i => i.CameraId == cameraId);
 			var inspectionDtos = _mapper.Map<List<InspectionDTO.InspectionResponseDTO>>(inspections);
 
 			return new CameraHistoryDTO

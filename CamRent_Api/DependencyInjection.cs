@@ -1,14 +1,15 @@
 ﻿using CamRent_Api.Commons;
+using CamRent_Api.Swagger;
 using CamRent_Application.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using static CamRent_Application.DTOs.AuthDTO;
-using System.Reflection;
-using CamRent_Api.Swagger;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api
 {
@@ -131,6 +132,7 @@ namespace CamRent_Api
 			.AddJsonOptions(o =>
 			{
 				o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+				o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 				// tuỳ chọn:
 				// o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 				// o.JsonSerializerOptions.MaxDepth = 64; // nếu dữ liệu sâu

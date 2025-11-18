@@ -3,9 +3,10 @@ using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
 using static CamRent_Api.Models.InspectionModel;
 using static CamRent_Application.DTOs.InspectionDTO;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -27,11 +28,15 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Tạo inspection", Description = "Tạo một inspection và tải lên các file liên quan. Các file tải lên sẽ được gắn với inspection vừa tạo. Quyền: Staff")]
 		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile>? files)
 		{
+			// Lấy userId từ token
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
 			if (!ModelState.IsValid)
 				return BadRequest(ModelState);
 
 			// 1. Tạo inspection, lấy ra Id
-			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequestModel);
+			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequestModel, Guid.Parse(userId));
 			if(inspectionId == Guid.Empty)
 			{
 				return StatusCode(StatusCodes.Status500InternalServerError, "Tạo inspection thất bại.");
