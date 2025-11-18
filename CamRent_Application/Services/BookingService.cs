@@ -30,20 +30,6 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
 		}
 
-
-		private async Task UpdateSnapshotTotalsAsync(Guid bookingId)
-		{
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
-				?? throw new InvalidOperationException("Booking not found");
-			var items = await _unitOfWork.Repository<BookingItem>().ListAsync(bi => bi.BookingId == bookingId);
-			int days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
-			decimal total = items.Sum(i => i.UnitPrice * i.Quantity * days);
-			decimal deposit = items.Sum(i => i.DepositAmount * i.Quantity);
-			booking.SnapshotRentalTotal = total;
-			booking.SnapshotDepositAmount = deposit;
-			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
-		}
-
 		public async Task<List<BookingResponseDTO>> GetAllAsync()
 		{
 			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items));
@@ -81,23 +67,57 @@ namespace CamRent_Application.Services
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
+		private decimal CalculateDepositForCamera(Camera camera)
+		{
+			var raw = camera.EstimatedValueVnd * camera.DepositPercent;
+
+			if (camera.DepositCapMinVnd.HasValue)
+				raw = Math.Max(raw, camera.DepositCapMinVnd.Value);
+
+			if (camera.DepositCapMaxVnd.HasValue)
+				raw = Math.Min(raw, camera.DepositCapMaxVnd.Value);
+
+			return raw;
+		}
+
+		private decimal CalculateDepositForAccessory(Accessory acc)
+		{
+			var raw = acc.EstimatedValueVnd * acc.DepositPercent;
+
+			if (acc.DepositCapMinVnd.HasValue)
+				raw = Math.Max(raw, acc.DepositCapMinVnd.Value);
+
+			if (acc.DepositCapMaxVnd.HasValue)
+				raw = Math.Min(raw, acc.DepositCapMaxVnd.Value);
+
+			return raw;
+		}
+
 
 		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity)
 		{
-			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
+
+			// 1. Tìm booking Draft của renter
+			var booking = (await bookingRepo.ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
 			)).FirstOrDefault();
+
+			var isNewBooking = false;
 
 			if (booking == null)
 			{
 				booking = new Booking
 				{
-					Id = Guid.NewGuid(),
+					Id = Guid.NewGuid(),          // nếu DB tự generate thì có thể bỏ
 					RenterId = renterId,
 					Status = BookingStatus.Draft,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = DateTime.UtcNow   
 				};
-				await _unitOfWork.Repository<Booking>().AddAsync(booking);
+
+				await bookingRepo.AddAsync(booking);   // EF sẽ track ở trạng thái Added
+				isNewBooking = true;
 			}
 
 			BookingItem? bookingItem = null;
@@ -107,24 +127,23 @@ namespace CamRent_Application.Services
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
 
-				// Gắn chi nhánh cho booking nếu chưa có (book với sàn/owner qua chi nhánh camera)
+				// Gắn chi nhánh cho booking nếu chưa có
 				if (booking.BranchId == null)
 				{
 					booking.BranchId = camera.BranchId;
-					await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 				}
 
 				bookingItem = new BookingItem
 				{
 					Id = Guid.NewGuid(),
-					BookingId = booking.Id,
+					BookingId = booking.Id,        // hoặc Booking = booking;
 					CameraId = camera.Id,
 					Quantity = quantity,
 					UnitPrice = camera.BaseDailyRate,
-					DepositAmount = camera.EstimatedValueVnd * camera.DepositPercent
+					DepositAmount = CalculateDepositForCamera(camera)
 				};
 			}
-			if (type == ItemType.Accessory)
+			else if (type == ItemType.Accessory)
 			{
 				var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Accessory not found");
@@ -132,7 +151,6 @@ namespace CamRent_Application.Services
 				if (booking.BranchId == null)
 				{
 					booking.BranchId = accessory.BranchId;
-					await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 				}
 
 				bookingItem = new BookingItem
@@ -142,27 +160,26 @@ namespace CamRent_Application.Services
 					AccessoryId = accessory.Id,
 					Quantity = quantity,
 					UnitPrice = accessory.BaseDailyRate,
-					DepositAmount = accessory.EstimatedValueVnd * accessory.DepositPercent
+					DepositAmount = CalculateDepositForAccessory(accessory)
 				};
 			}
-			if (type == ItemType.Combo)
+			else if (type == ItemType.Combo)
 			{
 				var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Combo not found");
 
-				// Với combo, có thể chọn chi nhánh từ item đầu tiên thuộc combo (nếu booking chưa có Branch)
 				if (booking.BranchId == null)
 				{
 					var comboItem = (await _unitOfWork.Repository<ComboItem>()
 						.ListAsync(ci => ci.ComboId == combo.Id))
 						.FirstOrDefault();
+
 					if (comboItem?.CameraId != null)
 					{
 						var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(comboItem.CameraId.Value);
 						if (cam != null)
 						{
 							booking.BranchId = cam.BranchId;
-							await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 						}
 					}
 					else if (comboItem?.AccessoryId != null)
@@ -171,7 +188,6 @@ namespace CamRent_Application.Services
 						if (acc != null)
 						{
 							booking.BranchId = acc.BranchId;
-							await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 						}
 					}
 				}
@@ -181,33 +197,54 @@ namespace CamRent_Application.Services
 					Id = Guid.NewGuid(),
 					BookingId = booking.Id,
 					ComboId = combo.Id,
-					Quantity = quantity
+					Quantity = quantity,
+					DepositAmount = (decimal)combo.DepositOverride,
+					UnitPrice = (decimal)combo.PriceOverride
 				};
 			}
 
-			// Phòng trường hợp enum có thêm value mới mà chưa xử lý
 			if (bookingItem != null)
 			{
-				await _unitOfWork.Repository<BookingItem>().AddAsync(bookingItem);
+				await bookingItemRepo.AddAsync(bookingItem);
 			}
+
 			return await _unitOfWork.Complete();
 		}
+
 
 
 		public async Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type)
 		{
-			var booking = _unitOfWork.Repository<Booking>().ListAsync(
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
+
+			var booking = (await bookingRepo.ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
-				).Result.FirstOrDefault();
-			var items = _unitOfWork.Repository<BookingItem>().ListAsync(
-				filter: bi => bi.BookingId == booking!.Id &&
-				((type == ItemType.Camera && bi.CameraId == id) ||
-				(type == ItemType.Accessory && bi.AccessoryId == id) ||
-				(type == ItemType.Combo && bi.ComboId == id))
-				).Result.FirstOrDefault();
-			await _unitOfWork.Repository<BookingItem>().DeleteAsync(items.Id);
+			)).FirstOrDefault();
+
+			if (booking == null)
+			{
+				// Không có cart -> coi như không có gì để xóa
+				return 0;
+			}
+
+			var items = await bookingItemRepo.ListAsync(
+				filter: bi => bi.BookingId == booking.Id &&
+					((type == ItemType.Camera && bi.CameraId == id) ||
+					 (type == ItemType.Accessory && bi.AccessoryId == id) ||
+					 (type == ItemType.Combo && bi.ComboId == id))
+			);
+
+			var item = items.FirstOrDefault();
+			if (item == null)
+			{
+				return 0;
+			}
+
+			await bookingItemRepo.DeleteAsync(item.Id); // hoặc DeleteAsync(item) tùy repo
 			return await _unitOfWork.Complete();
 		}
+
 
 		public async Task<Cart?> GetCartByRenterIdAsync(Guid renterId)
 		{
@@ -229,7 +266,7 @@ namespace CamRent_Application.Services
 				await _unitOfWork.Complete();
 			}
 			var cart = _mapper.Map<Cart>(booking);
-			cart.TotalPrice = (double)booking.Items.Sum(i => i.UnitPrice * i.Quantity);
+			cart.TotalPrice = booking.SnapshotRentalTotal;
 			return cart;
 		}
 
@@ -248,12 +285,51 @@ namespace CamRent_Application.Services
 
 		public async Task<int> CreateBookingAsync(CreateBookingRequest createBookingRequest, Guid renterId)
 		{
-			var cart = (await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Renter) ,filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft)).FirstOrDefault();
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+
+			var cart = (await bookingRepo.ListAsync(
+				include: b => b
+					.Include(b => b.Items),
+				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
+			)).FirstOrDefault();
+
+			if (cart == null)
+				throw new InvalidOperationException("No draft booking found.");
+
+			// Map thông tin pickup/return, location,... từ request vào cart
 			_mapper.Map(createBookingRequest, cart);
+
+			// ====== TÍNH SNAPSHOT ======
+			var days = Math.Max(1, (cart.ReturnAt.Date - cart.PickupAt.Date).Days);
+
+			// 1) Tổng base daily rate (cho 1 ngày)
+			var baseDailyTotal = cart.Items.Sum(i => i.UnitPrice * i.Quantity);
+			cart.SnapshotBaseDailyRate = baseDailyTotal;
+
+			// 2) Tổng tiền thuê cho toàn bộ số ngày
+			var rentalTotal = baseDailyTotal * days;
+			cart.SnapshotRentalTotal = rentalTotal;
+
+			// 3) Tổng tiền cọc
+			var depositTotal = cart.Items.Sum(i => i.DepositAmount * i.Quantity);
+			cart.SnapshotDepositAmount = depositTotal;
+
+			// 4) % cọc so với tiền thuê (ví dụ: 0.5 = 50%)
+			cart.SnapshotDepositPercent = rentalTotal == 0
+				? 0
+				: depositTotal / rentalTotal;
+
+			// 5) % phí nền tảng – thường lấy từ config
+			// Ví dụ bạn có IOptions<PlatformSettings> _platformSettings;
+			const decimal platformFeePercent = 0.20m; // 20%
+			cart.SnapshotPlatformFeePercent = platformFeePercent;
+
+			// ====== CHUYỂN TRẠNG THÁI ======
 			cart.Status = BookingStatus.PendingApproval;
-			await _unitOfWork.Repository<Booking>().UpdateAsync(cart);
-			var result = await _unitOfWork.Complete();
-			return result;
+
+			await bookingRepo.UpdateAsync(cart);
+			return await _unitOfWork.Complete();
 		}
+
 	}
 }

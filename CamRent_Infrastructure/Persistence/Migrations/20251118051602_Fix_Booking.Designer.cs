@@ -3,6 +3,7 @@ using System;
 using CamRent_Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    partial class CamRentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251118051602_Fix_Booking")]
+    partial class Fix_Booking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1880,15 +1883,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("Country")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("District")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("Province")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.HasKey("BookingId");
@@ -1950,15 +1950,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("Country")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("District")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("Province")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.HasKey("BranchId");
@@ -2085,15 +2082,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("Country")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("District")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("Province")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.HasKey("DeliveryTaskId");
@@ -2110,15 +2104,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("Country")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("District")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("Province")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.HasKey("DeliveryTaskId");
@@ -2321,15 +2312,12 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("Country")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("District")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.Property<string>("Province")
-                                .IsRequired()
                                 .HasColumnType("text");
 
                             b1.HasKey("UserId");
