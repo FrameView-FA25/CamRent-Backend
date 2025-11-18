@@ -290,11 +290,20 @@ namespace CamRent_Application.Services
 
 		public async Task<Cart?> GetCartByRenterIdAsync(Guid renterId)
 		{
-			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+
+			// ✅ Dùng 1 query Include/ThenInclude, KHÔNG đụng booking.Id trước khi check null
+			var booking = (await bookingRepo.ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft,
-				include: b => b.Include(b => b.Items)
+				include: q => q
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Camera)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Accessory)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Combo)
 			)).FirstOrDefault();
-			booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
+
 			if (booking == null)
 			{
 				booking = new Booking
@@ -302,15 +311,19 @@ namespace CamRent_Application.Services
 					Id = Guid.NewGuid(),
 					RenterId = renterId,
 					Status = BookingStatus.Draft,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = DateTime.UtcNow,
+					Items = new List<BookingItem>()
 				};
-				await _unitOfWork.Repository<Booking>().AddAsync(booking);
+
+				await bookingRepo.AddAsync(booking);
 				await _unitOfWork.Complete();
 			}
+
 			var cart = _mapper.Map<Cart>(booking);
 			cart.TotalPrice = booking.SnapshotRentalTotal;
 			return cart;
 		}
+
 
 		public Task<List<BookingStatusDTO>> GetBookingStatusesAsync()
 		{
