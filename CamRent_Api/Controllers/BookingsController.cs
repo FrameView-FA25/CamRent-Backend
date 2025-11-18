@@ -13,6 +13,7 @@ namespace CamRent_Api.Controllers
 	[ApiController]
 	[Route("api/[controller]")]
 	[Authorize]
+	[Consumes("multipart/form-data")]
 	public class BookingsController : ControllerBase
 	{
 
@@ -109,7 +110,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost("AddToCart")]
 		[Authorize(Policy = "Renter")]
-		public async Task<IActionResult> AddToCart([FromBody] AddToCartRequest request)
+		public async Task<IActionResult> AddToCart([FromForm] AddToCartRequest request)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value

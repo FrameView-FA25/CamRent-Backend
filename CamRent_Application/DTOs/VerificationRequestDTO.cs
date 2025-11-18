@@ -34,6 +34,7 @@ namespace CamRent_Application.DTOs
 			public DateTime InspectionDate { get; set; }
 			public string? Notes { get; set; }
 			public Guid? BranchId { get; set; }
+
 		}
 	}
 }

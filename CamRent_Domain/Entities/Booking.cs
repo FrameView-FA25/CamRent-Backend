@@ -4,7 +4,6 @@ namespace CamRent_Domain.Entities
 {
     public class Booking : BaseEntity
     {
-        public BookingType Type { get; set; } = BookingType.Rental;
 
         public Guid? RenterId { get; set; }
         public User? Renter { get; set; }
@@ -12,7 +11,7 @@ namespace CamRent_Domain.Entities
         public Guid? StaffId { get; set; }
         public User? Staff { get; set; }
 		public DateTime PickupAt { get; set; }
-        public Address PickupLocation { get; set; }
+        public Address? Location { get; set; }
 		public DateTime ReturnAt { get; set; }
 		public Guid? BranchId { get; set; }
 		public Branch? Branch { get; set; }
