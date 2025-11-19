@@ -92,7 +92,7 @@ namespace CamRent_Api.Controllers
 			return BadRequest();
 		}
 
-		[HttpPost("RemoveFromCart")]
+		[HttpDelete("RemoveFromCart")]
 		[Authorize(Policy = "Renter")]
 		public async Task<IActionResult> RemoveFromCart([FromBody] RemoveFromCartRequest request)
 		{
@@ -147,6 +147,17 @@ namespace CamRent_Api.Controllers
 					  ?? User.FindFirst("uid")?.Value;
 			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
 			return Ok(bookings);
+		}
+		[HttpPut("{id:guid}/update-status/{status:BookingStatus}")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		public async Task<IActionResult> UpdateBookingStatus(Guid id, BookingStatus status)
+		{
+			var result = await _bookingService.UpdateBookingStatusAsync(id, status);
+			if (result > 0)
+			{
+				return NoContent();
+			}
+			return BadRequest();
 		}
 
 		[HttpGet("{id:guid}/quote")]

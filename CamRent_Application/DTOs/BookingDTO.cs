@@ -13,7 +13,7 @@ namespace CamRent_Application.DTOs
 	{
 		public class CreateBookingRequest
 		{
-			public Address PickupLocation { get; set; }
+			public Address Location { get; set; }
 			[Required]
 			public DateTime PickupAt { get; set; }
 			[Required]
@@ -29,6 +29,7 @@ namespace CamRent_Application.DTOs
 
 			public DateTime PickupAt { get; set; }
 			public DateTime ReturnAt { get; set; }
+			public Address? Location { get; set; }
 			public BookingStatus Status { get; set; }
 
 			public string StatusText { get; set; } = "";

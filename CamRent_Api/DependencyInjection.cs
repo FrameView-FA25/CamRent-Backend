@@ -49,6 +49,7 @@ namespace CamRent_Api
 				options.AddPolicy("Owner", p => p.RequireRole("Owner", "Admin"));
 				options.AddPolicy("Renter", p => p.RequireRole("Renter", "Admin"));
 				options.AddPolicy("OwnerOrManagerOrStaff", p => p.RequireRole("Owner", "BranchManager", "Staff", "Admin"));
+				options.AddPolicy("ManagerOrStaff", p => p.RequireRole("BranchManager", "Staff", "Admin"));
 
 				// ⚠️ Bỏ FallbackPolicy để Swagger và các endpoint không có [Authorize] không bị ép đăng nhập
 				// Nếu muốn tất cả API (trừ [AllowAnonymous]) bắt buộc đăng nhập, cần dùng [Authorize] ở controller/action.
