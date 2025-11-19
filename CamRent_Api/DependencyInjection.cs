@@ -132,6 +132,7 @@ namespace CamRent_Api
 			.AddJsonOptions(o =>
 			{
 				o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+				o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 				// tuỳ chọn:
 				// o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 				// o.JsonSerializerOptions.MaxDepth = 64; // nếu dữ liệu sâu

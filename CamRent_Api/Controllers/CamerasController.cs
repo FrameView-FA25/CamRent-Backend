@@ -32,7 +32,7 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> GetAllCameras()
 		{
 			var cameras = await _cameraService.GetAllAsync();
-			return Ok();
+			return Ok(cameras);
 		}
 
 		// Camera theo chi nhánh mà Manager quản lý
