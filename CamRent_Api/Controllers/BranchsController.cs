@@ -127,7 +127,7 @@ namespace CamRent_Api.Controllers
 			var branchId = await _branchService.GetBranchIdByManagerIdAsync(Guid.Parse(userId));
 			if (staffId != null && branchId != null)
 			{
-				await _branchService.AssignManagerToBranchAsync(branchId, staffId);
+				await _branchService.AssignStaffToBranchAsync(branchId, staffId);
 			}
 			return Ok("Đăng ký thành công.");
 		}
