@@ -72,6 +72,25 @@ namespace CamRent_Application.Services
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
+
+		public async Task<List<BookingResponseDTO>> GetBookingsByBranchManagerIdAsync(Guid managerId)
+		{
+			var branch = await _unitOfWork.Repository<Branch>().FirstOrDefaultAsync(b => b.ManagerId == managerId);
+			if (branch == null) return new List<BookingResponseDTO>();
+
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(
+				filter: b => b.BranchId == branch.Id && b.Status != BookingStatus.Draft,
+				include: b => b
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Camera)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Accessory)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Combo)
+			);
+			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			return results;
+		}
 		private decimal CalculateDepositForCamera(Camera camera)
 		{
 			var raw = camera.EstimatedValueVnd * camera.DepositPercent;

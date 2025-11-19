@@ -51,7 +51,6 @@ namespace CamRent_Api.Controllers
 			return Ok("Tạo đơn hàng thành công");
 
 		}
-
 		[HttpGet("renterbookings")]
 		[Authorize(Policy = "Renter")]
 		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByRenterId()
@@ -61,36 +60,7 @@ namespace CamRent_Api.Controllers
 					  ?? User.FindFirst("uid")?.Value;
 
 			var bookings = await _bookingService.GetBookingsByRenterIdAsync(Guid.Parse(userId));
-				return Ok(bookings);
-		}
-
-		[HttpGet("staffbookings")]
-		[Authorize(Policy = "Staff")]
-		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByStaffId()
-		{
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-					  ?? User.FindFirst("sub")?.Value
-					  ?? User.FindFirst("uid")?.Value;
-			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
 			return Ok(bookings);
-		}
-		[HttpGet("GetBookingStatus")]
-		public async Task<ActionResult<IEnumerable<BookingStatusDTO>>> GetBookingStatus()
-		{
-			var statuses = await _bookingService.GetBookingStatusesAsync();
-			return Ok(statuses);
-		}
-
-		[HttpPut("{id:guid}/assign-staff/{staffId:guid}")]
-		[Authorize(Policy = "BranchManager")]
-		public async Task<IActionResult> AssignStaff(Guid id, Guid staffId)
-		{
-			var result = await _bookingService.AssignStaffToBookingsAsync(id, staffId);
-			if(result > 0)
-			{
-				return NoContent();
-			}
-			return BadRequest();
 		}
 
 		[HttpGet("GetCard")]
@@ -137,7 +107,47 @@ namespace CamRent_Api.Controllers
 			return BadRequest();
 		}
 
+		[HttpGet("branchbookings")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByBranchId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var bookings = await _bookingService.GetBookingsByBranchManagerIdAsync(Guid.Parse(userId));
+				return Ok(bookings);
+		}
 		
+
+		
+		[HttpGet("GetBookingStatus")]
+		public async Task<ActionResult<IEnumerable<BookingStatusDTO>>> GetBookingStatus()
+		{
+			var statuses = await _bookingService.GetBookingStatusesAsync();
+			return Ok(statuses);
+		}
+
+		[HttpPut("{id:guid}/assign-staff/{staffId:guid}")]
+		[Authorize(Policy = "BranchManager")]
+		public async Task<IActionResult> AssignStaff(Guid id, Guid staffId)
+		{
+			var result = await _bookingService.AssignStaffToBookingsAsync(id, staffId);
+			if(result > 0)
+			{
+				return NoContent();
+			}
+			return BadRequest();
+		}
+		[HttpGet("staffbookings")]
+		[Authorize(Policy = "Staff")]
+		public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookingByStaffId()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
+			return Ok(bookings);
+		}
 
 		[HttpGet("{id:guid}/quote")]
 		public async Task<ActionResult<PricingQuoteResult>> Quote(Guid id, [FromQuery] decimal? platformFeePercent, [FromQuery] decimal ownerShareRatio = 0.75m)
