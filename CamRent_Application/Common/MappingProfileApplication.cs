@@ -181,6 +181,14 @@ namespace CamRent_Application.Common
 
 				// Media: tuỳ bạn lấy từ FileAsset, tạm ignore trong mapping
 				.ForMember(d => d.Media, opt => opt.Ignore());
+
+			CreateMap<UpdateVerificationRequestDTO, VerificationRequest>()
+				.ForMember(d => d.Items, o => o.Ignore())        // xử lý Items trong service
+				.ForMember(d => d.Owner, o => o.Ignore())
+				.ForMember(d => d.Staff, o => o.Ignore())
+				.ForMember(d => d.Inspections, o => o.Ignore())
+				// only map when source member is not null -> supports partial update
+				.ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 		}
 	}
 }

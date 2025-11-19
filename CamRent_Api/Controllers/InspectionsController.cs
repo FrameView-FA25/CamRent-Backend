@@ -80,5 +80,48 @@ namespace CamRent_Api.Controllers
 			var inspections = await _inspectionService.GetByVerificationAsync(verificationId);
 			return Ok(inspections);
 		}
+
+		// New: get detail by id
+		[HttpGet("{id:guid}")]
+		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(Summary = "Lấy chi tiết inspection theo id", Description = "Trả về chi tiết của một inspection theo id.")]
+		public async Task<IActionResult> GetById(Guid id)
+		{
+			var inspection = await _inspectionService.GetByIdAsync(id);
+			if (inspection == null)
+				return NotFound(new { Message = "Không tìm thấy inspection." });
+
+			return Ok(inspection);
+		}
+
+		// New: update inspection
+		[HttpPut("{id:guid}")]
+		[Authorize(Roles = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Cập nhật inspection", Description = "Cập nhật thông tin một inspection. Quyền: Staff.")]
+		public async Task<IActionResult> Update(Guid id, [FromBody] InspectionRequest request)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			var result = await _inspectionService.UpdateInspectionAsync(id, request, Guid.Parse(userId));
+			if (result > 0)
+				return Ok(new { Message = "Cập nhật inspection thành công." });
+
+			return BadRequest(new { Message = "Cập nhật thất bại hoặc không tìm thấy inspection." });
+		}
+
+		// New: delete inspection
+		[HttpDelete("{id:guid}")]
+		[Authorize(Roles = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Xóa inspection", Description = "Xóa một inspection theo id. Quyền: Staff.")]
+		public async Task<IActionResult> Delete(Guid id)
+		{
+			var result = await _inspectionService.DeleteInspectionAsync(id);
+			if (result > 0)
+				return Ok(new { Message = "Xóa inspection thành công." });
+
+			return BadRequest(new { Message = "Xóa thất bại hoặc không tìm thấy inspection." });
+		}
 	}
 }

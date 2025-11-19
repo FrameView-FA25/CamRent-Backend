@@ -39,8 +39,20 @@ namespace CamRent_Application.DTOs
 			public string? Name { get; set; }
 			public string PhoneNumber { get; set; } = string.Empty;
 			public DateTime InspectionDate { get; set; }
+			public Guid? BranchId { get; set; }
+			public List<VerificationItemDTO>? Items { get; set; }
+		}
+
+		// New: update DTO - partial updates supported (nullable fields)
+		public class UpdateVerificationRequestDTO
+		{
+			public string? Name { get; set; }
+			public string? PhoneNumber { get; set; }
+			public DateTime? InspectionDate { get; set; }
 			public string? Notes { get; set; }
 			public Guid? BranchId { get; set; }
+			public Guid? StaffId { get; set; }
+			public VerificationStatus? Status { get; set; }
 			public List<VerificationItemDTO>? Items { get; set; }
 		}
 
