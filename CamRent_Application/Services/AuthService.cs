@@ -31,14 +31,14 @@ namespace CamRent_Application.Services
 			_jwt = jwt.Value;
 		}
 
-		public async Task<bool> Register(RegisterRequest request, Guid? userId)
+		public async Task<Guid> Register(RegisterRequest request, Guid? userId)
 		{
 			var email = request.Email.Trim();
 
 			var userExists = await _unitOfWork.Repository<User>()
 				.ListAsync(u => u.Email == email);
 			if (userExists.Any())
-				return false;
+				return Guid.Empty;
 
 			var user = new User
 			{
@@ -69,7 +69,7 @@ namespace CamRent_Application.Services
 			});
 
 			await _unitOfWork.Complete();
-			return true;
+			return user.Id;
 		}
 
 		public async Task<AuthResponse> GetToken(string email, string password)

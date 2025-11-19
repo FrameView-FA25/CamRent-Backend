@@ -29,37 +29,18 @@ namespace CamRent_Api.Controllers
 		[HttpGet]
 		[AllowAnonymous]
 		[SwaggerOperation(Summary = "Lấy danh sách camera", Description = "Trả về danh sách camera (phân trang). Hỗ trợ tìm kiếm và sắp xếp. Quyền: Công khai")]
-		public async Task<IActionResult> GetAllCameras([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? q = null, [FromQuery] string? sortBy = "createdAt", [FromQuery] string sortDir = "desc")
+		public async Task<IActionResult> GetAllCameras()
 		{
-			page = Math.Max(1, page);
-			pageSize = Math.Clamp(pageSize, 1, 100);
 			var cameras = await _cameraService.GetAllAsync();
-			if (!string.IsNullOrWhiteSpace(q))
-			{
-				var term = q.Trim().ToLowerInvariant();
-				cameras = cameras.Where(c => ($"{c.Brand} {c.Model} {c.Variant}").ToLower().Contains(term)).ToList();
-			}
-			IEnumerable<dynamic> sorted = cameras;
-			if (string.Equals(sortBy, "brand", StringComparison.OrdinalIgnoreCase))
-				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Brand) : cameras.OrderByDescending(c => c.Brand));
-			else if (string.Equals(sortBy, "model", StringComparison.OrdinalIgnoreCase))
-				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Model) : cameras.OrderByDescending(c => c.Model));
-			else
-				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Id) : cameras.OrderByDescending(c => c.Id));
-
-			var total = sorted.Count();
-			var items = sorted.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-			return Ok(new { page, pageSize, total, items });
+			return Ok();
 		}
 
 		// Camera theo chi nhánh mà Manager quản lý
 		[HttpGet("my-branch")]
 		[Authorize(Policy = "BranchManager")]
 		[SwaggerOperation(Summary = "Danh sách camera của chi nhánh manager", Description = "Trả về danh sách camera thuộc chi nhánh mà BranchManager đang quản lý.")]
-		public async Task<IActionResult> GetCamerasForMyBranch([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+		public async Task<IActionResult> GetCamerasForMyBranch()
 		{
-			page = Math.Max(1, page);
-			pageSize = Math.Clamp(pageSize, 1, 100);
 
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
@@ -68,10 +49,7 @@ namespace CamRent_Api.Controllers
 
 			var managerId = Guid.Parse(userId);
 			var cameras = await _cameraService.GetByBranchManagerAsync(managerId);
-
-			var total = cameras.Count;
-			var items = cameras.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-			return Ok(new { page, pageSize, total, items });
+			return Ok(cameras);
 		}
 
 		[HttpGet("{id:guid}")]

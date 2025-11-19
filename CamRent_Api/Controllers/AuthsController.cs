@@ -36,7 +36,7 @@ namespace CamRent_Api.Controllers
 		{
 			request.Role = UserRole.Renter;
 			var result = await _authService.Register(request, null);
-			if (!result)
+			if (result == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
 		}
@@ -47,7 +47,7 @@ namespace CamRent_Api.Controllers
 		{
 			request.Role = UserRole.Owner;
 			var result = await _authService.Register(request, null);
-			if (!result)
+			if (result == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
 		}
