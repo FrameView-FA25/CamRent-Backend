@@ -2,6 +2,7 @@ using CamRent_Application.IServices;
 using CamRent_Infrastructure.Weaviate;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -28,6 +29,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpGet]
 		[AllowAnonymous]
+		[SwaggerOperation(Summary = "Tìm kiếm thiết bị (AI + keyword)", Description = "Hỗn hợp search semantic/hybrid cho camera, accessory, combo. Hỗ trợ type, mode, phân trang. Quyền: Công khai")]
 		public async Task<ActionResult<object>> Get([FromQuery] string q, [FromQuery] string type = "all", [FromQuery] string mode = "hybrid",
 			[FromQuery] int page = 1, [FromQuery] int pageSize = 20)
 		{
