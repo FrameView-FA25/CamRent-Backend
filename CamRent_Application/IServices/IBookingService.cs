@@ -12,7 +12,7 @@ namespace CamRent_Application.IServices
 		Task<int> AssignStaffToBookingsAsync(Guid bookingId, Guid staffUserId);
 		Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId);
 		Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId);
-
+		Task<List<BookingResponseDTO>> GetBookingsByBranchManagerIdAsync(Guid managerId);
 		Task<int> AddToCart(Guid renterId, Guid id, ItemType type);
 
 		Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type);
