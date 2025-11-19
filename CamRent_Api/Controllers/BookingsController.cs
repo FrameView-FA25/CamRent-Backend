@@ -148,7 +148,7 @@ namespace CamRent_Api.Controllers
 			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
 			return Ok(bookings);
 		}
-		[HttpPut("{id:guid}/update-status/{status:BookingStatus}")]
+		[HttpPut("{id:guid}/update-status")]
 		[Authorize(Policy = "ManagerOrStaff")]
 		public async Task<IActionResult> UpdateBookingStatus(Guid id, BookingStatus status)
 		{
