@@ -2,6 +2,7 @@ using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -18,6 +19,7 @@ namespace CamRent_Api.Controllers
 		public sealed class UpdateStatusRequest { public string Status { get; set; } = "under_review"; public string? ResolutionNote { get; set; } }
 
 		[HttpGet("by-booking/{bookingId:guid}")]
+		[SwaggerOperation(Summary = "Danh sách dispute của booking", Description = "Trả về các dispute mở liên quan tới một booking cụ thể. Quyền: Người dùng đã đăng nhập")]
 		public async Task<ActionResult<IEnumerable<DisputeDTO.DisputeResponse>>> GetByBooking(Guid bookingId)
 		{
 			var list = await _dispute.GetByBookingAsync(bookingId);
@@ -25,6 +27,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("{id:guid}")]
+		[SwaggerOperation(Summary = "Chi tiết dispute", Description = "Trả về thông tin chi tiết dispute theo id. Quyền: Người dùng đã đăng nhập")]
 		public async Task<ActionResult<DisputeDTO.DisputeResponse>> Get(Guid id)
 		{
 			var d = await _dispute.GetAsync(id);
@@ -34,6 +37,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Policy = "Renter")]
+		[SwaggerOperation(Summary = "Renter mở dispute", Description = "Renter gửi dispute mới cho booking (mô tả, mức độ). Quyền: Renter")]
 		public async Task<ActionResult<Guid>> Open([FromBody] OpenRequest req)
 		{
 			var id = await _dispute.OpenAsync(req.BookingId, req.Title, req.Description, req.Severity);
@@ -42,6 +46,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost("{id:guid}/items")]
 		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(Summary = "Thêm khoản bồi thường vào dispute", Description = "Staff thêm từng khoản (loại, số tiền, ghi chú) vào dispute. Quyền: Staff/BranchManager")]
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest req)
 		{
 			await _dispute.AddItemAsync(id, req.Type, req.Amount, req.Notes);
@@ -50,6 +55,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost("{id:guid}/status")]
 		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Branch manager cập nhật trạng thái xử lý dispute (under_review/resolved/...). Quyền: BranchManager")]
 		public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
 		{
 			await _dispute.UpdateStatusAsync(id, req.Status, req.ResolutionNote);

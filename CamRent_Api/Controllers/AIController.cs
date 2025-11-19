@@ -1,6 +1,7 @@
 using CamRent_Application.IServices;
 using CamRent_Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -22,6 +23,9 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("recommend")]
+		[SwaggerOperation(
+			Summary = "Gợi ý thiết bị bằng AI",
+			Description = "Nhận query tự nhiên của người dùng và trả về danh sách thiết bị gợi ý dựa trên vector search.")]
 		public async Task<ActionResult<IReadOnlyList<VectorSearchResult>>> Recommend([FromBody] RecommendRequest req, CancellationToken ct)
 		{
 			if (string.IsNullOrWhiteSpace(req.Query)) return BadRequest("Query is required");
@@ -30,6 +34,9 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("reindex")]
+		[SwaggerOperation(
+			Summary = "Re-index dữ liệu AI",
+			Description = "Kích hoạt việc index lại toàn bộ dữ liệu thiết bị vào vector store (tốn thời gian, chỉ dành cho admin).")]
 		public async Task<IActionResult> Reindex(CancellationToken ct)
 		{
 			await _ai.ReindexAllAsync(ct);
