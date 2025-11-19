@@ -23,11 +23,11 @@ namespace CamRent_Application.Services
 			return combo.Id;
 		}
 
-		public async Task AddItemAsync(Guid comboId, Guid? cameraId, Guid? accessoryId, int quantity)
+		public async Task AddItemAsync(Guid comboId, Guid? cameraId, Guid? accessoryId)
 		{
 			if ((cameraId.HasValue && accessoryId.HasValue) || (!cameraId.HasValue && !accessoryId.HasValue))
 				throw new ArgumentException("Provide exactly one of cameraId or accessoryId");
-			var item = new ComboItem { Id = Guid.NewGuid(), ComboId = comboId, CameraId = cameraId, AccessoryId = accessoryId, Quantity = quantity, CreatedAt = DateTime.UtcNow };
+			var item = new ComboItem { Id = Guid.NewGuid(), ComboId = comboId, CameraId = cameraId, AccessoryId = accessoryId, CreatedAt = DateTime.UtcNow };
 			await _unitOfWork.Repository<ComboItem>().AddAsync(item);
 			await _unitOfWork.Complete();
 			_indexing.EnqueueUpsert("Combo", comboId);
@@ -41,12 +41,12 @@ namespace CamRent_Application.Services
 			_indexing.EnqueueUpsert("Combo", item.ComboId);
 		}
 
-		public async Task<(Guid id, string name, string? description, decimal? priceOverride, List<(Guid? cameraId, Guid? accessoryId, int quantity)> items)> GetAsync(Guid comboId)
+		public async Task<(Guid id, string name, string? description, decimal? priceOverride, List<(Guid? cameraId, Guid? accessoryId)> items)> GetAsync(Guid comboId)
 		{
 			var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(comboId)
 				?? throw new InvalidOperationException("Combo not found");
 			var items = await _unitOfWork.Repository<ComboItem>().ListAsync(ci => ci.ComboId == comboId);
-			return (combo.Id, combo.Name, combo.Description, combo.PriceOverride, items.Select(i => (i.CameraId, i.AccessoryId, i.Quantity)).ToList());
+			return (combo.Id, combo.Name, combo.Description, combo.PriceOverride, items.Select(i => (i.CameraId, i.AccessoryId)).ToList());
 		}
 	}
 }

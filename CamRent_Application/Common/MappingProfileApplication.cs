@@ -58,7 +58,8 @@ namespace CamRent_Application.Common
 					: s.ComboId != null
 						? ItemType.Combo.ToString()
 					: null
-				)); 
+				));
+
 			CreateMap<Booking,Cart>();
 			CreateMap<Branch, BranchResponse>()
 				.ForMember(b => b.ManagerName, 

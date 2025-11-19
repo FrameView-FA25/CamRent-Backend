@@ -16,7 +16,6 @@ namespace CamRent_Domain.Entities
         public Guid? ComboId { get; set; }
         public Combo? Combo { get; set; }
 
-        public int Quantity { get; set; } = 1;
         public decimal UnitPrice { get; set; }
         public decimal DepositAmount { get; set; }
 

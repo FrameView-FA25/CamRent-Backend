@@ -109,12 +109,12 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost("AddToCart")]
 		[Authorize(Policy = "Renter")]
-		public async Task<IActionResult> AddToCart([FromForm] AddToCartRequest request)
+		public async Task<IActionResult> AddToCart([FromBody] AddToCartRequest request)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
-			var result = await _bookingService.AddToCart(Guid.Parse(userId), request.Id, request.Type, request.Quantity);
+			var result = await _bookingService.AddToCart(Guid.Parse(userId), request.Id, request.Type);
 			if (result > 0)
 			{
 				return Ok();

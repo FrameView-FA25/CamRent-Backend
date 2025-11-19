@@ -14,13 +14,11 @@ namespace CamRent_Application.Services
 	public class BookingService : IBookingService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		private readonly IAvailabilityService _availabilityService;
 		private readonly IPricingService _pricingService;
 		private readonly IMapper _mapper;
-		public BookingService(IUnitOfWork unitOfWork, IAvailabilityService availabilityService, IPricingService pricingService, IMapper mapper)
+		public BookingService(IUnitOfWork unitOfWork,  IPricingService pricingService, IMapper mapper)
 		{
 			_unitOfWork = unitOfWork;
-			_availabilityService = availabilityService;
 			_pricingService = pricingService;
 			_mapper = mapper;
 		}
@@ -101,7 +99,7 @@ namespace CamRent_Application.Services
 		}
 
 
-		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity)
+		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type)
 		{
 			var bookingRepo = _unitOfWork.Repository<Booking>();
 			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
@@ -144,20 +142,18 @@ namespace CamRent_Application.Services
 
 				if (bookingItem != null)
 				{
-					// Đã có -> cộng dồn
-					bookingItem.Quantity += quantity;
+					// Item already present — update price/deposit, do not maintain quantity
 					bookingItem.UnitPrice = camera.BaseDailyRate;
 					bookingItem.DepositAmount = CalculateDepositForCamera(camera);
 				}
 				else
 				{
-					// Chưa có -> tạo mới
+					// Create new booking item (no quantity field)
 					bookingItem = new BookingItem
 					{
 						Id = Guid.NewGuid(),
 						BookingId = booking.Id,
 						CameraId = camera.Id,
-						Quantity = quantity,
 						UnitPrice = camera.BaseDailyRate,
 						DepositAmount = CalculateDepositForCamera(camera)
 					};
@@ -181,7 +177,6 @@ namespace CamRent_Application.Services
 
 				if (bookingItem != null)
 				{
-					bookingItem.Quantity += quantity;
 					bookingItem.UnitPrice = accessory.BaseDailyRate;
 					bookingItem.DepositAmount = CalculateDepositForAccessory(accessory);
 				}
@@ -192,7 +187,6 @@ namespace CamRent_Application.Services
 						Id = Guid.NewGuid(),
 						BookingId = booking.Id,
 						AccessoryId = accessory.Id,
-						Quantity = quantity,
 						UnitPrice = accessory.BaseDailyRate,
 						DepositAmount = CalculateDepositForAccessory(accessory)
 					};
@@ -235,7 +229,6 @@ namespace CamRent_Application.Services
 
 				if (bookingItem != null)
 				{
-					bookingItem.Quantity += quantity;
 					bookingItem.UnitPrice = combo.PriceOverride ?? bookingItem.UnitPrice;
 					bookingItem.DepositAmount = combo.DepositOverride ?? bookingItem.DepositAmount;
 				}
@@ -246,7 +239,6 @@ namespace CamRent_Application.Services
 						Id = Guid.NewGuid(),
 						BookingId = booking.Id,
 						ComboId = combo.Id,
-						Quantity = quantity,
 						UnitPrice = combo.PriceOverride ?? 0m,
 						DepositAmount = combo.DepositOverride ?? 0m
 					};
@@ -358,6 +350,8 @@ namespace CamRent_Application.Services
 			if (cart == null)
 				throw new InvalidOperationException("No draft booking found.");
 
+			await EnsureBookingItemsAvailableOrThrowAsync(cart, createBookingRequest.PickupAt, createBookingRequest.ReturnAt);
+
 			// Map thông tin pickup/return, location,... từ request vào cart
 			_mapper.Map(createBookingRequest, cart);
 
@@ -365,7 +359,7 @@ namespace CamRent_Application.Services
 			var days = Math.Max(1, (cart.ReturnAt.Date - cart.PickupAt.Date).Days);
 
 			// 1) Tổng base daily rate (cho 1 ngày)
-			var baseDailyTotal = cart.Items.Sum(i => i.UnitPrice * i.Quantity);
+			var baseDailyTotal = cart.Items.Sum(i => i.UnitPrice);
 			cart.SnapshotBaseDailyRate = baseDailyTotal;
 
 			// 2) Tổng tiền thuê cho toàn bộ số ngày
@@ -373,7 +367,7 @@ namespace CamRent_Application.Services
 			cart.SnapshotRentalTotal = rentalTotal;
 
 			// 3) Tổng tiền cọc
-			var depositTotal = cart.Items.Sum(i => i.DepositAmount * i.Quantity);
+			var depositTotal = cart.Items.Sum(i => i.DepositAmount);
 			cart.SnapshotDepositAmount = depositTotal;
 
 			// 4) % cọc so với tiền thuê (ví dụ: 0.5 = 50%)
@@ -392,6 +386,67 @@ namespace CamRent_Application.Services
 			await bookingRepo.UpdateAsync(cart);
 			return await _unitOfWork.Complete();
 		}
+
+		// Kiểm tra 1 BookingItem có conflict hay không (true = rảnh)
+		public async Task<bool> IsBookingItemAvailableAsync(
+			BookingItem item,
+			DateTime start,
+			DateTime end,
+			CancellationToken cancellationToken = default)
+		{
+			if (item == null) throw new ArgumentNullException(nameof(item));
+			if (start >= end) throw new ArgumentException("start must be earlier than end", nameof(start));
+
+			// Kiểm tra xem item có id hợp lệ hay không
+			var hasCamera = item.CameraId != Guid.Empty && item.CameraId != null;
+			var hasAccessory = item.AccessoryId != Guid.Empty && item.AccessoryId != null;
+			var hasCombo = item.ComboId != Guid.Empty && item.ComboId != null;
+
+			if (!hasCamera && !hasAccessory && !hasCombo)
+				throw new ArgumentException("BookingItem must reference CameraId, AccessoryId or ComboId.");
+
+			// Predicate: match item (camera OR accessory OR combo) && booking is active && time overlap
+			Expression<Func<BookingItem, bool>> predicate = bi =>
+				(
+					(hasCamera && bi.CameraId == item.CameraId) ||
+					(hasAccessory && bi.AccessoryId == item.AccessoryId) ||
+					(hasCombo && bi.ComboId == item.ComboId)
+				)
+				&& bi.Booking != null
+				&& bi.Booking.Status != BookingStatus.Cancelled
+				&& bi.Booking.Status != BookingStatus.Completed
+				&& bi.Booking.PickupAt < end
+				&& bi.Booking.ReturnAt > start;
+
+			// Nếu repository có overload AnyAsync với CancellationToken, truyền vào
+			var conflictExists = await _unitOfWork.Repository<BookingItem>()
+				.AnyAsync(predicate, cancellationToken);
+
+			return !conflictExists;
+		}
+
+		// Kiểm tra toàn bộ items trong cart, ném nếu có conflict
+		public async Task EnsureBookingItemsAvailableOrThrowAsync(
+			Booking cart,
+			DateTime start,
+			DateTime end,
+			CancellationToken cancellationToken = default)
+		{
+			if (cart == null) throw new ArgumentNullException(nameof(cart));
+			if (cart.Items == null || !cart.Items.Any()) return; // không có item thì ok
+			if (start >= end) throw new ArgumentException("start must be earlier than end", nameof(start));
+
+			foreach (var item in cart.Items)
+			{
+				var available = await IsBookingItemAvailableAsync(item, start, end, cancellationToken);
+				if (!available)
+				{
+					// Bạn có thể trả thông tin chi tiết hơn (ví dụ item name, type) tuỳ model
+					throw new InvalidOperationException($"Item (id: {item.Id}) is not available between {start:O} and {end:O}.");
+				}
+			}
+		}
+
 
 	}
 }

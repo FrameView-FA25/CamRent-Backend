@@ -23,7 +23,6 @@ namespace CamRent_Domain.Entities
 
         public Guid? AccessoryId { get; set; }
         public Accessory? Accessory { get; set; }
-        public int Quantity { get; set; } = 1;
     }
 }
 
