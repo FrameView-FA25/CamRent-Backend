@@ -12,5 +12,8 @@ namespace CamRent_Application.IServices
 		Task<List<VerificationResponseDTO>> GetVerificationByManagerId(Guid id);
 		Task<int> AssignStaffToVerification(Guid staffId, Guid verificationRequest);
 		Task<int> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId);
+		Task<VerificationResponseDTO?> GetVerificationById(Guid id);
+		Task<int> UpdateVerificationAsync(Guid id, UpdateVerificationRequestDTO request);
+		Task<int> DeleteVerificationAsync(Guid id);
 	}
 }

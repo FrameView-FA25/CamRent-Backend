@@ -75,5 +75,49 @@ namespace CamRent_Api.Controllers
 			}
 			return BadRequest(new { Message = "Gán nhân viên thất bại." });
 		}
+
+		// New: get detail by id
+		[HttpGet("{id}")]
+		[Authorize(Policy = "OwnerOrManagerOrStaff")]
+		[SwaggerOperation(Summary = "Lấy chi tiết verification theo id", Description = "Trả về chi tiết của một verification theo id.")]
+		public async Task<IActionResult> GetById(Guid id)
+		{
+			var verification = await _verificationService.GetVerificationById(id);
+			if (verification == null)
+			{
+				return NotFound(new { Message = "Không tìm thấy yêu cầu xác minh." });
+			}
+			return Ok(verification);
+		}
+
+		// New: update verification
+		[HttpPut("{id}")]
+		[Authorize(Policy = "OwnerOrManagerOrStaff")]
+		[SwaggerOperation(Summary = "Cập nhật verification", Description = "Cập nhật thông tin một yêu cầu verification. Quyền: Owner, Staff, Manager.")]
+		public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVerificationRequestDTO request)
+		{
+			var result = await _verificationService.UpdateVerificationAsync(id, request);
+			if (result > 0)
+			{
+				return Ok(new { Message = "Cập nhật thành công." });
+			}
+			return BadRequest(new { Message = "Cập nhật thất bại hoặc không tìm thấy yêu cầu." });
+		}
+
+		// New: delete verification
+		[HttpDelete("{id}")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(Summary = "Xóa verification", Description = "Xóa một yêu cầu verification theo id. Quyền: Owner")]
+		public async Task<IActionResult> Delete(Guid id)
+		{
+			var result = await _verificationService.DeleteVerificationAsync(id);
+			if (result > 0)
+			{
+				return Ok(new { Message = "Xóa thành công." });
+			}
+			return BadRequest(new { Message = "Xóa thất bại hoặc không tìm thấy yêu cầu." });
+		}
+
+		
 	}
 }
