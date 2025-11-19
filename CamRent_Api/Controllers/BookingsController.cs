@@ -91,12 +91,12 @@ namespace CamRent_Api.Controllers
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
-			var result = await _bookingService.AddToCart(Guid.Parse(userId), request.Id, request.Type);
-			if (result > 0)
+			var (success, message) = await _bookingService.AddToCart(Guid.Parse(userId), request.Id, request.Type);
+			if (success)
 			{
 				return Ok();
 			}
-			return BadRequest();
+			return BadRequest(message ?? "Thêm vào giỏ hàng thất bại");
 		}
 
 		[HttpDelete("RemoveFromCart")]

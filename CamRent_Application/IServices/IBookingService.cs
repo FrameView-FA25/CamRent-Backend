@@ -13,7 +13,8 @@ namespace CamRent_Application.IServices
 		Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId);
 		Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId);
 		Task<List<BookingResponseDTO>> GetBookingsByBranchManagerIdAsync(Guid managerId);
-		Task<int> AddToCart(Guid renterId, Guid id, ItemType type);
+		// Changed: return tuple with success flag and optional message
+		Task<(bool Success, string? Message)> AddToCart(Guid renterId, Guid id, ItemType type);
 
 		Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type);
 		Task<Cart?> GetCartByRenterIdAsync(Guid renterId);

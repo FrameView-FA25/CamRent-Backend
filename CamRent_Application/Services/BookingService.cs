@@ -55,7 +55,6 @@ namespace CamRent_Application.Services
 				return 0;
 			}
 			booking.StaffId = staffUserId;
-			booking.Status = BookingStatus.Confirmed;
 			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 			return await _unitOfWork.Complete();
 		}
@@ -125,7 +124,7 @@ namespace CamRent_Application.Services
 		}
 
 
-		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type)
+		public async Task<(bool Success, string? Message)> AddToCart(Guid renterId, Guid id, ItemType type)
 		{
 			var bookingRepo = _unitOfWork.Repository<Booking>();
 			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
@@ -143,7 +142,8 @@ namespace CamRent_Application.Services
 					Id = Guid.NewGuid(),
 					RenterId = renterId,
 					Status = BookingStatus.Draft,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = DateTime.UtcNow,
+					Items = new List<BookingItem>()
 				};
 
 				await bookingRepo.AddAsync(booking);
@@ -156,25 +156,22 @@ namespace CamRent_Application.Services
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
 
-				// Set branch nếu chưa có
 				if (booking.BranchId == null)
 				{
 					booking.BranchId = camera.BranchId;
 				}
 
-				// 🔎 Tìm item đã tồn tại
+				// Tìm item đã tồn tại
 				bookingItem = booking.Items
 					.FirstOrDefault(bi => bi.CameraId == camera.Id && bi.ComboId == null && bi.AccessoryId == null);
 
 				if (bookingItem != null)
 				{
-					// Item already present — update price/deposit, do not maintain quantity
-					bookingItem.UnitPrice = camera.BaseDailyRate;
-					bookingItem.DepositAmount = CalculateDepositForCamera(camera);
+					// Nếu đã tồn tại, trả message theo yêu cầu
+					return (false, "Thiết bị đã có trong giỏ hàng rồi");
 				}
 				else
 				{
-					// Create new booking item (no quantity field)
 					bookingItem = new BookingItem
 					{
 						Id = Guid.NewGuid(),
@@ -203,8 +200,7 @@ namespace CamRent_Application.Services
 
 				if (bookingItem != null)
 				{
-					bookingItem.UnitPrice = accessory.BaseDailyRate;
-					bookingItem.DepositAmount = CalculateDepositForAccessory(accessory);
+					return (false, "Thiết bị đã có trong giỏ hàng rồi");
 				}
 				else
 				{
@@ -255,8 +251,7 @@ namespace CamRent_Application.Services
 
 				if (bookingItem != null)
 				{
-					bookingItem.UnitPrice = combo.PriceOverride ?? bookingItem.UnitPrice;
-					bookingItem.DepositAmount = combo.DepositOverride ?? bookingItem.DepositAmount;
+					return (false, "Thiết bị đã có trong giỏ hàng rồi");
 				}
 				else
 				{
@@ -274,7 +269,12 @@ namespace CamRent_Application.Services
 				}
 			}
 
-			return await _unitOfWork.Complete();
+			var saved = await _unitOfWork.Complete();
+			if (saved > 0)
+			{
+				return (true, null);
+			}
+			return (false, "Thêm vào giỏ hàng thất bại");
 		}
 
 		public async Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type)
@@ -392,11 +392,6 @@ namespace CamRent_Application.Services
 			// 3) Tổng tiền cọc
 			var depositTotal = cart.Items.Sum(i => i.DepositAmount);
 			cart.SnapshotDepositAmount = depositTotal;
-
-			// 4) % cọc so với tiền thuê (ví dụ: 0.5 = 50%)
-			cart.SnapshotDepositPercent = rentalTotal == 0
-				? 0
-				: depositTotal / rentalTotal;
 
 			// 5) % phí nền tảng – thường lấy từ config
 			// Ví dụ bạn có IOptions<PlatformSettings> _platformSettings;
