@@ -11,7 +11,8 @@ namespace CamRent_Application.Interfaces
 		Task AddAsync(T entity);
 		Task UpdateAsync(T entity);
 		Task DeleteAsync(Guid id);
-
+		Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+		Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
 		Task<bool> ExistsAsync(Guid id);
 
 		Task<IEnumerable<T>> ListAsync(

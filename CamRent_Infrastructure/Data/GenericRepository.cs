@@ -37,6 +37,16 @@ namespace CamRent_Infrastructure.Data
 			if (entity != null) _context.Set<T>().Remove(entity);
 		}
 
+		public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+		{
+			return await _context.Set<T>().AnyAsync(predicate, cancellationToken);
+		}
+
+		public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+		{
+			return await _context.Set<T>().FirstOrDefaultAsync(predicate, cancellationToken);
+		}
+
 
 		public async Task<bool> ExistsAsync(Guid id)
 			=> await _context.Set<T>().AnyAsync(e => e.Id == id);

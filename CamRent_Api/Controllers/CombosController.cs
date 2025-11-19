@@ -35,7 +35,7 @@ namespace CamRent_Api.Controllers
 		[HttpPost("{id:guid}/items")]
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest request)
 		{
-			await _comboService.AddItemAsync(id, request.CameraId, request.AccessoryId, request.Quantity);
+			await _comboService.AddItemAsync(id, request.CameraId, request.AccessoryId);
 			return NoContent();
 		}
 

@@ -83,9 +83,10 @@ namespace CamRent_Application.Services
                     : i.Accessory != null
                         ? string.Join(" ", new[] { i.Accessory.Brand, i.Accessory.Model, i.Accessory.Variant }.Where(s => !string.IsNullOrWhiteSpace(s)))
                         : i.Combo?.Name ?? "Item",
-                Quantity = i.Quantity,
+                // Quantity is implicit 1 now
+                Quantity = 1,
                 UnitPrice = i.UnitPrice,
-                LineTotal = i.UnitPrice * i.Quantity
+                LineTotal = i.UnitPrice // since quantity == 1
             }).ToList();
 
             QuestPDF.Settings.License = LicenseType.Community;

@@ -17,8 +17,6 @@ namespace CamRent_Api.Models
 		{ 
 			public Guid? CameraId { get; set; } 
 			public Guid? AccessoryId { get; set; } 
-			[Range(1, int.MaxValue)]
-			public int Quantity { get; set; } 
 		}
 	}
 }

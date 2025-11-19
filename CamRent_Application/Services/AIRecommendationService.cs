@@ -62,9 +62,9 @@ namespace CamRent_Application.Services
 				var items = await _uow.Repository<ComboItem>().ListAsync(i => i.ComboId == combo.Id);
 				var desc = $"{combo.Description}\nItems: " + string.Join(", ", items.Select(i =>
 				{
-					if (i.CameraId.HasValue) return $"Camera x{i.Quantity}";
-					if (i.AccessoryId.HasValue) return $"Accessory x{i.Quantity}";
-					return $"Item x{i.Quantity}";
+					if (i.CameraId.HasValue) return $"Camera";
+					if (i.AccessoryId.HasValue) return $"Accessory";
+					return $"Item";
 				}));
 
 				var props = new Dictionary<string, object>
