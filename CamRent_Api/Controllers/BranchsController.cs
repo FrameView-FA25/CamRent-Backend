@@ -32,7 +32,7 @@ namespace CamRent_Api.Controllers
 			var branches = await _branchService.GetAllBranchesAsync();
 			return Ok(branches);
 		}
-		[HttpGet("/memberships")]
+		[HttpGet("Memberships")]
 		[SwaggerOperation(Summary = "Lấy thành viên chi nhánh", Description = "Trả về danh sách membership của chi nhánh. Nếu người gọi là BranchManager sẽ trả kết quả theo manager. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> GetBranchMemberships(Guid? branchId)
 		{
