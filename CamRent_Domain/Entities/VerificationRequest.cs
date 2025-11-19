@@ -7,7 +7,7 @@ namespace CamRent_Domain.Entities
         public string? Name { get; set; }
         public string? PhoneNumber { get; set; }
 		public DateTime InspectionDate { get; set; }
-		public string Status { get; set; } = "pending"; // pending, approved, rejected
+		public VerificationStatus Status { get; set; }
 
         public User? Owner { get; set; }
 		public Guid? StaffId { get; set; }

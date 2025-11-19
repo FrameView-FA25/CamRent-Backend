@@ -63,9 +63,9 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("booking/{bookingId:guid}")]
-		[Authorize]
+		[Authorize(Policy ="Staff")]
 		[SwaggerOperation(Summary = "Inspection của booking", Description = "Trả về danh sách inspection cho một booking.")]
-		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetBookingReceipts(Guid bookingId)
+		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetByBookingId(Guid bookingId)
 		{
 			var inspections = await _inspectionService.GetByBookingAsync(bookingId);
 			return Ok(inspections);
@@ -73,7 +73,7 @@ namespace CamRent_Api.Controllers
 
 		// New: inspections attached to a verification request
 		[HttpGet("verification/{verificationId:guid}")]
-		[Authorize]
+		[Authorize(Policy = "Staff")]
 		[SwaggerOperation(Summary = "Inspections for a verification request", Description = "Trả về danh sách inspection gắn với một VerificationRequest.")]
 		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetByVerificationId(Guid verificationId)
 		{

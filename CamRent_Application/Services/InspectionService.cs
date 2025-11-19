@@ -30,6 +30,26 @@ namespace CamRent_Application.Services
 			{
 				throw new ArgumentException("InspectionTypeId is required for this inspection type.");
 			}
+			if (inspectionRequest.Type == InspectionType.Booking)
+			{
+				// Kiểm tra Booking tồn tại
+				var booking = await _unitOfWork.Repository<Booking>()
+					.GetByIdAsync(inspectionRequest.InspectionTypeId!.Value);
+				if (booking == null)
+				{
+					throw new InvalidOperationException("Booking not found for the given InspectionTypeId.");
+				}
+			}
+			else if (inspectionRequest.Type == InspectionType.Verification)
+			{
+				// Kiểm tra Verification tồn tại
+				var verification = await _unitOfWork.Repository<VerificationRequest>()
+					.GetByIdAsync(inspectionRequest.InspectionTypeId!.Value);
+				if (verification == null)
+				{
+					throw new InvalidOperationException("VerificationRequest not found for the given InspectionTypeId.");
+				}
+			}
 
 			// Map từ DTO sang entity bằng AutoMapper
 			var inspection = _mapper.Map<Inspection>(inspectionRequest);
