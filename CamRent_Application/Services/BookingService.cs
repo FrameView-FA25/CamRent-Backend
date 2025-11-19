@@ -25,7 +25,14 @@ namespace CamRent_Application.Services
 
 		public async Task<Booking?> GetByIdAsync(Guid bookingId)
 		{
-			return await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
+			var booking =  await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.Id == bookingId, 
+				include: b => b.Include(b => b.Items)
+							.ThenInclude(i => i.Camera)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Accessory)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Combo));
+			return booking.FirstOrDefault();
 		}
 
 		public async Task<List<BookingResponseDTO>> GetAllAsync()
@@ -270,9 +277,6 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
-
-
-
 		public async Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type)
 		{
 			var bookingRepo = _unitOfWork.Repository<Booking>();
@@ -466,6 +470,15 @@ namespace CamRent_Application.Services
 			}
 		}
 
-
+		// Added: update booking status implementation
+		public async Task<int> UpdateBookingStatusAsync(Guid bookingId, BookingStatus status)
+		{
+			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
+			if (booking == null)
+				return 0;
+			booking.Status = status;
+			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+			return await _unitOfWork.Complete();
+		}
 	}
 }

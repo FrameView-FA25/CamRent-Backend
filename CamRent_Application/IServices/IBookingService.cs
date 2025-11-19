@@ -18,5 +18,8 @@ namespace CamRent_Application.IServices
 		Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type);
 		Task<Cart?> GetCartByRenterIdAsync(Guid renterId);
 		Task<List<BookingStatusDTO>> GetBookingStatusesAsync();
+
+		// Added: update booking status by id (returns >0 on success)
+		Task<int> UpdateBookingStatusAsync(Guid bookingId, BookingStatus status);
 	}
 }
