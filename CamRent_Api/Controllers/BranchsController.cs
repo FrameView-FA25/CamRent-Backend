@@ -95,8 +95,8 @@ namespace CamRent_Api.Controllers
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
-			request.Role = UserRole.BranchManager;
-			var verify = await _authService.Register(request, Guid.Parse(userId));
+			
+			var verify = await _authService.Register(request, Guid.Parse(userId), UserRole.BranchManager);
 			if (verify == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
@@ -118,8 +118,7 @@ namespace CamRent_Api.Controllers
 					  ?? User.FindFirst("uid")?.Value;
 				}
 			}
-			request.Role = UserRole.Staff;
-			var verify = await _authService.Register(request, Guid.Parse(userId));
+			var verify = await _authService.Register(request, Guid.Parse(userId), UserRole.Staff);
 			if (verify == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			var branchId = await _branchService.GetBranchIdByManagerIdAsync(Guid.Parse(userId));

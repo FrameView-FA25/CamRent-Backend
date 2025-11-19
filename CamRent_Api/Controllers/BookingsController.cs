@@ -13,7 +13,6 @@ namespace CamRent_Api.Controllers
 	[ApiController]
 	[Route("api/[controller]")]
 	[Authorize]
-	[Consumes("multipart/form-data")]
 	public class BookingsController : ControllerBase
 	{
 

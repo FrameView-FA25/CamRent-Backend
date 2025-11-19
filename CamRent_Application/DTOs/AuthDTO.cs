@@ -20,8 +20,6 @@ namespace CamRent_Application.DTOs
 			[Required]
 			public string FullName { get; set; } = default!;
 
-			public UserRole Role { get; set; }
-
 		}
 
 		public sealed class AuthResponse

@@ -36,7 +36,7 @@ namespace CamRent_Application.DTOs
 			public bool IsAvailable { get; set; } = false;
 			public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
 			public Guid? OwnerUserId { get; set; }
-			public User? OwnerName { get; set; }
+			public string? OwnerName { get; set; }
 			public List<FileAssetDTO> Media { get; set; } = new();
 		}
 	}

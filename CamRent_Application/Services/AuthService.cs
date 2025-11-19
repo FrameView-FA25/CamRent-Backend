@@ -31,7 +31,7 @@ namespace CamRent_Application.Services
 			_jwt = jwt.Value;
 		}
 
-		public async Task<Guid> Register(RegisterRequest request, Guid? userId)
+		public async Task<Guid> Register(RegisterRequest request, Guid? userId, UserRole role)
 		{
 			var email = request.Email.Trim();
 
@@ -64,7 +64,7 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Repository<UserRoleMapping>().AddAsync(new UserRoleMapping
 			{
 				User = user,
-				Role = request.Role,
+				Role = role,
 				CreatedAt = DateTime.UtcNow
 			});
 

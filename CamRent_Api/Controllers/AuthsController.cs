@@ -34,8 +34,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Đăng ký người thuê (Renter)", Description = "Đăng ký tài khoản với vai trò Renter. Quyền: Công khai")]
 		public async Task<IActionResult> RegisterAsRenter([FromBody] RegisterRequest request)
 		{
-			request.Role = UserRole.Renter;
-			var result = await _authService.Register(request, null);
+			var result = await _authService.Register(request, null, UserRole.Renter);
 			if (result == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
@@ -45,8 +44,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Đăng ký chủ sở hữu (Owner)", Description = "Đăng ký tài khoản với vai trò Owner. Quyền: Công khai")]
 		public async Task<IActionResult> RegisterAsOwner([FromBody] RegisterRequest request)
 		{
-			request.Role = UserRole.Owner;
-			var result = await _authService.Register(request, null);
+			var result = await _authService.Register(request, null, UserRole.Owner);
 			if (result == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
