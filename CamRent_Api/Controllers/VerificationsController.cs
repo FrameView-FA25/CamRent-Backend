@@ -92,8 +92,8 @@ namespace CamRent_Api.Controllers
 
 		// New: update verification
 		[HttpPut("{id}")]
-		[Authorize(Policy = "OwnerOrManagerOrStaff")]
-		[SwaggerOperation(Summary = "Cập nhật verification", Description = "Cập nhật thông tin một yêu cầu verification. Quyền: Owner, Staff, Manager.")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(Summary = "Cập nhật verification", Description = "Cập nhật thông tin một yêu cầu verification. Quyền: Owner.")]
 		public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVerificationRequestDTO request)
 		{
 			var result = await _verificationService.UpdateVerificationAsync(id, request);
@@ -102,6 +102,19 @@ namespace CamRent_Api.Controllers
 				return Ok(new { Message = "Cập nhật thành công." });
 			}
 			return BadRequest(new { Message = "Cập nhật thất bại hoặc không tìm thấy yêu cầu." });
+		}
+
+		[HttpPut("{id}/update-status")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(Summary = "Cập nhật trạng thái verification", Description = "Cập nhật trạng thái của một yêu cầu verification. Quyền: BranchManager.")]
+		public async Task<IActionResult> UpdateStatus(Guid id, string note, VerificationStatus status)
+		{
+			var result = await _verificationService.UpdateVerificationStatusAsync(id, note, status);
+			if (result > 0)
+			{
+				return Ok(new { Message = "Cập nhật trạng thái thành công." });
+			}
+			return BadRequest(new { Message = "Cập nhật trạng thái thất bại hoặc không tìm thấy yêu cầu." });
 		}
 
 		// New: delete verification

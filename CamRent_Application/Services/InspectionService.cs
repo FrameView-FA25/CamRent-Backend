@@ -162,6 +162,8 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
+		
+
 		// New: delete inspection
 		public async Task<int> DeleteInspectionAsync(Guid id)
 		{
@@ -179,6 +181,17 @@ namespace CamRent_Application.Services
 
 			await _unitOfWork.Repository<Inspection>().DeleteAsync(id);
 			return await _unitOfWork.Complete();
+		}
+
+		public async Task<int> ApproveInspectionAsync(Guid id, Guid managerId, bool pass)
+		{
+			var inspectionTask = await _unitOfWork.Repository<Inspection>().GetByIdAsync(id);
+			inspectionTask.ManagerId = managerId;
+			inspectionTask.Passed = pass;
+			inspectionTask.PerformedAt = DateTime.UtcNow;
+			await _unitOfWork.Repository<Inspection>().UpdateAsync(inspectionTask);
+			var result = await _unitOfWork.Complete();
+			return result;
 		}
 	}
 }

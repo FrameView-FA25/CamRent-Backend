@@ -194,6 +194,15 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
+		public async Task<int> UpdateVerificationStatusAsync(Guid id, string note, VerificationStatus status)
+		{
+			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(id);
+			if (verification == null) return 0;
+			verification.Status = status;
+			verification.Notes = note;
+			await _unitOfWork.Repository<VerificationRequest>().UpdateAsync(verification);
+			return await _unitOfWork.Complete();
+		}
 		// New: delete verification
 		public async Task<int> DeleteVerificationAsync(Guid id)
 		{

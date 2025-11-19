@@ -15,5 +15,6 @@ namespace CamRent_Application.IServices
 		Task<InspectionResponseDTO?> GetByIdAsync(Guid id);
 		Task<int> UpdateInspectionAsync(Guid id, InspectionRequest request, Guid staffId);
 		Task<int> DeleteInspectionAsync(Guid id);
+		Task<int> ApproveInspectionAsync(Guid id, Guid managerId, bool pass);
 	}
 }
