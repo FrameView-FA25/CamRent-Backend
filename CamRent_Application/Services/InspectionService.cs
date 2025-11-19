@@ -44,17 +44,50 @@ namespace CamRent_Application.Services
 			return inspection.Id;
 		}
 
-
-		public Task<List<Inspection>> GetInspectionsByStaffId(Guid staffId)
-		{
-			throw new NotImplementedException();
-		}
-
 		public async Task<List<InspectionResponseDTO>> GetByBookingAsync(Guid bookingId)
 		{
-			var inspections = await _unitOfWork.Repository<Inspection>()
-				.ListAsync(i => i.BookingId == bookingId);
-			return _mapper.Map<List<InspectionResponseDTO>>(inspections);
+			// Load inspections attached to the booking
+			var inspections = (await _unitOfWork.Repository<Inspection>()
+				.ListAsync(i => i.BookingId == bookingId)).ToList();
+
+			var dtos = _mapper.Map<List<InspectionResponseDTO>>(inspections);
+
+			// Populate Media for each inspection (mapping profile ignores Media)
+			for (int idx = 0; idx < inspections.Count; idx++)
+			{
+				var inspection = inspections[idx];
+				var dto = dtos[idx];
+
+				var assets = (await _unitOfWork.Repository<FileAsset>()
+					.ListAsync(f => f.OwnerId == inspection.Id && f.OwnerType == FileOwnerType.Inspection)).ToList();
+
+				dto.Media = _mapper.Map<List<FileAssetDTO>>(assets);
+			}
+
+			return dtos;
+		}
+
+		// New: get inspections for a verification request and include media
+		public async Task<List<InspectionResponseDTO>> GetByVerificationAsync(Guid verificationId)
+		{
+			var inspections = (await _unitOfWork.Repository<Inspection>()
+				.ListAsync(i => i.VerificationId == verificationId)).ToList();
+
+			var dtos = _mapper.Map<List<InspectionResponseDTO>>(inspections);
+
+			// Populate Media for each inspection (mapping profile ignores Media)
+			for (int idx = 0; idx < inspections.Count; idx++)
+			{
+				var inspection = inspections[idx];
+				var dto = dtos[idx];
+
+				var assets = (await _unitOfWork.Repository<FileAsset>()
+					.ListAsync(f => f.OwnerId == inspection.Id && f.OwnerType == FileOwnerType.Inspection)).ToList();
+
+				dto.Media = _mapper.Map<List<FileAssetDTO>>(assets);
+			}
+
+			return dtos;
 		}
 	}
 }

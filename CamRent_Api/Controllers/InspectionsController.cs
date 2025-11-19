@@ -12,7 +12,7 @@ namespace CamRent_Api.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
-	[Consumes("multipart/form-data")]
+	
 	public class InspectionsController : ControllerBase
 	{
 		private readonly IInspectionService _inspectionService;
@@ -25,6 +25,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Roles = "Staff")]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo inspection", Description = "Tạo một inspection và tải lên các file liên quan. Các file tải lên sẽ được gắn với inspection vừa tạo. Quyền: Staff")]
 		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile>? files)
 		{
@@ -61,15 +62,23 @@ namespace CamRent_Api.Controllers
 			return Ok(new{Message = "Tạo inspection thành công."});
 		}
 
-		// Biên lai inspection cho một booking (nhận/trả máy)
-		[HttpGet("booking/{bookingId:guid}/receipts")]
+		[HttpGet("booking/{bookingId:guid}")]
 		[Authorize]
-		[SwaggerOperation(Summary = "Biên lai inspection của booking", Description = "Trả về danh sách inspection (nhận/trả máy) cho một booking. FE có thể dùng Label để hiển thị 'Nhận máy ảnh' / 'Đã trả máy ảnh'.")]
+		[SwaggerOperation(Summary = "Inspection của booking", Description = "Trả về danh sách inspection cho một booking.")]
 		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetBookingReceipts(Guid bookingId)
 		{
 			var inspections = await _inspectionService.GetByBookingAsync(bookingId);
 			return Ok(inspections);
 		}
 
+		// New: inspections attached to a verification request
+		[HttpGet("verification/{verificationId:guid}")]
+		[Authorize]
+		[SwaggerOperation(Summary = "Inspections for a verification request", Description = "Trả về danh sách inspection gắn với một VerificationRequest.")]
+		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetByVerificationId(Guid verificationId)
+		{
+			var inspections = await _inspectionService.GetByVerificationAsync(verificationId);
+			return Ok(inspections);
+		}
 	}
 }
