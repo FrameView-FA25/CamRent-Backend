@@ -19,7 +19,6 @@ namespace CamRent_Application.DTOs
 			public string Section { get; set; } = string.Empty;
 			public string Label { get; set; } = string.Empty;
 			public string? Value { get; set; }
-			public bool? Passed { get; set; }
 			public string Notes { get; set; } = string.Empty;
 		}
 		public class InspectionResponseDTO
