@@ -61,6 +61,14 @@ namespace CamRent_Application.Common
 				));
 
 			CreateMap<Booking,Cart>();
+			CreateMap<CreateBookingRequest, Booking>()
+			// Set defaults for properties not in request
+			.ForMember(dest => dest.Items, opt => opt.Ignore())
+			.ForMember(dest => dest.Inspections, opt => opt.Ignore())
+			.ForMember(dest => dest.RenterId, opt => opt.Ignore())
+			.ForMember(dest => dest.StaffId, opt => opt.Ignore())
+			.ForMember(dest => dest.BranchId, opt => opt.Ignore());
+
 			CreateMap<Branch, BranchResponse>()
 				.ForMember(b => b.ManagerName, 
 				opt => opt.MapFrom(b => b.Manager.FullName));
