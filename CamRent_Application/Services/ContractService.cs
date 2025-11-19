@@ -2,6 +2,8 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace CamRent_Application.Services
@@ -54,6 +56,14 @@ namespace CamRent_Application.Services
 			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
 				?? throw new InvalidOperationException("Booking not found");
 
+			// Chỉ cho generate contract khi đã có ít nhất một payment captured cho booking này
+			var payments = await _unitOfWork.Repository<Payment>()
+				.ListAsync(p => p.BookingId == bookingId && p.Status == PaymentStatus.Captured);
+			if (!payments.Any())
+			{
+				throw new InvalidOperationException("Cannot generate contract before payment is captured");
+			}
+
 			// Chọn template mới nhất làm default
 			var templates = await _unitOfWork.Repository<ContractTemplate>().ListAsync();
 			var template = templates
@@ -65,6 +75,13 @@ namespace CamRent_Application.Services
 			var contract = existingContracts
 				.OrderByDescending(c => c.CreatedAt)
 				.FirstOrDefault();
+
+			// Idempotent: nếu đã có file hợp đồng hợp lệ thì không sinh lại
+			if (contract != null && !string.IsNullOrWhiteSpace(contract.SignedFileUrl)
+				&& (contract.Status == ContractStatus.Signed || contract.Status == ContractStatus.Completed))
+			{
+				return contract.Id;
+			}
 
 			if (contract == null)
 			{
@@ -82,6 +99,9 @@ namespace CamRent_Application.Services
 
 			// Sinh PDF hợp đồng chính thức
 			var pdfBytes = await _templateService.GenerateContractPdfAsync(contract.Id, cancellationToken);
+
+			// Tính hash SHA256 của nội dung PDF để làm bằng chứng toàn vẹn
+			var sha256 = ComputeSha256Hex(pdfBytes);
 
 			// Upload lên storage, gắn với contract
 			var file = await _fileStorage.UploadAsync(
@@ -107,7 +127,9 @@ namespace CamRent_Application.Services
 				{
 					bookingId,
 					fileId = file.Id,
-					fileUrl = file.Url
+					fileUrl = file.Url,
+					sha256,
+					generatedAtUtc = DateTime.UtcNow
 				}),
 				OccurredAt = DateTime.UtcNow
 			};
@@ -115,6 +137,16 @@ namespace CamRent_Application.Services
 
 			await _unitOfWork.Complete();
 			return contract.Id;
+		}
+
+		private static string ComputeSha256Hex(byte[] data)
+		{
+			using var sha = SHA256.Create();
+			var hash = sha.ComputeHash(data);
+			var sb = new StringBuilder(hash.Length * 2);
+			foreach (var b in hash)
+				sb.Append(b.ToString("x2"));
+			return sb.ToString();
 		}
 	}
 }

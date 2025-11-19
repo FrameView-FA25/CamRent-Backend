@@ -166,16 +166,16 @@ namespace CamRent_Application.Services
                                 });
                             });
 
-                            col.Item().PaddingTop(16).Text("Key Terms").FontSize(12).SemiBold();
+                            col.Item().PaddingTop(16).Text("Key Legal Terms").FontSize(12).SemiBold();
                             col.Item().Text(text =>
                             {
-                                text.Span("1. The renter is responsible for the equipment during the rental period, including loss, theft, or damage.");
+                                text.Span("1. The renter is responsible for the equipment during the rental period, including loss, theft, or damage, and agrees to use the equipment in a careful and lawful manner.");
                                 text.Line("");
-                                text.Span("2. Late returns may incur additional charges according to CamRent's fee schedule.");
+                                text.Span("2. Late returns may incur additional charges and penalties according to CamRent's published fee schedule at the time of booking.");
                                 text.Line("");
-                                text.Span("3. Any damages or missing items may be deducted from the deposit or charged additionally to the renter.");
+                                text.Span("3. Any damages, loss, or missing items may be deducted from the deposit or charged additionally to the renter, based on inspection reports and CamRent's compensation policy.");
                                 text.Line("");
-                                text.Span("4. By confirming the booking and using the service, the renter agrees to CamRent's full terms and conditions published on the platform.");
+                                text.Span("4. By confirming the booking, making payment, and/or using the service, the renter confirms acceptance of this electronic agreement and CamRent's full terms and conditions published on the platform.");
                             });
 
                             col.Item().PaddingTop(30).Row(r =>
