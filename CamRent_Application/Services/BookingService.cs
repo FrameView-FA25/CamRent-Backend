@@ -50,6 +50,7 @@ namespace CamRent_Application.Services
 				return 0;
 			}
 			booking.StaffId = staffUserId;
+			booking.Status = BookingStatus.Confirmed;
 			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 			return await _unitOfWork.Complete();
 		}
@@ -63,7 +64,7 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId)
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.PendingApproval, 
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.Draft && b.Status != BookingStatus.PendingApproval,
 				include: b => b.Include(b => b.Items)
 							.ThenInclude(i => i.Camera)
 						.Include(b => b.Items)

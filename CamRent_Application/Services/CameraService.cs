@@ -39,7 +39,7 @@ namespace CamRent_Application.Services
 
 		public async Task<List<CameraResponseDTO>> GetAllAsync()
 		{
-			var listCamera = await _unitOfWork.Repository<Camera>().ListAsync(include: c => c.Include(c =>c.Branch));
+			var listCamera = await _unitOfWork.Repository<Camera>().ListAsync(include: c => c.Include(c =>c.Branch).Include(c => c.OwnerUser));
 			foreach (var camera in listCamera)
 			{
 				camera.Media = (await _unitOfWork.Repository<FileAsset>()
