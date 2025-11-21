@@ -13,7 +13,7 @@ namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	[Consumes("multipart/form-data")]
+	
 	public class CamerasController : ControllerBase
 	{
 		private readonly ICameraService _cameraService;
@@ -78,6 +78,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Policy = "Owner")]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo camera", Description = "Tạo mới camera. Chấp nhận multipart/form-data kèm file media. Quyền: Owner, Admin")]
 		public async Task<IActionResult> CreateCamera([FromForm] CameraRequest cameraRequest)
 		{
@@ -123,7 +124,7 @@ namespace CamRent_Api.Controllers
 		[HttpPut("{id:guid}")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật camera", Description = "Cập nhật thông tin camera. Chấp nhận multipart/form-data. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateCamera(Guid id, [FromBody] CameraRequest cameraRequest)
+		public async Task<IActionResult> UpdateCamera(Guid id, [FromForm] CameraRequest cameraRequest)
 		{
 			var existingCamera = await _cameraService.GetByIdAsync(id);
 			if (existingCamera == null)

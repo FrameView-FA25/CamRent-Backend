@@ -13,7 +13,7 @@ namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	[Consumes("multipart/form-data")]
+	
 	public class AccessoriesController : ControllerBase
 	{
 		private readonly IAccessoryService _accessoryService;
@@ -83,6 +83,7 @@ namespace CamRent_Api.Controllers
 
 		[Authorize(Policy = "Owner")]
 		[HttpPost]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo phụ kiện", Description = "Tạo mới một phụ kiện. Chấp nhận multipart/form-data kèm file media. Chủ sở hữu lấy từ người dùng đang xác thực. Quyền: Owner, Admin")]
 		public async Task<IActionResult> CreateAccessory([FromForm] AccessoryRequest accessoryCreateModel)
 		{
@@ -125,8 +126,9 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPut("{id}")]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật phụ kiện", Description = "Cập nhật thông tin phụ kiện theo id. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateAccessory(Guid id, [FromBody] AccessoryRequest accessoryUpdateModel)
+		public async Task<IActionResult> UpdateAccessory(Guid id, [FromForm] AccessoryRequest accessoryUpdateModel)
 		{
 			var existingAccessory = await _accessoryService.GetAccessoryByIdAsync(id);
 			if (existingAccessory == null)
