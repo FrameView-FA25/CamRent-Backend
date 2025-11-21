@@ -18,5 +18,7 @@ namespace CamRent_Api.Models
 			public List<IFormFile>? MediaFiles { get; set; }
 		}
 
+		
+
 	}
 }

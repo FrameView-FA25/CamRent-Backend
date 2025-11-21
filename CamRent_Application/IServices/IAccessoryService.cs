@@ -14,7 +14,7 @@ namespace CamRent_Application.IServices
 		Task<AccessoryResponseDTO?> GetAccessoryByIdAsync(Guid accessoryId);
 		Task<List<AccessoryResponseDTO>> GetAccessoriesByOwnerIdAsync(Guid userId);
 		Task<int> CreateAccessoryAsync(Accessory accessory);
-		Task<int> UpdateAccessoryAsync(Accessory accessory);
+		Task<int> UpdateAccessoryAsync(UpdateAccessoryRequest request, Guid userId);
 		Task<int> DeleteAccessoryAsync(Guid accessoryId);
 	}
 }

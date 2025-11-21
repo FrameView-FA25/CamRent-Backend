@@ -14,6 +14,7 @@ namespace CamRent_Api.Commons
 				.ForMember(dest => dest.Media, opt => opt.Ignore());
 			CreateMap<AccessoryRequest, Accessory>()
 				.ForMember(d => d.OwnerUserId, opt => opt.Ignore());
+			
 		}
 	}
 }

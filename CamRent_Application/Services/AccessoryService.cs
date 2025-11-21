@@ -73,8 +73,13 @@ namespace CamRent_Application.Services
 			return accessoryResponseDTOs;
 		}
 
-		public async Task<int> UpdateAccessoryAsync(Accessory accessory)
+		public async Task<int> UpdateAccessoryAsync(UpdateAccessoryRequest request, Guid userId)
 		{
+			var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(request.Id);
+			if (accessory == null) return 0;
+			_mapper.Map(request, accessory);
+			accessory.UpdatedAt = DateTime.UtcNow;
+			accessory.UpdatedByUserId = userId;
 			await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
 			var result = await _unitOfWork.Complete();
 			if (result > 0) _indexing.EnqueueUpsert("Accessory", accessory.Id);
