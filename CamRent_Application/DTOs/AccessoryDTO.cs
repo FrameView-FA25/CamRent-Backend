@@ -1,5 +1,6 @@
 ﻿using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,8 +42,25 @@ namespace CamRent_Application.DTOs
 			public Guid? OwnerUserId { get; set; }
 			public User? OwnerName { get; set; }
 
-			public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
-			
+			public ICollection<FileAssetDTO> Media { get; set; } = new List<FileAssetDTO>();
+
+		}
+
+		public class UpdateAccessoryRequest
+		{
+			public Guid Id { get; set; }
+			public string Brand { get; set; } = string.Empty;
+			public string Model { get; set; } = string.Empty;
+			public string? Variant { get; set; }
+			public string? SerialNumber { get; set; }
+			public string? SpecsJson { get; set; }
+			public decimal BaseDailyRate { get; set; }
+			public decimal EstimatedValueVnd { get; set; }
+
+			// Multipart files coming from form-data
+			public List<IFormFile>? MediaFiles { get; set; }
+
+			public List<Guid>? RemoveMediaIds { get; set; }
 		}
 	}
 }

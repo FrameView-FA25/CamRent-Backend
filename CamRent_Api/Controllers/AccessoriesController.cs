@@ -1,13 +1,16 @@
 ﻿using AutoMapper;
+using CamRent_Api.Models;
+using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
-using CamRent_Domain.Entities;
 using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using static CamRent_Api.Models.AccessoryModel;
-using Swashbuckle.AspNetCore.Annotations;
+using static CamRent_Application.DTOs.AccessoryDTO;
 
 namespace CamRent_Api.Controllers
 {
@@ -128,18 +131,63 @@ namespace CamRent_Api.Controllers
 		[HttpPut("{id}")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật phụ kiện", Description = "Cập nhật thông tin phụ kiện theo id. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateAccessory(Guid id, [FromForm] AccessoryRequest accessoryUpdateModel)
+		public async Task<IActionResult> UpdateAccessory([FromForm] UpdateAccessoryRequest model)
 		{
-			var existingAccessory = await _accessoryService.GetAccessoryByIdAsync(id);
-			if (existingAccessory == null)
-			{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+			var result = await _accessoryService.UpdateAccessoryAsync(model, Guid.Parse(userId));
+			// 1) Lấy entity thật từ DB
+			var existing = await _accessoryService.GetAccessoryByIdAsync(model.Id);
+			if (existing == null)
 				return NotFound();
+
+			if (existing.OwnerUserId != Guid.Parse(userId))
+				return Forbid();
+
+			existing.Media ??= new List<FileAssetDTO>();
+
+			// 3) Handle remove old media
+			if (model.RemoveMediaIds != null && model.RemoveMediaIds.Any())
+			{
+				var toRemove = existing.Media
+					.Where(m => model.RemoveMediaIds.Contains(m.Id))
+					.ToList();
+
+				foreach (var old in toRemove)
+				{
+					await _fileStorageService.DeleteByAssetIdAsync(old.Id);
+					existing.Media.Remove(old);
+				}
 			}
-			var accessoryToUpdate = _mapper.Map<Accessory>(accessoryUpdateModel);
-			accessoryToUpdate.Id = id;
-			var result = await _accessoryService.UpdateAccessoryAsync(accessoryToUpdate);
-			return result > 0 ? Ok(new { Message = "Cập nhật phụ kiện thành công." }) : BadRequest(new { Message = "Cập nhật phụ kiện thất bại." });
+
+			// 4) Upload new media files (giống hệt CreateAccessory)
+			if (model.MediaFiles != null)
+			{
+				foreach (var file in model.MediaFiles)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: existing.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/accessories/{existing.Id}",
+						label: $"{existing.Brand} {existing.Model}"
+					);
+				}
+			}
+			
+
+			if (result <= 0)
+				return BadRequest(new { Message = "Cập nhật phụ kiện thất bại." });
+
+			return Ok(new { Message = "Cập nhật phụ kiện thành công." });
 		}
+
 
 		[HttpDelete("{id}")]
 		[SwaggerOperation(Summary = "Xóa phụ kiện", Description = "Xóa phụ kiện theo id. Quyền: Người dùng đã đăng nhập")]

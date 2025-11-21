@@ -13,7 +13,7 @@ namespace CamRent_Application.IServices
 	{
 		Task<FileAsset> UploadAsync(IFormFile file, Guid ownerId, FileOwnerType ownerType, string? folder = null, string? label = null);
 		Task<FileAsset> UploadAsync(byte[] content, string fileName, string contentType, Guid ownerId, FileOwnerType ownerType, string? folder = null, string? label = null);
-		Task DeleteAsync(string providerKey);
+		Task DeleteByAssetIdAsync(Guid fileAssetId);
 
 	}
 }

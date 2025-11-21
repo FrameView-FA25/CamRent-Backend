@@ -22,6 +22,10 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(s => s.Branch.Address.District + "," + s.Branch.Address.Province))
 				.ForMember(c => c.OwnerName,
 					opt => opt.MapFrom(s => s.OwnerUser.FullName));
+			CreateMap<UpdateCameraRequest, Camera>()
+				.ForMember(x => x.Id, opt => opt.Ignore())
+				.ForMember(x => x.OwnerUserId, opt => opt.Ignore())
+				.ForMember(x => x.Media, opt => opt.Ignore());
 
 			CreateMap<Accessory, AccessoryResponseDTO>()
 				.ForMember(a => a.BranchName,
@@ -30,6 +34,11 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(s => s.Branch.Address.District + "," + s.Branch.Address.Province))
 				.ForMember(a => a.OwnerName,
 					opt => opt.MapFrom(s => s.OwnerUser.FullName));
+			CreateMap<UpdateAccessoryRequest, Accessory>()
+				.ForMember(x => x.Id, opt => opt.Ignore())
+				.ForMember(x => x.OwnerUserId, opt => opt.Ignore())
+				.ForMember(x => x.Media, opt => opt.Ignore());
+
 			CreateMap<Booking, BookingResponseDTO>()
 			.ForMember(d => d.StatusText,
 				opt => opt.MapFrom(s => s.Status.GetDisplayName()));
@@ -80,6 +89,7 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(ubm => ubm.User.Phone))
 				.ForMember(bm => bm.Email,
 					opt => opt.MapFrom(ubm => ubm.User.Email));
+
 			CreateMap<FileAsset, FileAssetDTO>()
 				.ForMember(d => d.Url,
 					opt => opt.MapFrom(s => s.Url))
@@ -189,6 +199,7 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.Inspections, o => o.Ignore())
 				// only map when source member is not null -> supports partial update
 				.ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
 		}
 	}
 }

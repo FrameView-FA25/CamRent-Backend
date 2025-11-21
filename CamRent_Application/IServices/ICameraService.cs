@@ -18,7 +18,7 @@ namespace CamRent_Application.IServices
 		Task<List<CameraResponseDTO>> GetByBranchManagerAsync(Guid managerId);
 		Task<CameraHistoryDTO> GetHistoryForQrAsync(Guid cameraId);
 		Task<int> CreateAsync(Camera camera);
-		Task<int> UpdateAsync(Camera camera);
+		Task<int> UpdateAsync(UpdateCameraRequest request, Guid userId);
 		Task<int> DeleteAsync(Guid id);
 	}
 }

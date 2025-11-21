@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -102,16 +103,34 @@ namespace CamRent_Application.Services
 			return asset;
 		}
 
-		public async Task DeleteAsync(string providerKey)
+		public async Task DeleteByAssetIdAsync(Guid fileAssetId)
 		{
-			var delParams = new DeletionParams(providerKey);
-			var result = await _cloudinary.DestroyAsync(delParams);
-
-			// Tùy bạn muốn check result.Result == "ok" hay bỏ qua
-			if(result.StatusCode != System.Net.HttpStatusCode.OK)
+			// load FileAsset
+			var asset = await _unitOfWork.Repository<FileAsset>().GetByIdAsync(fileAssetId);
+			if (asset == null)
 			{
-				throw new Exception($"Cloudinary delete failed: {result.Error?.Message}");
+				// không tìm thấy -> không làm gì
+				return;
 			}
+
+			// Nếu có ProviderKey, xóa trên Cloudinary
+			if (!string.IsNullOrEmpty(asset.ProviderKey))
+			{
+				var delParams = new DeletionParams(asset.ProviderKey);
+				var result = await _cloudinary.DestroyAsync(delParams);
+
+				// Chấp nhận "ok" hoặc "not_found" (nếu cloud đã bị xóa trước đó)
+				if (result.StatusCode != HttpStatusCode.OK || (result.Result != "ok" && result.Result != "not_found"))
+				{
+					throw new Exception($"Cloudinary delete failed for ProviderKey={asset.ProviderKey}: {result.Error?.Message ?? result.Result}");
+				}
+			}
+
+			// Xóa bản ghi DB
+			await _unitOfWork.Repository<FileAsset>().DeleteAsync(asset.Id);
+
+			// Commit
+			await _unitOfWork.Complete();
 		}
 	}
 }

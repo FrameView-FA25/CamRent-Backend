@@ -135,8 +135,13 @@ namespace CamRent_Application.Services
 			};
 		}
 
-		public async Task<int> UpdateAsync(Camera camera)
+		public async Task<int> UpdateAsync(UpdateCameraRequest request, Guid userId)
 		{
+			var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(request.Id);
+			if (camera == null) return 0;
+			_mapper.Map(request, camera);
+			camera.UpdatedAt = DateTime.UtcNow;
+			camera.UpdatedByUserId = userId;
 			await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
 			var result = await _unitOfWork.Complete();
 			if (result > 0) _indexing.EnqueueUpsert("Camera", camera.Id);
