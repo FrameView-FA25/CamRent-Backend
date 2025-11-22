@@ -128,10 +128,10 @@ namespace CamRent_Api.Controllers
 			return Ok(new { Message = "Tạo phụ kiện thành công." });
 		}
 
-		[HttpPut("{id}")]
+		[HttpPut]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật phụ kiện", Description = "Cập nhật thông tin phụ kiện theo id. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateAccessory([FromForm] UpdateAccessoryRequest model)
+		public async Task<IActionResult> UpdateAccessory([FromForm] UpdateAccessoryRequest updateAccessoryRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
@@ -139,9 +139,9 @@ namespace CamRent_Api.Controllers
 
 			if (string.IsNullOrEmpty(userId))
 				return Unauthorized();
-			var result = await _accessoryService.UpdateAccessoryAsync(model, Guid.Parse(userId));
+			var result = await _accessoryService.UpdateAccessoryAsync(updateAccessoryRequest, Guid.Parse(userId));
 			// 1) Lấy entity thật từ DB
-			var existing = await _accessoryService.GetAccessoryByIdAsync(model.Id);
+			var existing = await _accessoryService.GetAccessoryByIdAsync(updateAccessoryRequest.Id);
 			if (existing == null)
 				return NotFound();
 
@@ -151,10 +151,10 @@ namespace CamRent_Api.Controllers
 			existing.Media ??= new List<FileAssetDTO>();
 
 			// 3) Handle remove old media
-			if (model.RemoveMediaIds != null && model.RemoveMediaIds.Any())
+			if (updateAccessoryRequest.RemoveMediaIds != null && updateAccessoryRequest.RemoveMediaIds.Any())
 			{
 				var toRemove = existing.Media
-					.Where(m => model.RemoveMediaIds.Contains(m.Id))
+					.Where(m => updateAccessoryRequest.RemoveMediaIds.Contains(m.Id))
 					.ToList();
 
 				foreach (var old in toRemove)
@@ -165,9 +165,9 @@ namespace CamRent_Api.Controllers
 			}
 
 			// 4) Upload new media files (giống hệt CreateAccessory)
-			if (model.MediaFiles != null)
+			if (updateAccessoryRequest.MediaFiles != null)
 			{
-				foreach (var file in model.MediaFiles)
+				foreach (var file in updateAccessoryRequest.MediaFiles)
 				{
 					if (file == null || file.Length <= 0) continue;
 

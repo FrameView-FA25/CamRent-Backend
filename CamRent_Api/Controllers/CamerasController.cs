@@ -15,17 +15,18 @@ namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	
 	public class CamerasController : ControllerBase
 	{
 		private readonly ICameraService _cameraService;
 		private readonly IMapper _autoMapper;
 		private readonly IFileStorageService _fileStorageService;
-		public CamerasController(ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService)
+		private readonly ILogger<Camera> _logger;
+		public CamerasController(ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService, ILogger<Camera> logger )
 		{
 			_cameraService = cameraService;
 			_autoMapper = autoMapper;
 			_fileStorageService = fileStorageService;
+			_logger = logger;
 		}
 
 		[HttpGet]
@@ -123,10 +124,11 @@ namespace CamRent_Api.Controllers
 			return Ok(new { Message = "Tạo camera thành công." });
 		}
 
-		[HttpPut("{id:guid}")]
+		[HttpPut]
+		[Authorize(Policy = "Owner")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật camera", Description = "Cập nhật thông tin camera. Chấp nhận multipart/form-data. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateCamera(Guid id, [FromForm] UpdateCameraRequest model)
+		public async Task<IActionResult> UpdateCamera([FromForm] UpdateCameraRequest updateCameraRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
@@ -134,26 +136,19 @@ namespace CamRent_Api.Controllers
 
 			if (string.IsNullOrEmpty(userId))
 				return Unauthorized();
-
-			// Gán Id từ route vào model để service có thể tìm đúng camera
-			model.Id = id;
-
-			// 1) Lấy camera DTO hiện tại để check quyền + media
-			var existingCamera = await _cameraService.GetByIdAsync(id);
-			if (existingCamera == null)
+			var result = await _cameraService.UpdateAsync(updateCameraRequest, Guid.Parse(userId));
+			// 1) Lấy camera entity (đã include Media)
+			var existing = await _cameraService.GetByIdAsync(updateCameraRequest.Id);
+			if (existing == null)
 				return NotFound();
 
-			// 2) Check quyền: chỉ owner của camera mới được sửa
-			if (existingCamera.OwnerUserId != Guid.Parse(userId))
-				return Forbid();
+			existing.Media ??= new List<FileAssetDTO>();
 
-			existingCamera.Media ??= new List<FileAssetDTO>();
-
-			// 3) XÓA MEDIA CŨ nếu có yêu cầu
-			if (model.RemoveMediaIds != null && model.RemoveMediaIds.Any())
+			// 4) XÓA MEDIA CŨ
+			if (updateCameraRequest.RemoveMediaIds != null && updateCameraRequest.RemoveMediaIds.Any())
 			{
-				var toRemove = existingCamera.Media
-					.Where(m => model.RemoveMediaIds.Contains(m.Id))
+				var toRemove = existing.Media
+					.Where(m => updateCameraRequest.RemoveMediaIds.Contains(m.Id))
 					.ToList();
 
 				foreach (var file in toRemove)
@@ -162,25 +157,22 @@ namespace CamRent_Api.Controllers
 				}
 			}
 
-			// 4) THÊM MEDIA MỚI (giống Create)
-			if (model.MediaFiles != null)
+			// 5) THÊM MEDIA MỚI (giống Create)
+			if (updateCameraRequest.MediaFiles != null)
 			{
-				foreach (var file in model.MediaFiles)
+				foreach (var file in updateCameraRequest.MediaFiles)
 				{
 					if (file == null || file.Length <= 0) continue;
 
-					await _fileStorageService.UploadAsync(
+					var asset = await _fileStorageService.UploadAsync(
 						file,
-						ownerId: id,
-						ownerType: FileOwnerType.Camera,
-						folder: $"camrent/cameras/{id}",
-						label: $"{existingCamera.Brand} {existingCamera.Model}"
+						ownerId: existing.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/accessories/{existing.Id}",
+						label: $"{existing.Brand} {existing.Model}"
 					);
 				}
 			}
-
-			// 5) Cập nhật các field còn lại trong entity
-			var result = await _cameraService.UpdateAsync(model, Guid.Parse(userId));
 
 			if (result <= 0)
 				return BadRequest(new { Message = "Cập nhật camera thất bại." });
