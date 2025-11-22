@@ -65,7 +65,21 @@ namespace CamRent_Application.Services
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 				);
 
-			return _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			foreach (var ver in response)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+			return response;
 		}
 
 		public async Task<List<VerificationResponseDTO>> GetVerificationByOwnerId(Guid ownerId)
@@ -82,7 +96,21 @@ namespace CamRent_Application.Services
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 				);
 
-			return _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			foreach (var ver in response)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+			return response;
 		}
 
 
@@ -99,8 +127,21 @@ namespace CamRent_Application.Services
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 				);
+			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			foreach (var ver in response)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
 
-			return _mapper.Map<List<VerificationResponseDTO>>(verifications);
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+			return response;
 		}
 
 
@@ -117,13 +158,27 @@ namespace CamRent_Application.Services
 						.Include(v => v.Inspections)
 				);
 
-			return _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
+			foreach (var ver in response)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+			return response;
 		}
 
 		// New: get detail by id
 		public async Task<VerificationResponseDTO?> GetVerificationById(Guid id)
 		{
-			var verifications = await _unitOfWork
+			var verification = (await _unitOfWork
 				.Repository<VerificationRequest>()
 				.ListAsync(
 					filter: v => v.Id == id,
@@ -133,11 +188,23 @@ namespace CamRent_Application.Services
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(v => v.Inspections)
-				);
-
-			var verification = verifications.FirstOrDefault();
+				)).FirstOrDefault();
 			if (verification == null) return null;
-			return _mapper.Map<VerificationResponseDTO>(verification);
+			var response = _mapper.Map<VerificationResponseDTO>(verification);
+			if(response.Inspections != null)
+			{
+				foreach (var insp in response.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+
+			return response;
 		}
 
 		// New: update verification
