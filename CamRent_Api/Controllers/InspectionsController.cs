@@ -27,7 +27,7 @@ namespace CamRent_Api.Controllers
 		[Authorize(Roles = "Staff")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo inspection", Description = "Tạo một inspection và tải lên các file liên quan. Các file tải lên sẽ được gắn với inspection vừa tạo. Quyền: Staff")]
-		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile>? files)
+		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequest)
 		{
 			// Lấy userId từ token
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -37,15 +37,15 @@ namespace CamRent_Api.Controllers
 				return BadRequest(ModelState);
 
 			// 1. Tạo inspection, lấy ra Id
-			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequestModel, Guid.Parse(userId));
+			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequest, Guid.Parse(userId));
 			if(inspectionId == Guid.Empty)
 			{
 				return StatusCode(StatusCodes.Status500InternalServerError, "Tạo inspection thất bại.");
 			}
 			// 2. Nếu có file thì upload, ownerId = inspectionId
-			if (files != null && files.Count > 0)
+			if (inspectionRequest.Files != null && inspectionRequest.Files.Count > 0)
 			{
-				foreach (var file in files)
+				foreach (var file in inspectionRequest.Files)
 				{
 					if (file == null || file.Length == 0) continue;
 
@@ -54,7 +54,7 @@ namespace CamRent_Api.Controllers
 						ownerId: inspectionId,
 						ownerType: FileOwnerType.Inspection,
 						folder: $"camrent/inspections/{inspectionId}",
-						label: $"{inspectionRequestModel.Type}-{inspectionRequestModel.Section}-{inspectionRequestModel.Label}"
+						label: $"{inspectionRequest.Type}-{inspectionRequest.Section}-{inspectionRequest.Label}"
 					);
 				}
 			}
@@ -97,16 +97,39 @@ namespace CamRent_Api.Controllers
 		// New: update inspection
 		[HttpPut("{id:guid}")]
 		[Authorize(Roles = "ManagerOrStaff")]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật inspection", Description = "Cập nhật thông tin một inspection. Quyền: Staff.")]
-		public async Task<IActionResult> Update(Guid id, [FromBody] InspectionRequest request)
+		public async Task<IActionResult> Update(Guid id, [FromForm] InspectionRequest inspectionRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
 
-			var result = await _inspectionService.UpdateInspectionAsync(id, request, Guid.Parse(userId));
+			if (!ModelState.IsValid)
+				return BadRequest(ModelState);
+
+			var result = await _inspectionService.UpdateInspectionAsync(id, inspectionRequest, Guid.Parse(userId));
 			if (result > 0)
+			{
+				// If there are uploaded files in the request, upload them and attach to the inspection
+				if (inspectionRequest.Files != null && inspectionRequest.Files.Count > 0)
+				{
+					foreach (var file in inspectionRequest.Files)
+					{
+						if (file == null || file.Length == 0) continue;
+
+						await _fileStorageService.UploadAsync(
+							file,
+							ownerId: id,
+							ownerType: FileOwnerType.Inspection,
+							folder: $"camrent/inspections/{id}",
+							label: $"{inspectionRequest.Type}-{inspectionRequest.Section}-{inspectionRequest.Label}"
+						);
+					}
+				}
+
 				return Ok(new { Message = "Cập nhật inspection thành công." });
+			}
 
 			return BadRequest(new { Message = "Cập nhật thất bại hoặc không tìm thấy inspection." });
 		}

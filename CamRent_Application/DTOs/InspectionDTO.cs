@@ -20,6 +20,9 @@ namespace CamRent_Application.DTOs
 			public string Label { get; set; } = string.Empty;
 			public string? Value { get; set; }
 			public string Notes { get; set; } = string.Empty;
+
+			// New: files uploaded with the request (multipart/form-data)
+			public List<IFormFile>? Files { get; set; }
 		}
 		public class InspectionResponseDTO
 		{
