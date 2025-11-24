@@ -35,7 +35,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpGet("{id:guid}")]
 		[SwaggerOperation(Summary = "Chi tiết booking", Description = "Trả về booking theo id bao gồm items và snapshot giá. Quyền: Người dùng đã đăng nhập")]
-		public async Task<ActionResult<Booking>> GetById(Guid id)
+		public async Task<IActionResult> GetById(Guid id)
 		{
 			var booking = await _bookingService.GetByIdAsync(id);
 			if (booking == null) return NotFound();
