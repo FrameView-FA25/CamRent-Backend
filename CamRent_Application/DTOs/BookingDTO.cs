@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Application.DTOs
 {
@@ -41,7 +42,8 @@ namespace CamRent_Application.DTOs
 			public decimal SnapshotRentalTotal { get; set; }
 			public decimal SnapshotDepositAmount { get; set; }
 
-			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
+			public ICollection<BookingItemDTO>? Items { get; set; } 
+			public ICollection<InspectionResponseDTO>? Inspections { get; set; } 
 		}
 		public class Cart
 		{
