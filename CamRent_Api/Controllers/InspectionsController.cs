@@ -96,7 +96,7 @@ namespace CamRent_Api.Controllers
 
 		// New: update inspection
 		[HttpPut("{id:guid}")]
-		[Authorize(Roles = "ManagerOrStaff")]
+		[Authorize(Policy = "ManagerOrStaff")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật inspection", Description = "Cập nhật thông tin một inspection. Quyền: Staff.")]
 		public async Task<IActionResult> Update(Guid id, [FromForm] InspectionRequest inspectionRequest)
@@ -135,7 +135,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPut("{id:guid}/approve")]
-		[Authorize(Roles = "BranchManager")]
+		[Authorize(Policy = "BranchManager")]
 		[SwaggerOperation(Summary = "Phê duyệt inspection", Description = "Phê duyệt một inspection. Quyền: BranchManager.")]
 		public async Task<IActionResult> ApproveInspection(Guid id, bool pass)
 		{
@@ -150,7 +150,7 @@ namespace CamRent_Api.Controllers
 
 		// New: delete inspection
 		[HttpDelete("{id:guid}")]
-		[Authorize(Roles = "ManagerOrStaff")]
+		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Xóa inspection", Description = "Xóa một inspection theo id. Quyền: Staff.")]
 		public async Task<IActionResult> Delete(Guid id)
 		{

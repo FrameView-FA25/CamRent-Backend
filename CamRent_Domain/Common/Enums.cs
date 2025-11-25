@@ -149,5 +149,11 @@ namespace CamRent_Domain.Common
         Approved = 2,
         Rejected = 3
     }
+
+    public enum ContractType
+    {
+        Booking = 1,
+        Verification = 2
+	}
 }
 
