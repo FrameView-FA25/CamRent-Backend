@@ -7,7 +7,8 @@ namespace CamRent_Domain.Entities
         public string Name { get; set; } = string.Empty;
         public string Version { get; set; } = "v1";
         public string TemplateUrl { get; set; } = string.Empty;
-    }
+		public ContractType Type { get; set; }
+	}
 
 	public class Contract : BaseEntity
 	{
