@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CamRent_Application.Common;
+using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -23,26 +24,53 @@ namespace CamRent_Application.Services
 			_mapper = mapper;
 		}
 
-		public async Task<Booking?> GetByIdAsync(Guid bookingId)
+		public async Task<BookingResponseDTO?> GetByIdAsync(Guid bookingId)
 		{
-			var booking =  await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.Id == bookingId, 
+			var booking =  (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.Id == bookingId, 
 				include: b => b.Include(b => b.Items)
 							.ThenInclude(i => i.Camera)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
-							.ThenInclude(i => i.Combo));
-			return booking.FirstOrDefault();
+							.ThenInclude(i => i.Combo)
+						.Include(b => b.Inspections))).FirstOrDefault();
+			var result = _mapper.Map<BookingResponseDTO>(booking);
+			if (result.Inspections != null)
+			{
+				foreach (var insp in result.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+			return result;
 		}
 
 		public async Task<List<BookingResponseDTO>> GetAllAsync()
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items));
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items))).ToList();
 			foreach (var booking in bookings)
 			{
 				booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
 			}
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			foreach (var ver in results)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
 			return results;
 		}
 
@@ -68,14 +96,29 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId)
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.Draft && b.Status != BookingStatus.PendingApproval,
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.Draft && b.Status != BookingStatus.PendingApproval,
 				include: b => b.Include(b => b.Items)
 							.ThenInclude(i => i.Camera)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
-							.ThenInclude(i => i.Combo));
+							.ThenInclude(i => i.Combo)
+						.Include(b => b.Inspections))).ToList();
+
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			foreach (var ver in results)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
 			return results;
 		}
 
@@ -84,7 +127,7 @@ namespace CamRent_Application.Services
 			var branch = await _unitOfWork.Repository<Branch>().FirstOrDefaultAsync(b => b.ManagerId == managerId);
 			if (branch == null) return new List<BookingResponseDTO>();
 
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(
 				filter: b => b.BranchId == branch.Id && b.Status != BookingStatus.Draft,
 				include: b => b
 					.Include(b => b.Items)
@@ -93,8 +136,22 @@ namespace CamRent_Application.Services
 						.ThenInclude(i => i.Accessory)
 					.Include(b => b.Items)
 						.ThenInclude(i => i.Combo)
-			);
+					.Include(b => b.Inspections))).ToList();
+
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			foreach (var ver in results)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
 			return results;
 		}
 		private decimal CalculateDepositForCamera(Camera camera)
