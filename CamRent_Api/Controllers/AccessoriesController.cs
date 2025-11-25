@@ -201,6 +201,16 @@ namespace CamRent_Api.Controllers
 			var result = await _accessoryService.DeleteAccessoryAsync(id);
 			return result > 0 ? Ok(new { Message = "Xóa phụ kiện thành công." }) : BadRequest(new { Message = "Xóa phụ kiện thất bại." });
 		}
+
+		// QR: Owner/Admin scan phụ kiện để xem thông tin + lịch sử
+		[HttpGet("{id:guid}/qr-history")]
+		[Authorize(Roles = "Owner,Admin")]
+		[SwaggerOperation(Summary = "Thông tin phụ kiện cho QR scan", Description = "Owner/Admin quét QR code trên phụ kiện để xem thông tin chi tiết + lịch sử booking/inspection của phụ kiện.")]
+		public async Task<IActionResult> GetAccessoryQrHistory(Guid id)
+		{
+			var history = await _accessoryService.GetHistoryForQrAsync(id);
+			return Ok(history);
+		}
 	}
 }
 
