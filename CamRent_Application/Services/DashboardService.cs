@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
+using CamRent_Application.Common;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +26,7 @@ namespace CamRent_Application.Services
 		{
 			// Users & roles
 			var users = await _uow.Repository<User>().ListAsync(include: q => q.Include(u => u.Roles));
-			var totalUsers = users.Count;
+			var totalUsers = users.Count();
 
 			int CountByRole(UserRole role) => users.Count(u => u.Roles.Any(r => r.Role == role));
 
@@ -35,14 +36,14 @@ namespace CamRent_Application.Services
 			var managers = CountByRole(UserRole.BranchManager);
 
 			// Branch & inventory
-			var totalBranches = await _uow.Repository<Branch>().CountAsync();
-			var totalCameras = await _uow.Repository<Camera>().CountAsync();
-			var totalAccessories = await _uow.Repository<Accessory>().CountAsync();
-			var totalCombos = await _uow.Repository<Combo>().CountAsync();
+			var totalBranches = (await _uow.Repository<Branch>().GetAllAsync()).Count;
+			var totalCameras = (await _uow.Repository<Camera>().GetAllAsync()).Count;
+			var totalAccessories = (await _uow.Repository<Accessory>().GetAllAsync()).Count;
+			var totalCombos = (await _uow.Repository<Combo>().GetAllAsync()).Count;
 
 			// Bookings
 			var bookings = await _uow.Repository<Booking>().ListAsync();
-			var totalBookings = bookings.Count;
+			var totalBookings = bookings.Count();
 			var bookingsByStatus = bookings
 				.GroupBy(b => b.Status)
 				.Select(g => new BookingStatusCount
@@ -98,13 +99,15 @@ namespace CamRent_Application.Services
 			var branchId = branch.Id;
 
 			// Inventory in branch
-			var camerasInBranch = await _uow.Repository<Camera>().CountAsync(c => c.BranchId == branchId);
-			var accessoriesInBranch = await _uow.Repository<Accessory>().CountAsync(a => a.BranchId == branchId);
+			var camerasInBranch = (await _uow.Repository<Camera>()
+				.ListAsync(c => c.BranchId == branchId)).Count();
+			var accessoriesInBranch = (await _uow.Repository<Accessory>()
+				.ListAsync(a => a.BranchId == branchId)).Count();
 
 			// Bookings in branch
 			var bookings = await _uow.Repository<Booking>()
 				.ListAsync(b => b.BranchId == branchId);
-			var totalBookings = bookings.Count;
+			var totalBookings = bookings.Count();
 			var bookingsByStatus = bookings
 				.GroupBy(b => b.Status)
 				.Select(g => new BookingStatusCount
@@ -237,8 +240,8 @@ namespace CamRent_Application.Services
 
 			return new OwnerDashboardDTO
 			{
-				TotalCameras = cameras.Count,
-				TotalAccessories = accessories.Count,
+				TotalCameras = cameras.Count(),
+				TotalAccessories = accessories.Count(),
 				TotalBookingsForOwnerItems = totalBookingsForOwnerItems,
 				TotalGrossRevenue = totalRevenue,
 				TopRentedAssets = topAssets
