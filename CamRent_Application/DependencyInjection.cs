@@ -25,6 +25,7 @@ namespace CamRent_Application
 			services.AddScoped<IContractTemplateService, ContractTemplateService>();
 			services.AddScoped<IInspectionService, InspectionService>();
 			services.AddScoped<IDeliveryService, DeliveryService>();
+			services.AddScoped<IDashboardService, DashboardService>();
 			services.AddScoped<IVerificationService, VerificationService>();
 			services.AddScoped<IReviewService, ReviewService>();
 			services.AddScoped<ICategoryService, CategoryService>();
