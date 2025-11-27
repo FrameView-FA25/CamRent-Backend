@@ -11,6 +11,7 @@ namespace CamRent_Application
 	{
 		public static IServiceCollection AddApplicationDI(this IServiceCollection services)
 		{
+			services.AddScoped<IPayOsService, PayOsService>();
 			services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 			services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();

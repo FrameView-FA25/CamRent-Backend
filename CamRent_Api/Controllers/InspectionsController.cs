@@ -142,7 +142,7 @@ namespace CamRent_Api.Controllers
 					var asset = await _fileStorageService.UploadAsync(
 						file,
 						ownerId: existing.Id,
-						ownerType: FileOwnerType.Accessory,
+						ownerType: FileOwnerType.Inspection,
 						folder: $"camrent/inspections/{id}",
 						label: $"{updateInspectionRequest.Type}-{updateInspectionRequest.Section}-{updateInspectionRequest.Label}"
 					);

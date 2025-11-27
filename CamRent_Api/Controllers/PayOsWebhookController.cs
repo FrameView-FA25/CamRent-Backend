@@ -1,8 +1,9 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PayOS.Models;
+using PayOS.Models.Webhooks;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Text.Json;
 
 namespace CamRent_Api.Controllers
 {
@@ -18,13 +19,10 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(
 			Summary = "Webhook PayOS",
 			Description = "Nhận callback từ PayOS, xác thực chữ ký và cập nhật trạng thái payment/contract tương ứng.")]
-		public async Task<IActionResult> Handle([FromBody] JsonElement body, [FromHeader(Name = "x-signature")] string? signature)
+		public async Task<IActionResult> Handle([FromBody] Webhook body)
 		{
-			var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText()) ?? new();
-			var ok = await _payOs.HandleWebhookAsync(dict, signature, HttpContext.RequestAborted);
+			var ok = await _payOs.HandleWebhookAsync(body, HttpContext.RequestAborted);
 			return Ok(new { ok });
 		}
 	}
 }
-
-

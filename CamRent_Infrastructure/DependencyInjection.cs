@@ -51,14 +51,6 @@ namespace CamRent_Infrastructure
 			services.Configure<EmailOptions>(config.GetSection("Email"));
 			services.AddScoped<IEmailService, SmtpEmailService>();
 
-			// PayOS
-			services.Configure<PayOsOptions>(config.GetSection("PayOS"));
-			services.AddHttpClient<IPayOsService, PayOsService>((sp, http) =>
-			{
-				var o = sp.GetRequiredService<IOptions<PayOsOptions>>().Value;
-				http.BaseAddress = new Uri(o.Endpoint.TrimEnd('/'));
-			});
-
 			// Embeddings (Gemini)
 			services.Configure<GeminiOptions>(config.GetSection("Gemini"));
 			services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();

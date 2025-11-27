@@ -149,5 +149,11 @@ namespace CamRent_Domain.Common
         Booking = 1,
         Verification = 2
 	}
+
+    public enum PaymentType
+    {
+        Deposit = 1,
+        Rental = 2,
+	}
 }
 
