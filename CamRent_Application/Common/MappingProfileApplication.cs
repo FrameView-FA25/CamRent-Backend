@@ -192,6 +192,10 @@ namespace CamRent_Application.Common
 				// Media: tuỳ bạn lấy từ FileAsset, tạm ignore trong mapping
 				.ForMember(d => d.Media, opt => opt.Ignore());
 
+			CreateMap<UpdateInspectionRequest, Inspection>()
+				.ForMember(x => x.Id, opt => opt.Ignore())
+				.ForMember(x => x.ManagerId, opt => opt.Ignore());
+
 			CreateMap<UpdateVerificationRequestDTO, VerificationRequest>()
 				.ForMember(d => d.Items, o => o.Ignore())        // xử lý Items trong service
 				.ForMember(d => d.Owner, o => o.Ignore())
