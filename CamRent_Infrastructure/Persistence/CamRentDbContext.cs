@@ -26,11 +26,9 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Accessory> Accessories => Set<Accessory>();
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
-        public DbSet<ContractTemplate> ContractTemplates => Set<ContractTemplate>();
         public DbSet<Contract> Contracts => Set<Contract>();
-        public DbSet<ContractSigner> ContractSigners => Set<ContractSigner>();
-        public DbSet<ContractEvent> ContractEvents => Set<ContractEvent>();
-        public DbSet<Review> Reviews => Set<Review>();
+        public DbSet<ContractSignature> ContractSignatures => Set<ContractSignature>();
+		public DbSet<Review> Reviews => Set<Review>();
         public DbSet<DeliveryTask> DeliveryTasks => Set<DeliveryTask>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<PaymentLine> PaymentLines => Set<PaymentLine>();
@@ -149,23 +147,22 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(c => c.Verification)
                 .WithMany()
                 .HasForeignKey(c => c.VerificationId);
-
 			modelBuilder.Entity<Contract>()
-                .HasOne(c => c.Template)
+                .HasOne(c => c.FileAsset)
                 .WithMany()
-                .HasForeignKey(c => c.TemplateId);
+                .HasForeignKey(c => c.FileAssetId);
+            modelBuilder.Entity<Contract>()
+                .HasOne(c => c.Branch)
+                .WithMany()
+                .HasForeignKey(c => c.BranchId);
 
-            modelBuilder.Entity<ContractSigner>()
+			modelBuilder.Entity<ContractSignature>()
                 .HasOne(s => s.Contract)
-                .WithMany(c => c.Signers)
-                .HasForeignKey(s => s.ContractId);
+                .WithMany(c => c.Signatures)
+                .HasForeignKey(s => s.ContractId); 
 
-            modelBuilder.Entity<ContractEvent>()
-                .HasOne(e => e.Contract)
-                .WithMany(c => c.Events)
-                .HasForeignKey(e => e.ContractId);
 
-            modelBuilder.Entity<DeliveryTask>()
+			modelBuilder.Entity<DeliveryTask>()
                 .HasOne(t => t.Booking)
                 .WithMany()
                 .HasForeignKey(t => t.BookingId);

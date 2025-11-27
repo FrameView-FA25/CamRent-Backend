@@ -77,11 +77,6 @@ namespace CamRent_Application.Services
 			payment.Status = PaymentStatus.Captured;
 			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
 			await _unitOfWork.Complete();
-
-			// Sau khi capture thủ công (không qua PayOS), vẫn tự sinh hợp đồng
-			await _contractService.GenerateAndStoreContractAsync(payment.BookingId);
-
-			// Optional: notify renter via email if available (booking must be loaded to get renter email/code)
 		}
 
 		public async Task RefundAsync(Guid paymentId, decimal amount)
