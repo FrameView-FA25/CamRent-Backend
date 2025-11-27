@@ -400,7 +400,6 @@ namespace CamRent_Application.Services
 			}
 
 			var cart = _mapper.Map<Cart>(booking);
-			cart.TotalPrice = booking.SnapshotRentalTotal;
 			return cart;
 		}
 

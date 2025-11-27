@@ -50,7 +50,6 @@ namespace CamRent_Application.DTOs
 			public Guid Id { get; set; }
 			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
 
-			public decimal TotalPrice { get; set; }
 		}
 
 		public class  BookingStatusDTO
@@ -66,6 +65,8 @@ namespace CamRent_Application.DTOs
 			public string ItemType { get; set; }
 
 			public decimal UnitPrice { get; set; }
+
+			public decimal DepositAmount { get; set; }
 
 		}
 	}

@@ -116,17 +116,6 @@ public sealed class PayOsService : IPayOsService
 			payment.Status = PaymentStatus.Captured;
 			payment.CapturedAmount = amount;
 			await _uow.Repository<Payment>().UpdateAsync(payment);
-
-			try
-			{
-				await _contractService.GenerateAndStoreContractAsync(payment.BookingId, ct);
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex,
-					"Failed to generate contract for booking {BookingId} after PayOS payment",
-					payment.BookingId);
-			}
 		}
 
 		await _uow.Complete();

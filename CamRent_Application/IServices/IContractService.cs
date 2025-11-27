@@ -1,3 +1,5 @@
+using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 using System;
 using System.Threading.Tasks;
 
@@ -5,13 +7,10 @@ namespace CamRent_Application.IServices
 {
 	public interface IContractService
 	{
-		Task<Guid> CreateInstanceAsync(Guid bookingId, Guid templateId);
-		Task MarkSignedAsync(Guid contractInstanceId, string? signedFileUrl);
-		/// <summary>
-		/// Tự động tạo (nếu chưa có) và sinh file PDF hợp đồng chính thức cho một booking,
-		/// lưu file lên storage và cập nhật trạng thái Contract.
-		/// Trả về Id của Contract.
-		/// </summary>
-		Task<Guid> GenerateAndStoreContractAsync(Guid bookingId, CancellationToken cancellationToken = default);
+		Task<Contract> CreateBookingContractAsync(Guid bookingId, Guid staffUserId);
+		Task<Contract> SignContractAsync(Guid contractId, ContractSignerRole role,
+			string signatureBase64, Guid? userId, string? ip, string? userAgent);
+		Task<byte[]?> DownloadContractPdfAsync(Guid contractId);
 	}
+
 }

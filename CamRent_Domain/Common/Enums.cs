@@ -24,8 +24,9 @@ namespace CamRent_Domain.Common
         UserAvatar = 3,
         Combo = 4,
         Inspection = 5,
-        ContractDocument = 6
-    }
+        ContractDocument = 6,
+		ContractSignature = 7
+	}
     public enum DeviceCategory
     {
         Camera = 1,
@@ -91,16 +92,27 @@ namespace CamRent_Domain.Common
         Cancelled = 5
     }
 
-    public enum ContractStatus
+	public enum ContractType
+	{
+		Booking = 1,
+		Verification = 2
+	}
+	public enum ContractStatus
     {
-        Draft = 1,
-        Sent = 2,
-        Signed = 3,
-        Cancelled = 4,
-        Completed = 5
-    }
+		Draft = 1,
+		PendingSignatures = 2,
+		Signed = 3,
+		Cancelled = 4
+	}
 
-    public enum PaymentStatus
+	public enum ContractSignerRole
+	{
+		Renter = 1,
+		Owner = 2,
+		Platform = 3
+	}
+
+	public enum PaymentStatus
     {
         Pending = 1,
         Authorized = 2,
@@ -144,11 +156,7 @@ namespace CamRent_Domain.Common
         Rejected = 3
     }
 
-    public enum ContractType
-    {
-        Booking = 1,
-        Verification = 2
-	}
+   
 
     public enum PaymentType
     {
