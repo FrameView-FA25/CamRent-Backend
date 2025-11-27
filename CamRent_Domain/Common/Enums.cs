@@ -56,23 +56,17 @@ namespace CamRent_Domain.Common
         [Display(Name = "Đã nhận máy")]
         PickedUp = 3,
 
-        [Display(Name = "Đang sử dụng")]
-        InUse = 4,
-
         [Display(Name = "Đã trả")]
-        Returned = 5,
+        Returned = 4,
 
         [Display(Name = "Hoàn tất")]
-        Completed = 6,
+        Completed = 5,
 
         [Display(Name = "Đã hủy")]
-        Cancelled = 7,
+        Cancelled = 6,
 
         [Display(Name = "Quá hạn")]
-        Overdue = 8,
-
-        [Display(Name = "Vắng mặt")]
-        NoShow = 9
+        Overdue = 7,
     }
 
     public enum BookingType

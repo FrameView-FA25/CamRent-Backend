@@ -103,7 +103,8 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
-						.Include(b => b.Inspections))).ToList();
+						.Include(b => b.Inspections)
+						.Include(b => b.Renter))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			foreach (var ver in results)

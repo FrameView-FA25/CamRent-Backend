@@ -102,7 +102,7 @@ namespace CamRent_Infrastructure.Persistence
 			// Relationships
 			modelBuilder.Entity<UserBranchMembership>()
                 .HasOne(m => m.User)
-                .WithMany(u => u.BranchMemberships)
+                .WithMany()
                 .HasForeignKey(m => m.UserId);
             modelBuilder.Entity<UserBranchMembership>()
                 .HasOne(m => m.Branch)
@@ -130,15 +130,15 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Renter)
-                .WithMany(u => u.RenterBookings)
-                .HasForeignKey(b => b.CreatedByUserId);
+                .WithMany()
+                .HasForeignKey(b => b.RenterId);
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Staff)
-                .WithMany(u => u.StaffBookings)
+                .WithMany()
                 .HasForeignKey(b => b.StaffId);
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Branch)
-                .WithMany(br => br.Bookings)
+                .WithMany()
                 .HasForeignKey(b => b.BranchId);
 
             modelBuilder.Entity<Contract>()

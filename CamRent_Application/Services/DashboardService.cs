@@ -161,7 +161,6 @@ namespace CamRent_Application.Services
 			{
 				BookingStatus.Confirmed,
 				BookingStatus.PickedUp,
-				BookingStatus.InUse,
 				BookingStatus.Returned,
 				BookingStatus.Completed,
 				BookingStatus.Overdue
