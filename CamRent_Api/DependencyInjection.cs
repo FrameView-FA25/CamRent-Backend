@@ -128,7 +128,7 @@ namespace CamRent_Api
 
 		public static IServiceCollection AddApiDI(this IServiceCollection services, IConfiguration config)
 		{
-
+			
 			services.AddControllers()
 			.AddJsonOptions(o =>
 			{
@@ -144,6 +144,7 @@ namespace CamRent_Api
 			);
 			services.Configure<CloudinarySettings>(
 			config.GetSection("Cloudinary"));
+			services.Configure<PayOsOptions>(config.GetSection("PayOS"));
 			return services;
 		}
 

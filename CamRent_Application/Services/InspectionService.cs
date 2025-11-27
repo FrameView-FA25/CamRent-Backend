@@ -190,6 +190,27 @@ namespace CamRent_Application.Services
 			inspectionTask.Passed = pass;
 			inspectionTask.PerformedAt = DateTime.UtcNow;
 			await _unitOfWork.Repository<Inspection>().UpdateAsync(inspectionTask);
+			if(inspectionTask.VerificationId != null && pass)
+			{
+				if(inspectionTask.CameraId != null)
+				{
+					var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(inspectionTask.CameraId.Value);
+					if (camera != null)
+					{
+						camera.IsConfirmed = true;
+						await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
+					}
+				}
+				else if(inspectionTask.AccessoryId != null)
+				{
+					var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(inspectionTask.AccessoryId.Value);
+					if (accessory != null)
+					{
+						accessory.IsConfirmed = true;
+						await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
+					}
+				}
+			}
 			var result = await _unitOfWork.Complete();
 			return result;
 		}

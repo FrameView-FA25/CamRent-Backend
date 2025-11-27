@@ -1,7 +1,9 @@
 using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using CamRent_Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -17,24 +19,54 @@ namespace CamRent_Api.Controllers
     	private readonly IPaymentService _paymentService;
     	private readonly IPricingService _pricingService;
     	private readonly IPayOsService _payOsService;
-    	public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IPayOsService payOsService)
+		private readonly IBookingService _bookingService;
+		public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IPayOsService payOsService, IBookingService bookingService)
 		{
 			_paymentService = paymentService;
 			_pricingService = pricingService;
 			_payOsService = payOsService;
+			_bookingService = bookingService;
 		}
 
 		[HttpPost("authorize")]
 		[Authorize(Policy = "Renter")]
-		[SwaggerOperation(
-			Summary = "Khởi tạo payment nội bộ cho booking",
-			Description = "Tính lại quote cho booking, tạo bản ghi payment với rental + deposit và trả về paymentId để tiếp tục các bước thanh toán.")]
 		public async Task<ActionResult<Guid>> Authorize([FromBody] CreateAuthorizationRequest request)
 		{
-			var quote = await _pricingService.QuoteBookingAsync(request.BookingId);
-			var id = await _paymentService.CreateAuthorizationAsync(request.BookingId, quote.RentalTotal, quote.DepositTotal);
+			var booking = await _bookingService.GetByIdAsync(request.BookingId);
+			var rental = booking.SnapshotRentalTotal;
+			var deposit = booking.SnapshotRentalTotal * booking.SnapshotPlatformFeePercent;
+
+			decimal authorizedAmount;
+
+			switch (request.Mode)
+			{
+				case PaymentType.Deposit:
+					// LẦN 1: chỉ thu tiền cọc
+					authorizedAmount = deposit;
+					break;
+
+				case PaymentType.Rental:
+					// LẦN 2: thu phần còn lại (rental - deposit)
+					var remaining = rental - deposit;
+					if (remaining < 0) remaining = 0;
+					authorizedAmount = remaining;
+					break;
+
+				default:
+					return BadRequest("Invalid payment mode");
+			}
+
+			var id = await _paymentService.CreateAuthorizationAsync(
+				request.BookingId,
+				rentalAmount: rental,
+				depositAmount: deposit,
+				mode: request.Mode,
+				authorizedAmountOverride: authorizedAmount
+			);
+
 			return Ok(id);
 		}
+
 
 		[HttpPost("{id:guid}/lines")]
 		[Authorize(Policy = "BranchManager")]
@@ -77,7 +109,24 @@ namespace CamRent_Api.Controllers
 			Description = "Sinh checkoutUrl PayOS cho paymentId, dùng số tiền và description truyền vào; trả về redirectUrl để FE mở trang thanh toán.")]
 		public async Task<ActionResult<string>> InitPayOs(Guid id, [FromBody] InitPayOsRequest request)
 		{
-			var url = await _payOsService.CreatePaymentLinkAsync(id, request.Amount, request.Description ?? $"CamRent Payment {id}", request.ReturnUrl, request.CancelUrl, HttpContext.RequestAborted);
+			var payment = await _paymentService.GetByIdAsync(id);
+			if (payment == null) return NotFound("Payment not found");
+
+			if (payment.AuthorizedAmount <= 0)
+				return BadRequest("No amount to pay");
+
+			var shortId = id.ToString("N")[..8];           // 8 chars
+			var desc = $"CR-{shortId}";                    // tổng 11 chars
+
+			var url = await _payOsService.CreatePaymentLinkAsync(
+				id,
+				payment.AuthorizedAmount,
+				desc,
+				request.ReturnUrl,
+				request.CancelUrl,
+				HttpContext.RequestAborted);
+
+
 			return Ok(new { redirectUrl = url });
 		}
 

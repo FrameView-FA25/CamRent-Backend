@@ -17,24 +17,42 @@ namespace CamRent_Application.Services
 			_email = email;
 		}
 
-		public async Task<Guid> CreateAuthorizationAsync(Guid bookingId, decimal rentalAmount, decimal depositAmount)
+		public async Task<Guid> CreateAuthorizationAsync(
+				Guid bookingId,
+				decimal rentalAmount,
+				decimal depositAmount,
+				PaymentType mode,
+				decimal? authorizedAmountOverride = null)
 		{
+			// Tính số tiền sẽ thu lần này
+			decimal authorizedAmount = authorizedAmountOverride ?? (rentalAmount + depositAmount);
+
 			var payment = new Payment
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				Status = PaymentStatus.Authorized,
-				AuthorizedAmount = rentalAmount + depositAmount,
+				AuthorizedAmount = authorizedAmount,
 				CapturedAmount = 0,
 				RefundedAmount = 0,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = DateTime.UtcNow,
+				// nếu thêm field Kind trong Payment:
+				// Kind = mode.ToString()
 			};
+
 			await _unitOfWork.Repository<Payment>().AddAsync(payment);
-			if (rentalAmount > 0) await AddLineAsync(payment.Id, "rental", rentalAmount);
-			if (depositAmount > 0) await AddLineAsync(payment.Id, "deposit", depositAmount);
+
+			// Luôn lưu line chi tiết để sau này dùng cho báo cáo / tranh chấp
+			if (rentalAmount > 0)
+				await AddLineAsync(payment.Id, "rental", rentalAmount);
+
+			if (depositAmount > 0)
+				await AddLineAsync(payment.Id, "deposit", depositAmount);
+
 			await _unitOfWork.Complete();
 			return payment.Id;
 		}
+
 
 		public async Task AddLineAsync(Guid paymentId, string type, decimal amount)
 		{
@@ -75,6 +93,11 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
 			await _unitOfWork.Complete();
 			// Optional: email notification
+		}
+
+		public async Task<Payment?> GetByIdAsync(Guid paymentId)
+		{
+			return await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId);
 		}
 	}
 }
