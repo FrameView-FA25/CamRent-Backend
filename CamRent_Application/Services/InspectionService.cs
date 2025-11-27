@@ -127,7 +127,7 @@ namespace CamRent_Application.Services
 		}
 
 		// New: update inspection
-		public async Task<int> UpdateInspectionAsync(Guid id, InspectionRequest request, Guid staffId)
+		public async Task<int> UpdateInspectionAsync(Guid id, UpdateInspectionRequest request, Guid staffId)
 		{
 			var inspection = await _unitOfWork.Repository<Inspection>().GetByIdAsync(id);
 			if (inspection == null) return 0;

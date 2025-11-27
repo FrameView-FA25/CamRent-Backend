@@ -1,11 +1,15 @@
-﻿using CamRent_Application.IServices;
+﻿using CamRent_Application.DTOs;
+using CamRent_Application.IServices;
+using CamRent_Application.Services;
 using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using static CamRent_Api.Models.InspectionModel;
+using static CamRent_Application.DTOs.CameraDTO;
 using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Api.Controllers
@@ -99,7 +103,7 @@ namespace CamRent_Api.Controllers
 		[Authorize(Policy = "ManagerOrStaff")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật inspection", Description = "Cập nhật thông tin một inspection. Quyền: Staff.")]
-		public async Task<IActionResult> Update(Guid id, [FromForm] InspectionRequest inspectionRequest)
+		public async Task<IActionResult> Update(Guid id, [FromForm] UpdateInspectionRequest updateInspectionRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
@@ -108,30 +112,47 @@ namespace CamRent_Api.Controllers
 			if (!ModelState.IsValid)
 				return BadRequest(ModelState);
 
-			var result = await _inspectionService.UpdateInspectionAsync(id, inspectionRequest, Guid.Parse(userId));
-			if (result > 0)
+			var result = await _inspectionService.UpdateInspectionAsync(id, updateInspectionRequest, Guid.Parse(userId));
+			var existing = await _inspectionService.GetByIdAsync(id);
+			if (existing == null)
+				return NotFound();
+
+			existing.Media ??= new List<FileAssetDTO>();
+
+			// 4) XÓA MEDIA CŨ
+			if (updateInspectionRequest.RemoveMediaIds != null && updateInspectionRequest.RemoveMediaIds.Any())
 			{
-				// If there are uploaded files in the request, upload them and attach to the inspection
-				if (inspectionRequest.Files != null && inspectionRequest.Files.Count > 0)
+				var toRemove = existing.Media
+					.Where(m => updateInspectionRequest.RemoveMediaIds.Contains(m.Id))
+					.ToList();
+
+				foreach (var file in toRemove)
 				{
-					foreach (var file in inspectionRequest.Files)
-					{
-						if (file == null || file.Length == 0) continue;
-
-						await _fileStorageService.UploadAsync(
-							file,
-							ownerId: id,
-							ownerType: FileOwnerType.Inspection,
-							folder: $"camrent/inspections/{id}",
-							label: $"{inspectionRequest.Type}-{inspectionRequest.Section}-{inspectionRequest.Label}"
-						);
-					}
+					await _fileStorageService.DeleteByAssetIdAsync(file.Id);
 				}
-
-				return Ok(new { Message = "Cập nhật inspection thành công." });
 			}
 
-			return BadRequest(new { Message = "Cập nhật thất bại hoặc không tìm thấy inspection." });
+			// 5) THÊM MEDIA MỚI (giống Create)
+			if (updateInspectionRequest.Files != null)
+			{
+				foreach (var file in updateInspectionRequest.Files)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: existing.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/inspections/{id}",
+						label: $"{updateInspectionRequest.Type}-{updateInspectionRequest.Section}-{updateInspectionRequest.Label}"
+					);
+				}
+			}
+
+			if (result <= 0)
+				return BadRequest(new { Message = "Cập nhật camera thất bại." });
+
+			return Ok(new { Message = "Cập nhật camera thành công." });
 		}
 
 		[HttpPut("{id:guid}/approve")]
