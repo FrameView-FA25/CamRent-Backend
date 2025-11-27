@@ -68,6 +68,8 @@ namespace CamRent_Application.DTOs
 
 			public decimal DepositAmount { get; set; }
 
+			public List<FileAssetDTO>? Media { get; set; }
+
 		}
 	}
 }

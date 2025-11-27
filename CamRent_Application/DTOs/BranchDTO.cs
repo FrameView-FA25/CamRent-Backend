@@ -14,7 +14,6 @@ namespace CamRent_Application.DTOs
 		{
 			public string Name { get; set; } = string.Empty;
 			public Address Address { get; set; } = new Address();
-			public Guid? ManagerId { get; set; }
 		}
 
 		public class BranchResponse
