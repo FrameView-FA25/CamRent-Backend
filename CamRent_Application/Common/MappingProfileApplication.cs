@@ -6,6 +6,7 @@ using static CamRent_Application.DTOs.AccessoryDTO;
 using static CamRent_Application.DTOs.BookingDTO;
 using static CamRent_Application.DTOs.BranchDTO;
 using static CamRent_Application.DTOs.CameraDTO;
+using static CamRent_Application.DTOs.ContractDTO;
 using static CamRent_Application.DTOs.InspectionDTO;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
 
@@ -203,6 +204,12 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.Inspections, o => o.Ignore())
 				// only map when source member is not null -> supports partial update
 				.ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+			CreateMap<Contract, ContractResponse>()
+				.ForMember(d => d.BranchName,
+					opt => opt.MapFrom(s => s.Branch.Name))
+				.ForMember(d => d.BranchAddress,
+					opt => opt.MapFrom(s => s.Branch.Address.District + " " + s.Branch.Address.Province));
 
 		}
 	}

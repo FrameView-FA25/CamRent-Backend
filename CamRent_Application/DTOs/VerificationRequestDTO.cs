@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CamRent_Application.DTOs.ContractDTO;
 using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Application.DTOs
@@ -29,7 +30,8 @@ namespace CamRent_Application.DTOs
 
 			public Guid? CreatedByUserId { get; set; }
 
-			public List<VerificationItemDTO>? Items { get; set; } 
+			public List<VerificationItemDTO>? Items { get; set; }
+			public ICollection<ContractResponse>? Contracts { get; set; }
 			public List<InspectionResponseDTO>? Inspections { get; set; } 
 		}
 

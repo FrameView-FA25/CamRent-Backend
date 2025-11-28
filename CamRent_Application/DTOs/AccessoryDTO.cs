@@ -33,8 +33,6 @@ namespace CamRent_Application.DTOs
 			// Deposit policy: percent of EstimatedValueVnd, with caps
 			public decimal EstimatedValueVnd { get; set; }
 			public decimal DepositPercent { get; set; }
-			public decimal? DepositCapMinVnd { get; set; }
-			public decimal? DepositCapMaxVnd { get; set; }
 
 			public bool IsConfirmed { get; set; } 
 			public bool IsAvailable { get; set; } 
@@ -56,6 +54,7 @@ namespace CamRent_Application.DTOs
 			public string? SpecsJson { get; set; }
 			public decimal BaseDailyRate { get; set; }
 			public decimal EstimatedValueVnd { get; set; }
+			public decimal DepositPercent { get; set; }
 
 			// Multipart files coming from form-data
 			public List<IFormFile>? MediaFiles { get; set; }

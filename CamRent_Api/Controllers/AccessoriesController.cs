@@ -88,7 +88,7 @@ namespace CamRent_Api.Controllers
 		[HttpPost]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo phụ kiện", Description = "Tạo mới một phụ kiện. Chấp nhận multipart/form-data kèm file media. Chủ sở hữu lấy từ người dùng đang xác thực. Quyền: Owner, Admin")]
-		public async Task<IActionResult> CreateAccessory([FromForm] AccessoryRequest accessoryCreateModel)
+		public async Task<IActionResult> CreateAccessory([FromForm] AccessoryRequest accessoryRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 				  ?? User.FindFirst("sub")?.Value
@@ -96,17 +96,17 @@ namespace CamRent_Api.Controllers
 
 			if (string.IsNullOrEmpty(userId))
 				return Unauthorized();
-
-			var accessory = _mapper.Map<Accessory>(accessoryCreateModel);
+			accessoryRequest.DepositPercent = accessoryRequest.DepositPercent / 100.0m;
+			var accessory = _mapper.Map<Accessory>(accessoryRequest);
 			accessory.OwnerUserId = Guid.Parse(userId);
 
 			var result = await _accessoryService.CreateAccessoryAsync(accessory);
 
 			accessory.Media ??= new List<FileAsset>();
 
-			if (accessoryCreateModel.MediaFiles != null)
+			if (accessoryRequest.MediaFiles != null)
 			{
-				foreach (var file in accessoryCreateModel.MediaFiles)
+				foreach (var file in accessoryRequest.MediaFiles)
 				{
 					if (file == null || file.Length <= 0) continue;
 
