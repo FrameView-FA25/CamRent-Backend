@@ -34,9 +34,9 @@ namespace CamRent_Infrastructure.Weaviate
 				"Accessory" => res.Data?.Get?.Accessory?.Select(x => (x, "Accessory")),
 				"Combo" => res.Data?.Get?.Combo?.Select(x => (x, "Combo")),
 				_ => Enumerable.Empty<(WeaviateObject x, string c)>()
-			};
+			} ?? Enumerable.Empty<(WeaviateObject x, string c)>();
 
-			foreach (var (x, c) in results!)
+			foreach (var (x, c) in results)
 			{
 				if (Guid.TryParse(x._Additional.Id, out var id))
 				{
