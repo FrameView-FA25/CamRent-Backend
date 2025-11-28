@@ -29,11 +29,28 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(
 			Summary = "Gợi ý thiết bị bằng AI",
 			Description = "Nhận query tự nhiên của người dùng và trả về danh sách thiết bị gợi ý dựa trên vector search.")]
-		public async Task<ActionResult<IReadOnlyList<VectorSearchResult>>> Recommend([FromBody] RecommendRequest req, CancellationToken ct)
+		public async Task<ActionResult<IReadOnlyList<VectorSearchResult>>> Recommend([FromBody] RecommendRequest? req, CancellationToken ct)
 		{
-			if (string.IsNullOrWhiteSpace(req.Query)) return BadRequest("Query is required");
-			var results = await _ai.RecommendAsync(req.Query, Math.Clamp(req.TopK, 1, 20), ct);
-			return Ok(results);
+			if (req is null)
+				return BadRequest("Request body is required");
+
+			if (string.IsNullOrWhiteSpace(req.Query))
+				return BadRequest("Query is required");
+
+			try
+			{
+				var results = await _ai.RecommendAsync(req.Query, Math.Clamp(req.TopK, 1, 20), ct);
+				return Ok(results);
+			}
+			catch (OperationCanceledException)
+			{
+				return StatusCode(StatusCodes.Status499ClientClosedRequest, "Request was cancelled");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Recommend failed");
+				return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error while processing recommendation");
+			}
 		}
 
 		[HttpPost("reindex")]
