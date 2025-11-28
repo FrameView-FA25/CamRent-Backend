@@ -141,11 +141,11 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Booking)
-                .WithMany()
+                .WithMany( b => b.Contracts)
                 .HasForeignKey(c => c.BookingId);
             modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Verification)
-                .WithMany()
+                .WithMany( v => v.Contracts)
                 .HasForeignKey(c => c.VerificationId);
 			modelBuilder.Entity<Contract>()
                 .HasOne(c => c.FileAsset)
@@ -169,7 +169,7 @@ namespace CamRent_Infrastructure.Persistence
 
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Booking)
-                .WithMany()
+                .WithMany( b => b.Payments)
                 .HasForeignKey(p => p.BookingId);
 
             modelBuilder.Entity<PaymentLine>()
