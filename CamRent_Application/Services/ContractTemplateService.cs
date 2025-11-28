@@ -6,6 +6,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using static CamRent_Application.DTOs.BookingDTO;
+using static CamRent_Application.DTOs.VerificationRequestDTO;
 
 namespace CamRent_Application.Services
 {
@@ -16,12 +17,13 @@ namespace CamRent_Application.Services
 		{
 			_mapper = mapper;
 		}
+
+		// ====================== BOOKING CONTRACT ======================
 		public async Task<byte[]> RenderBookingContractAsync(Contract contract)
 		{
-			// Nếu bạn có Booking Include sẵn thông tin thì không cần fetch lại
 			var booking = contract.Booking!;
 			var renter = booking.Renter!;
-			var branch = booking.Branch!;
+			var branch = contract.Branch!;
 			var items = _mapper.Map<List<BookingItemDTO>>(booking.Items);
 
 			return await Task.Run(() =>
@@ -34,18 +36,18 @@ namespace CamRent_Application.Services
 						page.Size(PageSizes.A4);
 						page.DefaultTextStyle(x => x.FontSize(11));
 
-						page.Header().Column(col =>
-						{
-							col.Item().Text("HỢP ĐỒNG THUÊ THIẾT BỊ CAMRENT")
-								.FontSize(18).Bold().AlignCenter();
-
-							col.Item().Text($"Mã Hợp Đồng: {contract.Id}")
-								.FontSize(10).AlignCenter();
-						});
-
 						page.Content().Column(col =>
 						{
 							col.Spacing(10);
+
+							// ========== HEADER CHỈ TRANG 1 ==========
+							col.Item().AlignCenter().Text("HỢP ĐỒNG THUÊ THIẾT BỊ CAMRENT")
+								.FontSize(18).Bold();
+
+							col.Item().AlignCenter().Text($"Mã Hợp Đồng: {contract.Id}")
+								.FontSize(10);
+
+							col.Item().Text(""); // khoảng trống nhẹ sau header
 
 							// ---- Thông tin renter ----
 							col.Item().Text("1. Thông tin Bên thuê (Renter)").Bold();
@@ -56,14 +58,19 @@ namespace CamRent_Application.Services
 							// ---- Thông tin chi nhánh ----
 							col.Item().Text("2. Thông tin Chi nhánh CamRent").Bold();
 							col.Item().Text($"• Tên chi nhánh: {branch.Name}");
-							col.Item().Text($"• Địa chỉ: {branch.Address}");
+							if(branch.Address != null)
+							{
+								var addr = branch.Address;
+								col.Item().Text($"• Địa chỉ chi nhánh: {addr.Province}, {addr.District}");
+							}	
+								
 
 							// ---- Thông tin Booking ----
 							col.Item().Text("3. Thông tin Booking").Bold();
 							col.Item().Text($"• Ngày thuê: {booking.PickupAt:dd/MM/yyyy}");
 							col.Item().Text($"• Ngày trả: {booking.ReturnAt:dd/MM/yyyy}");
 							if (booking.Location != null)
-								col.Item().Text($"• Địa chỉ giao hàng: {booking.Location.Province + "," + booking.Location.District}");
+								col.Item().Text($"• Địa chỉ giao hàng: {booking.Location.Province}, {booking.Location.District}");
 
 							// ---- Danh sách thiết bị ----
 							col.Item().Text("4. Thiết bị thuê").Bold();
@@ -72,36 +79,52 @@ namespace CamRent_Application.Services
 							{
 								table.ColumnsDefinition(columns =>
 								{
-									columns.ConstantColumn(25);
-									columns.RelativeColumn();
-									columns.RelativeColumn();
-									columns.RelativeColumn();
+									columns.ConstantColumn(25); // #
+									columns.RelativeColumn(4);  // Thiết bị
+									columns.RelativeColumn(3);  // Giá thuê
+									columns.RelativeColumn(3);  // Đặt cọc
 								});
 
-								// Header
+								// Helper vẽ cell có border
+								static void HeaderCell(IContainer container, string text)
+								{
+									container
+										.Border(0.5f)
+										.Background(Colors.Grey.Lighten3)
+										.Padding(3)
+										.Text(text).Bold();
+								}
+
+								static void BodyCell(IContainer container, string text)
+								{
+									container
+										.Border(0.5f)
+										.Padding(3)
+										.Text(text);
+								}
+
 								table.Header(header =>
 								{
-									header.Cell().Text("#").Bold();
-									header.Cell().Text("Thiết bị").Bold();
-									header.Cell().Text("Giá thuê").Bold();
-									header.Cell().Text("Đặt cọc").Bold();
+									header.Cell().Element(c => HeaderCell(c, "#"));
+									header.Cell().Element(c => HeaderCell(c, "Thiết bị"));
+									header.Cell().Element(c => HeaderCell(c, "Giá thuê"));
+									header.Cell().Element(c => HeaderCell(c, "Đặt cọc"));
 								});
 
 								int index = 1;
 								foreach (var item in items)
 								{
-									table.Cell().Text(index++.ToString());
-									table.Cell().Text(item.ItemName);
-									table.Cell().Text($"{item.UnitPrice:N0} đ");
-									table.Cell().Text($"{item.DepositAmount:N0} đ");
+									table.Cell().Element(c => BodyCell(c, index++.ToString()));
+									table.Cell().Element(c => BodyCell(c, item.ItemName));
+									table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} đ"));
+									table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} đ"));
 								}
 							});
 
 							// ---- Tính tiền ----
-							var totalRental = booking.SnapshotRentalTotal ;
+							var totalRental = booking.SnapshotRentalTotal;
 							var totalDeposit = booking.SnapshotDepositAmount;
 							var final = totalRental + totalDeposit;
-							var depositBooking = booking.SnapshotRentalTotal * booking.SnapshotPlatformFeePercent;
 
 							col.Item().Text("5. Tổng tiền thanh toán").Bold();
 							col.Item().Text($"• Tổng giá thuê: {totalRental:N0} đ");
@@ -111,12 +134,11 @@ namespace CamRent_Application.Services
 
 							// ---- Điều khoản ----
 							col.Item().Text("6. Điều khoản chung").Bold();
-
 							col.Item().Text(
 								"• Hàng sẽ được giao trước 12 giờ của ngày thuê nếu chọn giao hàng.\n" +
 								"• Trả hàng trước 16h của ngày trả.\n" +
 								"• Bên thuê cam kết giữ gìn và trả lại thiết bị đúng thời gian.\n" +
-								"• Mọi hư hỏng sẽ được bồi thường theo giá trị thiết bị."
+								"• Mọi hư hỏng sẽ được bồi thường theo giá trị thiết bị.\n\n"
 							);
 
 							// ---- chữ ký ----
@@ -160,15 +182,15 @@ namespace CamRent_Application.Services
 			});
 		}
 
-		// --- Template Verification tương tự ---
+		// ================== VERIFICATION CONTRACT ==================
 		public async Task<byte[]> RenderVerificationContractAsync(Contract contract)
 		{
-			// Giả sử bạn có navigation:
-			// contract.Owner: User (Owner thiết bị)
-			// contract.Branch: Branch (nếu cần gắn với chi nhánh quản lý)
-			var verification = contract.Verification;
-			var owner = verification.Owner;// đổi tên cho đúng với entity của bạn
-			var branch = contract.Branch;     // nếu có, không bắt buộc
+			var verification = contract.Verification
+							  ?? throw new Exception("VerificationRequest is null on Contract");
+			var owner = verification.Owner
+						?? throw new Exception("Owner is null on VerificationRequest");
+			var branch = verification.Branch;
+			var items = _mapper.Map<List<VerificationItemDTO>>(verification.Items);
 
 			return await Task.Run(() =>
 			{
@@ -180,45 +202,49 @@ namespace CamRent_Application.Services
 						page.Size(PageSizes.A4);
 						page.DefaultTextStyle(x => x.FontSize(11));
 
-						page.Header().Column(col =>
-						{
-							col.Item().Text("HỢP ĐỒNG HỢP TÁC CHO THUÊ THIẾT BỊ")
-								.FontSize(18).Bold().AlignCenter();
-
-							col.Item().Text($"Mã Hợp Đồng: {contract.Id}")
-								.FontSize(10).AlignCenter();
-						});
-
 						page.Content().Column(col =>
 						{
 							col.Spacing(10);
 
-							// 1. Bên A - Chủ sở hữu thiết bị
+							// ========== HEADER CHỈ TRANG 1 ==========
+							col.Item().AlignCenter().Text("HỢP ĐỒNG HỢP TÁC CHO THUÊ THIẾT BỊ")
+								.FontSize(18).Bold();
+
+							col.Item().AlignCenter().Text($"Mã Hợp Đồng: {contract.Id}")
+								.FontSize(10);
+
+							col.Item().Text(""); // khoảng trống sau header
+
+							// 1. Bên A - Owner
 							col.Item().Text("1. Thông tin Bên A - Chủ sở hữu thiết bị (Owner)").Bold();
 							col.Item().Text($"• Họ và tên: {owner.FullName}");
 							col.Item().Text($"• Số điện thoại: {owner.Phone}");
 							col.Item().Text($"• Email: {owner.Email}");
 							if (owner.Address != null)
-								col.Item().Text($"• Địa chỉ: {owner.Address.Province + "," + owner.Address.District}");
+							{
+								var addr = owner.Address;
+								col.Item().Text($"• Địa chỉ: {addr.Province}, {addr.District}");
+							}
 
 							// 2. Bên B - CamRent
 							col.Item().Text("2. Thông tin Bên B - Sàn CamRent").Bold();
-							col.Item().Text("• Tên doanh nghiệp: CamRent Platform");
+							col.Item().Text("• Tên doanh nghiệp: CamRent");
 							if (branch != null)
 							{
 								col.Item().Text($"• Chi nhánh quản lý: {branch.Name}");
-								col.Item().Text($"• Địa chỉ chi nhánh: {branch.Address}");
+								var addr = branch.Address;
+								col.Item().Text($"• Địa chỉ chi nhánh: {addr.Province}, {addr.District}");
 							}
 							col.Item().Text("• Vai trò: Sàn trung gian kết nối chủ thiết bị và người thuê, cung cấp nền tảng quản lý & vận hành.");
 
-							// 3. Mục đích hợp đồng
+							// 3. Mục đích
 							col.Item().Text("3. Mục đích hợp đồng").Bold();
 							col.Item().Text(
 								"Bên A đồng ý ủy quyền cho Bên B (CamRent) được phép quản lý, niêm yết và cho thuê các thiết bị " +
 								"thuộc sở hữu của Bên A trên nền tảng CamRent, nhằm mục đích khai thác thương mại và chia sẻ doanh thu."
 							);
 
-							// 4. Thời hạn hợp đồng (tối thiểu 6 tháng)
+							// 4. Thời hạn
 							col.Item().Text("4. Thời hạn hợp đồng").Bold();
 							col.Item().Text(
 								"• Thời hạn tối thiểu của Hợp đồng là 06 (sáu) tháng kể từ ngày ký.\n" +
@@ -235,16 +261,64 @@ namespace CamRent_Application.Services
 								"Mọi thay đổi, thêm/bớt thiết bị sẽ được ghi nhận trong lịch sử trên hệ thống và được xem là phụ lục của Hợp đồng này."
 							);
 
-							// 6. Doanh thu và chiết khấu
+							if (items.Any())
+							{
+								col.Item().Table(table =>
+								{
+									table.ColumnsDefinition(columns =>
+									{
+										columns.ConstantColumn(25);   // #
+										columns.RelativeColumn(4);    // Thiết bị
+										columns.RelativeColumn(3);    // Loại
+									});
+
+									static void HeaderCell(IContainer container, string text)
+									{
+										container
+											.Border(0.5f)
+											.Background(Colors.Grey.Lighten3)
+											.Padding(3)
+											.Text(text).Bold();
+									}
+
+									static void BodyCell(IContainer container, string text)
+									{
+										container
+											.Border(0.5f)
+											.Padding(3)
+											.Text(text);
+									}
+
+									table.Header(header =>
+									{
+										header.Cell().Element(c => HeaderCell(c, "#"));
+										header.Cell().Element(c => HeaderCell(c, "Thiết bị"));
+										header.Cell().Element(c => HeaderCell(c, "Loại"));
+									});
+
+									int index = 1;
+									foreach (var item in items)
+									{
+										table.Cell().Element(c => BodyCell(c, index++.ToString()));
+										table.Cell().Element(c => BodyCell(c, item.ItemName));
+										table.Cell().Element(c => BodyCell(c, item.ItemType.ToString()));
+									}
+								});
+							}
+							else
+							{
+								col.Item().Text("• (Chưa có thiết bị nào được khai báo trong yêu cầu verification này.)");
+							}
+
+							// 6. Doanh thu & chiết khấu
 							col.Item().Text("6. Doanh thu và chiết khấu").Bold();
 							col.Item().Text(
 								"• Bên B có trách nhiệm thu hộ tiền thuê và tiền đặt cọc từ người thuê.\n" +
 								"• Sau khi hoàn tất mỗi kỳ thuê và đối soát, Bên B sẽ thanh toán lại cho Bên A phần doanh thu thuộc về Bên A " +
 								"sau khi đã trừ các khoản chiết khấu, phí nền tảng, chi phí xử lý phát sinh (nếu có) theo tỷ lệ đã thống nhất trên hệ thống CamRent.\n" +
 								"• Chi tiết tỷ lệ chia doanh thu được hiển thị trong cấu hình tài khoản Owner trên nền tảng CamRent và có thể thay đổi " +
-								"khi hai bên cùng chấp thuận."
+								"khi hai bên cùng chấp thuận.\n"
 							);
-
 							// 7. Trách nhiệm Bên A
 							col.Item().Text("7. Trách nhiệm của Bên A (Owner)").Bold();
 							col.Item().Text(
@@ -263,7 +337,7 @@ namespace CamRent_Application.Services
 								"• Đảm bảo minh bạch trong việc thống kê, đối soát doanh thu và thanh toán cho Bên A."
 							);
 
-							// 9. Xử lý hư hỏng, mất mát
+							// 9. Hư hỏng/mất mát
 							col.Item().Text("9. Xử lý hư hỏng, mất mát thiết bị").Bold();
 							col.Item().Text(
 								"• Trường hợp thiết bị bị hư hỏng, mất mát trong thời gian cho thuê, CamRent sẽ hỗ trợ thu thập thông tin và " +
@@ -273,7 +347,7 @@ namespace CamRent_Application.Services
 								"• CamRent không chịu trách nhiệm cho các hao mòn tự nhiên của thiết bị do quá trình sử dụng bình thường."
 							);
 
-							// 10. Điều khoản chung & giải quyết tranh chấp
+							// 10. Điều khoản chung
 							col.Item().Text("10. Điều khoản chung và giải quyết tranh chấp").Bold();
 							col.Item().Text(
 								"• Hai bên cam kết thực hiện đúng các thỏa thuận trong Hợp đồng.\n" +
