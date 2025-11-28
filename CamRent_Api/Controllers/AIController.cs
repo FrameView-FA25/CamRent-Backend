@@ -39,8 +39,8 @@ namespace CamRent_Api.Controllers
 
 			try
 			{
-				var results = await _ai.RecommendAsync(req.Query, Math.Clamp(req.TopK, 1, 20), ct);
-				return Ok(results);
+			var results = await _ai.RecommendAsync(req.Query, Math.Clamp(req.TopK, 1, 20), ct);
+			return Ok(results);
 			}
 			catch (OperationCanceledException)
 			{
@@ -60,9 +60,9 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> Reindex(CancellationToken ct)
 		{
 			try
-			{
-				await _ai.ReindexAllAsync(ct);
-				return Ok(new { ok = true });
+		{
+			await _ai.ReindexAllAsync(ct);
+			return Ok(new { ok = true });
 			}
 			catch (OperationCanceledException)
 			{

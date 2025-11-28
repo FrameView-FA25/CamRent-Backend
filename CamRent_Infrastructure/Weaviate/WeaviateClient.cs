@@ -115,7 +115,7 @@ namespace CamRent_Infrastructure.Weaviate
 				using var postReq = new HttpRequestMessage(HttpMethod.Post, postPath)
 				{
 					Content = new StringContent(json, Encoding.UTF8, "application/json")
-				};
+			};
 				using var postRes = await _http.SendAsync(postReq, ct);
 				if (postRes.IsSuccessStatusCode) return;
 
