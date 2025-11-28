@@ -98,6 +98,7 @@ namespace CamRent_Infrastructure.Weaviate
 			{
 				var detail = await res.Content.ReadAsStringAsync(ct);
 				_logger.LogWarning("Weaviate upsert failed for {Class}/{Id}. Status {Status}. Detail: {Detail}", @class, id, (int)res.StatusCode, detail);
+				throw new InvalidOperationException($"Weaviate upsert failed for {@class}/{id}. Status {(int)res.StatusCode}. Detail: {detail}");
 			}
 		}
 
