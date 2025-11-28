@@ -1937,7 +1937,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CamRent_Domain.Entities.Contract", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
-                        .WithMany()
+                        .WithMany("Contracts")
                         .HasForeignKey("BookingId");
 
                     b.HasOne("CamRent_Domain.Entities.Branch", "Branch")
@@ -1949,7 +1949,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasForeignKey("FileAssetId");
 
                     b.HasOne("CamRent_Domain.Entities.VerificationRequest", "Verification")
-                        .WithMany()
+                        .WithMany("Contracts")
                         .HasForeignKey("VerificationId");
 
                     b.Navigation("Booking");
@@ -2183,7 +2183,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CamRent_Domain.Entities.Payment", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
-                        .WithMany()
+                        .WithMany("Payments")
                         .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2353,9 +2353,13 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CamRent_Domain.Entities.Booking", b =>
                 {
+                    b.Navigation("Contracts");
+
                     b.Navigation("Inspections");
 
                     b.Navigation("Items");
+
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Branch", b =>
@@ -2395,6 +2399,8 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CamRent_Domain.Entities.VerificationRequest", b =>
                 {
+                    b.Navigation("Contracts");
+
                     b.Navigation("Inspections");
 
                     b.Navigation("Items");

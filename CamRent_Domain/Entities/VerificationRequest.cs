@@ -19,6 +19,7 @@ namespace CamRent_Domain.Entities
         public string? Notes { get; set; }
         
         public ICollection<VerificationRequestItem>? Items { get; set; } 
+        public ICollection<Contract>? Contracts { get; set; }
 		public ICollection<Inspection>? Inspections { get; set; }
     }
 
