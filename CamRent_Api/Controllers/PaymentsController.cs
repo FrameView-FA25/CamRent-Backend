@@ -30,7 +30,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost("authorize")]
 		[Authorize(Policy = "Renter")]
-		public async Task<ActionResult<Guid>> Authorize([FromBody] CreateAuthorizationRequest request)
+		public async Task<ActionResult<Guid>> Authorize([FromRoute] CreateAuthorizationRequest request)
 		{
 			var booking = await _bookingService.GetByIdAsync(request.BookingId);
 			var rental = booking.SnapshotRentalTotal + booking.SnapshotDepositAmount;

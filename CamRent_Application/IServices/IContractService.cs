@@ -8,9 +8,11 @@ namespace CamRent_Application.IServices
 	public interface IContractService
 	{
 		Task<Contract> CreateBookingContractAsync(Guid bookingId, Guid staffUserId);
+		Task<Contract> CreateVerificationContractAsync(Guid verificationId, Guid staffUserId);
 		Task<Contract> SignContractAsync(Guid contractId, ContractSignerRole role,
 			string signatureBase64, Guid? userId, string? ip, string? userAgent);
 		Task<byte[]?> DownloadContractPdfAsync(Guid contractId);
+		Task<Contract?> GetByIdAsync(Guid contractId);
 	}
 
 }

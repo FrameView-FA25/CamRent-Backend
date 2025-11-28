@@ -93,7 +93,7 @@ namespace CamRent_Api.Controllers
 			{
 				return Unauthorized();
 			}
-
+			cameraRequest.DepositPercent = cameraRequest.DepositPercent / 100.0m;
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
 			camera.OwnerUserId = Guid.Parse(userId);
 			var result = await _cameraService.CreateAsync(camera);
