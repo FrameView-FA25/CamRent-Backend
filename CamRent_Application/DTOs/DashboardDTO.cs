@@ -11,6 +11,20 @@ namespace CamRent_Application.DTOs
 		public int Count { get; set; }
 	}
 
+	// Điểm dữ liệu theo thời gian cho biểu đồ (theo ngày / theo tháng)
+	public class DashboardTimePoint
+	{
+		// Với thống kê theo ngày: Date = ngày (UTC)
+		// Với thống kê theo tháng: Date = ngày đầu tiên của tháng (UTC)
+		public DateTime Date { get; set; }
+
+		// Số booking được tạo trong khoảng này
+		public int BookingCount { get; set; }
+
+		// Tổng tiền đã capture trong khoảng này
+		public decimal CapturedRevenue { get; set; }
+	}
+
 	public class AdminDashboardDTO
 	{
 		// Users
@@ -31,6 +45,13 @@ namespace CamRent_Application.DTOs
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
 		public decimal TotalCapturedRevenue { get; set; }
 		public decimal TotalRefundedAmount { get; set; }
+
+		// Thống kê theo thời gian (phục vụ vẽ biểu đồ)
+		// Mặc định: 30 ngày gần nhất
+		public List<DashboardTimePoint> DailyStats { get; set; } = new();
+
+		// Mặc định: 12 tháng gần nhất
+		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 
 		// Disputes
 		public int OpenDisputes { get; set; }
