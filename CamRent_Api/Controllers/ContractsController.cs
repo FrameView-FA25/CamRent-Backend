@@ -130,17 +130,26 @@ namespace CamRent_Api.Controllers
 		)]
 		public async Task<IActionResult> SignContract(
 			[FromRoute] Guid contractId,
-			[FromQuery] ContractSignerRole role,
 			[FromBody] SignContractRequest request)
 		{
 			var userId = GetCurrentUserId(); // có thể null nếu AllowAnonymous
+			var role = User.FindAll(ClaimTypes.Role).Select(r => r.Value).FirstOrDefault();
+			ContractSignerRole contractSignerRole = ContractSignerRole.Platform; 
+			if (role == UserRole.Owner.ToString())
+			{
+				contractSignerRole = ContractSignerRole.Owner;
+			}
+			else if (role == UserRole.Renter.ToString())
+			{
+				contractSignerRole = ContractSignerRole.Renter;
+			}
 
 			var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 			var ua = Request.Headers["User-Agent"].ToString();
 
 			var contract = await _contractService.SignContractAsync(
 				contractId,
-				role,
+				contractSignerRole,
 				request.SignatureBase64,
 				userId,
 				ip,
