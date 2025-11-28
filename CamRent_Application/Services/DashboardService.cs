@@ -59,6 +59,53 @@ namespace CamRent_Application.Services
 			var totalCaptured = payments.Sum(p => p.CapturedAmount);
 			var totalRefunded = payments.Sum(p => p.RefundedAmount);
 
+			// Thống kê theo thời gian
+			// --- Theo ngày: 30 ngày gần nhất (theo CreatedAt UTC) ---
+			var today = DateTime.UtcNow.Date;
+			var fromDay = today.AddDays(-29); // gồm cả hôm nay => 30 ngày
+
+			var dailyStats = bookings
+				.Where(b => b.CreatedAt.Date >= fromDay && b.CreatedAt.Date <= today)
+				.GroupBy(b => b.CreatedAt.Date)
+				.Select(g =>
+				{
+					var date = g.Key;
+					var dayRevenue = payments
+						.Where(p => p.CreatedAt.Date == date)
+						.Sum(p => p.CapturedAmount);
+					return new DashboardTimePoint
+					{
+						Date = date,
+						BookingCount = g.Count(),
+						CapturedRevenue = dayRevenue
+					};
+				})
+				.OrderBy(x => x.Date)
+				.ToList();
+
+			// --- Theo tháng: 12 tháng gần nhất ---
+			var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+			var fromMonthStart = thisMonthStart.AddMonths(-11);
+
+			var monthlyStats = bookings
+				.Where(b => b.CreatedAt >= fromMonthStart)
+				.GroupBy(b => new { b.CreatedAt.Year, b.CreatedAt.Month })
+				.Select(g =>
+				{
+					var monthStart = new DateTime(g.Key.Year, g.Key.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+					var monthRevenue = payments
+						.Where(p => p.CreatedAt.Year == g.Key.Year && p.CreatedAt.Month == g.Key.Month)
+						.Sum(p => p.CapturedAmount);
+					return new DashboardTimePoint
+					{
+						Date = monthStart,
+						BookingCount = g.Count(),
+						CapturedRevenue = monthRevenue
+					};
+				})
+				.OrderBy(x => x.Date)
+				.ToList();
+
 			// Disputes
 			var disputes = await _uow.Repository<Dispute>().ListAsync();
 			var openDisputes = disputes.Count(d => d.Status == "open" || d.Status == "under_review");
@@ -84,7 +131,10 @@ namespace CamRent_Application.Services
 				TotalRefundedAmount = totalRefunded,
 
 				OpenDisputes = openDisputes,
-				ResolvedDisputes = resolvedDisputes
+				ResolvedDisputes = resolvedDisputes,
+
+				DailyStats = dailyStats,
+				MonthlyStats = monthlyStats
 			};
 		}
 
