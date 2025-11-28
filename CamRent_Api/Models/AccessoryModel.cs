@@ -14,6 +14,7 @@ namespace CamRent_Api.Models
 			public string? SpecsJson { get; set; }
 			public decimal BaseDailyRate { get; set; }
 			public decimal EstimatedValueVnd { get; set; }
+			public decimal DepositPercent { get; set; } = 0;
 
 			public List<IFormFile>? MediaFiles { get; set; }
 		}

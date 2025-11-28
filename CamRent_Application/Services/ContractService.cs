@@ -3,6 +3,7 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using PayOS.Exceptions;
 using System.Security.Cryptography;
 using System.Security.Cryptography;
@@ -49,6 +50,7 @@ namespace CamRent_Application.Services
 				Id = Guid.NewGuid(),
 				Type = ContractType.Booking,
 				BookingId = booking.Id,
+				BranchId = booking.BranchId,
 				Status = ContractStatus.PendingSignatures,
 				CreatedAt = DateTime.UtcNow
 			};
@@ -81,6 +83,59 @@ namespace CamRent_Application.Services
 
 			return contract;
 		}
+
+		public async Task<Contract> CreateVerificationContractAsync(Guid verificationId, Guid staffUserId)
+		{
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
+
+			// 1. Kiểm tra owner tồn tại
+			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(verificationId)
+				?? throw new AppException("Verification not found");
+
+			// 2. Tạo contract Verification
+			var contract = new Contract
+			{
+				Id = Guid.NewGuid(),
+				Type = ContractType.Verification,
+				VerificationId = verificationId,
+				BranchId = verification.BranchId,
+				Status = ContractStatus.PendingSignatures,
+				CreatedAt = DateTime.UtcNow
+				
+				// nếu bạn muốn gắn Branch nào đó thì set BranchId ở đây
+			};
+
+			await contractRepo.AddAsync(contract);
+
+			// 3. Tạo slot chữ ký cho Owner
+			var ownerSignature = new ContractSignature
+			{
+				Id = Guid.NewGuid(),
+				ContractId = contract.Id,
+				Role = ContractSignerRole.Owner,
+				UserId = verification.CreatedByUserId,
+				IsSigned = false
+			};
+			await signatureRepo.AddAsync(ownerSignature);
+
+			// 4. Tạo slot chữ ký cho CamRent (Platform)
+			var platformSignature = new ContractSignature
+			{
+				Id = Guid.NewGuid(),
+				ContractId = contract.Id,
+				Role = ContractSignerRole.Platform,
+				UserId = staffUserId,   // staff đang tạo hợp đồng
+				IsSigned = false
+			};
+			await signatureRepo.AddAsync(platformSignature);
+
+			// 5. Lưu DB
+			await _unitOfWork.Complete();
+
+			return contract;
+		}
+
 
 		/// <summary>
 		/// Nhận chữ ký base64, upload Cloudinary, update ContractSignature.
@@ -164,9 +219,7 @@ namespace CamRent_Application.Services
 			return await http.GetByteArrayAsync(contract.FileAsset.Url);
 		}
 
-		#endregion
 
-		#region Private helpers
 
 		private async Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures)
 		{
@@ -217,6 +270,27 @@ namespace CamRent_Application.Services
 			using var sha = SHA256.Create();
 			var hashBytes = sha.ComputeHash(data);
 			return Convert.ToHexString(hashBytes); // ABCDEF...
+		}
+
+		public async Task<Contract?> GetByIdAsync(Guid contractId)
+		{
+			var contract = await _unitOfWork.Repository<Contract>().ListAsync(
+				filter: c => c.Id == contractId,
+				include: q => q
+					.Include(c => c.Booking).ThenInclude(b => b.Renter)
+					.Include(c => c.Booking)
+					.Include(c => c.Booking).ThenInclude(b => b.Items!).ThenInclude(i => i.Camera)
+					.Include(c => c.Booking).ThenInclude(b => b.Items!).ThenInclude(i => i.Accessory)
+					.Include(c => c.Booking).ThenInclude(b => b.Items!).ThenInclude(i => i.Combo)
+					.Include(c => c.FileAsset)
+					.Include(c => c.Verification).ThenInclude(v => v.Owner)
+					.Include(c => c.Verification)
+					.Include(c => c.Verification).ThenInclude(v => v.Items!).ThenInclude(i => i.Camera)
+					.Include(c => c.Verification).ThenInclude(v => v.Items!).ThenInclude(i => i.Accessory)
+					.Include(c => c.Signatures).ThenInclude(s => s.SignatureAsset)
+					.Include(c => c.Branch)
+				);
+			return contract.FirstOrDefault();
 		}
 
 		#endregion
