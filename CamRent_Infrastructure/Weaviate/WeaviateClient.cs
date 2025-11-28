@@ -80,7 +80,10 @@ namespace CamRent_Infrastructure.Weaviate
 
 		public async Task UpsertAsync(string @class, Guid id, object properties, float[]? vector = null, CancellationToken ct = default)
 		{
-			var path = $"/v1/objects/{id}?class={Uri.EscapeDataString(@class)}&consistencyLevel=ALL";
+			// Endpoint cho update theo id
+			var putPath = $"/v1/objects/{id}?class={Uri.EscapeDataString(@class)}&consistencyLevel=ALL";
+			// Endpoint cho create (id nằm trong body, không nằm trên URL)
+			var postPath = "/v1/objects?consistencyLevel=ALL";
 			var body = new Dictionary<string, object>
 			{
 				{ "class", @class },
@@ -93,7 +96,7 @@ namespace CamRent_Infrastructure.Weaviate
 			var json = JsonSerializer.Serialize(body, JsonOptions);
 
 			// 1) Thử PUT (update) trước
-			using var putReq = new HttpRequestMessage(HttpMethod.Put, path)
+			using var putReq = new HttpRequestMessage(HttpMethod.Put, putPath)
 			{
 				Content = new StringContent(json, Encoding.UTF8, "application/json")
 			};
@@ -108,8 +111,8 @@ namespace CamRent_Infrastructure.Weaviate
 			{
 				_logger.LogInformation("Weaviate object {Class}/{Id} not found on update, trying create (POST)...", @class, id);
 
-				// 2) Thử POST (create) với id cố định
-				using var postReq = new HttpRequestMessage(HttpMethod.Post, path)
+				// 2) Thử POST (create) với id cố định (theo spec: POST /v1/objects, id trong body)
+				using var postReq = new HttpRequestMessage(HttpMethod.Post, postPath)
 				{
 					Content = new StringContent(json, Encoding.UTF8, "application/json")
 				};
