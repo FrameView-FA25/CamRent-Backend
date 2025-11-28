@@ -2,6 +2,7 @@ using CamRent_Application.IServices;
 using CamRent_Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.Extensions.Logging;
 
 namespace CamRent_Api.Controllers
 {
@@ -10,10 +11,12 @@ namespace CamRent_Api.Controllers
 	public class AIController : ControllerBase
 	{
 		private readonly IAIRecommendationService _ai;
+		private readonly ILogger<AIController> _logger;
 
-		public AIController(IAIRecommendationService ai)
+		public AIController(IAIRecommendationService ai, ILogger<AIController> logger)
 		{
 			_ai = ai;
+			_logger = logger;
 		}
 
 		public sealed class RecommendRequest
@@ -39,8 +42,21 @@ namespace CamRent_Api.Controllers
 			Description = "Kích hoạt việc index lại toàn bộ dữ liệu thiết bị vào vector store (tốn thời gian, chỉ dành cho admin).")]
 		public async Task<IActionResult> Reindex(CancellationToken ct)
 		{
-			await _ai.ReindexAllAsync(ct);
-			return Ok(new { ok = true });
+			try
+			{
+				await _ai.ReindexAllAsync(ct);
+				return Ok(new { ok = true });
+			}
+			catch (OperationCanceledException)
+			{
+				// request bị hủy
+				return StatusCode(StatusCodes.Status499ClientClosedRequest, new { ok = false, error = "Request was cancelled" });
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "ReindexAllAsync failed");
+				return StatusCode(StatusCodes.Status500InternalServerError, new { ok = false, error = ex.Message });
+			}
 		}
 	}
 }
