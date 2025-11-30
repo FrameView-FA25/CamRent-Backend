@@ -230,15 +230,23 @@ namespace CamRent_Application.Services
 			// Doanh thu gộp ước tính: UnitPrice * days
 			decimal totalRevenue = 0;
 			var assetStats = new Dictionary<(Guid id, string type, string name), OwnerAssetStat>();
+			// Lưu doanh thu theo booking để vẽ biểu đồ theo thời gian
+			var bookingRevenue = new Dictionary<Guid, decimal>();
 
 			foreach (var item in validItems)
 			{
 				if (item.Booking == null) continue;
 
-				var days = Math.Max(1, (int)Math.Ceiling((item.Booking.ReturnAt - item.Booking.PickupAt).TotalDays));
+				var booking = item.Booking;
+				var days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
 				var gross = item.UnitPrice * days;
 
 				totalRevenue += gross;
+
+				// Dồn doanh thu theo booking
+				if (!bookingRevenue.TryGetValue(booking.Id, out var current))
+					current = 0;
+				bookingRevenue[booking.Id] = current + gross;
 
 				string type;
 				string name;
@@ -281,6 +289,53 @@ namespace CamRent_Application.Services
 				stat.GrossRevenue += gross;
 			}
 
+			// Chuẩn bị dữ liệu booking + doanh thu theo booking
+			var bookingInfo = validItems
+				.Where(bi => bi.Booking != null)
+				.GroupBy(bi => bi.Booking!.Id)
+				.Select(g => new
+				{
+					Booking = g.First().Booking!,
+					Gross = bookingRevenue.TryGetValue(g.Key, out var gr) ? gr : 0
+				})
+				.ToList();
+
+			// Thống kê theo ngày: 30 ngày gần nhất (dựa trên PickupAt)
+			var today = DateTime.UtcNow.Date;
+			var fromDay = today.AddDays(-29);
+
+			var dailyStats = bookingInfo
+				.Where(x => x.Booking.PickupAt.Date >= fromDay && x.Booking.PickupAt.Date <= today)
+				.GroupBy(x => x.Booking.PickupAt.Date)
+				.Select(g => new DashboardTimePoint
+				{
+					Date = g.Key,
+					BookingCount = g.Count(),
+					CapturedRevenue = g.Sum(x => x.Gross)
+				})
+				.OrderBy(x => x.Date)
+				.ToList();
+
+			// Thống kê theo tháng: 12 tháng gần nhất (dựa trên PickupAt)
+			var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+			var fromMonthStart = thisMonthStart.AddMonths(-11);
+
+			var monthlyStats = bookingInfo
+				.Where(x => x.Booking.PickupAt >= fromMonthStart)
+				.GroupBy(x => new { x.Booking.PickupAt.Year, x.Booking.PickupAt.Month })
+				.Select(g =>
+				{
+					var monthStart = new DateTime(g.Key.Year, g.Key.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+					return new DashboardTimePoint
+					{
+						Date = monthStart,
+						BookingCount = g.Count(),
+						CapturedRevenue = g.Sum(x => x.Gross)
+					};
+				})
+				.OrderBy(x => x.Date)
+				.ToList();
+
 			var topAssets = assetStats.Values
 				.OrderByDescending(a => a.RentalCount)
 				.ThenByDescending(a => a.GrossRevenue)
@@ -293,7 +348,9 @@ namespace CamRent_Application.Services
 				TotalAccessories = accessories.Count(),
 				TotalBookingsForOwnerItems = totalBookingsForOwnerItems,
 				TotalGrossRevenue = totalRevenue,
-				TopRentedAssets = topAssets
+				TopRentedAssets = topAssets,
+				DailyStats = dailyStats,
+				MonthlyStats = monthlyStats
 			};
 		}
 	}
