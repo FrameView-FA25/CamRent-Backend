@@ -100,6 +100,13 @@ namespace CamRent_Application.DTOs
 
 		// Top thiết bị được thuê nhiều nhất
 		public List<OwnerAssetStat> TopRentedAssets { get; set; } = new();
+
+		// Thống kê theo thời gian cho owner (dựa trên booking có thiết bị của owner)
+		// 30 ngày gần nhất
+		public List<DashboardTimePoint> DailyStats { get; set; } = new();
+
+		// 12 tháng gần nhất
+		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 	}
 }
 
