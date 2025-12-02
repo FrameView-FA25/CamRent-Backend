@@ -1,3 +1,4 @@
+using AutoMapper;
 using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
@@ -9,6 +10,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using static CamRent_Application.DTOs.ContractDTO;
 
 namespace CamRent_Application.Services
 {
@@ -17,22 +19,49 @@ namespace CamRent_Application.Services
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IContractTemplateService _templateService;
 		private readonly IFileStorageService _fileStorage;
+		private readonly IMapper _mapper;
 
 		public ContractService(
 			IUnitOfWork unitOfWork,
 			IContractTemplateService templateService,
-			IFileStorageService fileStorage)
+			IFileStorageService fileStorage,
+			IMapper mapper)
 		{
 			_unitOfWork = unitOfWork;
 			_templateService = templateService;
 			_fileStorage = fileStorage;
+			_mapper = mapper;
 		}
 
-		#region Public APIs
+		public async Task<List<ContractResponse>> GetContractsAsync()
+		{
+			var repo = _unitOfWork.Repository<Contract>();
 
-		/// <summary>
-		/// Tạo hợp đồng cho booking: pending signatures (Renter + Platform)
-		/// </summary>
+			// tuỳ implementation IGenericRepository của anh, mình giả sử có AsQueryable()
+			var query = await repo.ListAsync( include: q => q
+				.Include(c => c.Branch)
+				.Include(c => c.Signatures).ThenInclude(s => s.User));
+
+			var contracts = query.ToList();
+			return _mapper.Map<List<ContractResponse>>(contracts);
+		}
+
+		public async Task<ContractResponse?> GetContractByIdAsync(Guid contractId)
+		{
+			var repo = _unitOfWork.Repository<Contract>();
+
+			var contract = (await repo.ListAsync(include: q => q
+				.Include(c => c.Branch)
+				.Include(c => c.Signatures).ThenInclude(s => s.User)))
+				.FirstOrDefault(c => c.Id == contractId);
+
+			if (contract == null)
+				return null;
+
+			return _mapper.Map<ContractResponse>(contract);
+		}
+
+
 		public async Task<Contract> CreateBookingContractAsync(Guid bookingId, Guid staffUserId)
 		{
 			var bookingRepo = _unitOfWork.Repository<Booking>();
@@ -292,7 +321,5 @@ namespace CamRent_Application.Services
 				);
 			return contract.FirstOrDefault();
 		}
-
-		#endregion
 	}
 }

@@ -38,7 +38,24 @@ namespace CamRent_Api.Controllers
 		}
 
 
+		[HttpGet("{contractId:guid}")]
+		[Authorize]
+		public async Task<IActionResult> GetContract([FromRoute] Guid contractId)
+		{
+			var result = await _contractService.GetContractByIdAsync(contractId);
+			if (result == null)
+				return NotFound();
 
+			return Ok(result);
+		}
+
+		[HttpGet]
+		[Authorize]
+		public async Task<IActionResult> GetContracts()
+		{
+			var result = await _contractService.GetContractsAsync();
+			return Ok(result);
+		}
 		#endregion
 
 		// 1) Tạo hợp đồng booking

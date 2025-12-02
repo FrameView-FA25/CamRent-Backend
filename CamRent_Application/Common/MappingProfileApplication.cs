@@ -205,11 +205,19 @@ namespace CamRent_Application.Common
 				// only map when source member is not null -> supports partial update
 				.ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
+			// Map signer
+			CreateMap<ContractSignature, ContractSignerDTO>()
+				.ForMember(d => d.FullName,
+					opt => opt.MapFrom(s => s.User != null ? s.User.FullName : null));
+
+			// Map contract
 			CreateMap<Contract, ContractResponse>()
 				.ForMember(d => d.BranchName,
-					opt => opt.MapFrom(s => s.Branch.Name))
+					opt => opt.MapFrom(s => s.Branch != null ? s.Branch.Name : null))
 				.ForMember(d => d.BranchAddress,
-					opt => opt.MapFrom(s => s.Branch.Address.District + " " + s.Branch.Address.Province));
+					opt => opt.MapFrom(s => s.Branch != null && s.Branch.Address != null
+						? s.Branch.Address.District + "," + s.Branch.Address.Province
+						: null));
 
 		}
 	}
