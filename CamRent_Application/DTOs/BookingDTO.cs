@@ -45,7 +45,7 @@ namespace CamRent_Application.DTOs
 
 			public ICollection<BookingItemDTO>? Items { get; set; } 
 			public ICollection<ContractResponse>? Contracts { get; set; } 
-			public ICollection<InspectionResponseDTO>? Inspections { get; set; } 
+			public ICollection<InspectionResponseDTO>? Inspections { get; set; }
 		}
 		public class Cart
 		{
@@ -54,11 +54,6 @@ namespace CamRent_Application.DTOs
 
 		}
 
-		public class  BookingStatusDTO
-		{
-			public BookingStatus Status { get; set; }
-			public string StatusText { get; set; }
-		}
 		public class BookingItemDTO
 		{
 			public Guid? ItemId { get; set; }
@@ -72,6 +67,20 @@ namespace CamRent_Application.DTOs
 
 			public List<FileAssetDTO>? Media { get; set; }
 
+			public List<BookingItemUnavailableRangeDTO> UnavailableRanges { get; set; }
+
+		}
+		public class BookingItemUnavailableRangeDTO
+		{
+			public Guid BookingId { get; set; }
+			public DateTime StartUtc { get; set; } // PickupAt (UTC)
+			public DateTime EndUtc { get; set; }   // ReturnAt (UTC)
+			public string Status { get; set; } = default!;
+		}
+		public class BookingStatusDTO
+		{
+			public BookingStatus Status { get; set; }
+			public string StatusText { get; set; }
 		}
 
 		// QR payload cho booking, dùng để renter hiển thị QR và staff scan

@@ -18,6 +18,15 @@ namespace CamRent_Application.DTOs
 			public string? BranchAddress { get; set; }
 			public DateTime CreatedAt { get; set; }
 			public DateTime? SignedAt { get; set; }
+			public List<ContractSignerDTO> Signatures { get; set; }
+		}
+
+		public class ContractSignerDTO
+		{
+			public ContractSignerRole Role { get; set; }
+			public string? FullName { get; set; }
+			public bool IsSigned { get; set; }
+			public DateTime? SignedAt { get; set; }
 		}
 	}
 }

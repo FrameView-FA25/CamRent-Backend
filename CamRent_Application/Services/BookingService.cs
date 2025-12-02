@@ -105,7 +105,8 @@ namespace CamRent_Application.Services
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
 						.Include(b => b.Inspections)
-						.Include(b => b.Renter))).ToList();
+						.Include(b => b.Renter)
+						.Include(b => b.Contracts))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			foreach (var ver in results)
@@ -417,9 +418,55 @@ namespace CamRent_Application.Services
 					item.Media = _mapper.Map<List<FileAssetDTO>>(media);
 				}
 			}
+			// fill UnavailableRanges cho từng item trong cart
+			foreach (var itemDto in cart.Items)
+			{
+				if (itemDto.ItemId == null) continue;
+
+				var type = Enum.Parse<ItemType>(itemDto.ItemType);
+				var ranges = await GetUnavailableRangesForItemAsync(itemDto.ItemId.Value, type);
+
+				itemDto.UnavailableRanges = ranges;
+			}
 			return cart;
 		}
 
+		public async Task<List<BookingItemUnavailableRangeDTO>> GetUnavailableRangesForItemAsync(
+			Guid itemId,
+			ItemType type,
+			CancellationToken cancellationToken = default)
+		{
+			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
+
+			// filter theo loại item
+			Expression<Func<BookingItem, bool>> filter = bi =>
+				bi.Booking != null &&
+				bi.Booking.Status != BookingStatus.Draft &&
+				bi.Booking.Status != BookingStatus.Cancelled &&
+				bi.Booking.Status != BookingStatus.Completed &&
+				(
+					(type == ItemType.Camera && bi.CameraId == itemId) ||
+					(type == ItemType.Accessory && bi.AccessoryId == itemId) ||
+					(type == ItemType.Combo && bi.ComboId == itemId)
+				);
+
+			var items = await bookingItemRepo.ListAsync(
+				filter: filter,
+				include: q => q.Include(bi => bi.Booking)
+			);
+
+			var result = items
+				.Select(bi => new BookingItemUnavailableRangeDTO
+				{
+					BookingId = bi.Booking!.Id,
+					StartUtc = bi.Booking.PickupAt,   // đang lưu UTC
+					EndUtc = bi.Booking.ReturnAt,
+					Status = bi.Booking.Status.ToString()
+				})
+				.ToList();
+
+			return result;
+		}
 
 		public Task<List<BookingStatusDTO>> GetBookingStatusesAsync()
 		{
