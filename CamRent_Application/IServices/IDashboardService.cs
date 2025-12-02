@@ -9,9 +9,6 @@ namespace CamRent_Application.IServices
 		Task<DTOs.AdminDashboardDTO> GetAdminDashboardAsync(CancellationToken ct = default);
 		Task<DTOs.ManagerDashboardDTO> GetManagerDashboardAsync(Guid managerUserId, CancellationToken ct = default);
 		Task<DTOs.OwnerDashboardDTO> GetOwnerDashboardAsync(Guid ownerUserId, CancellationToken ct = default);
+		Task<DTOs.StaffDashboardDTO> GetStaffDashboardAsync(Guid staffUserId, CancellationToken ct = default);
 	}
 }
-
-
-
-
