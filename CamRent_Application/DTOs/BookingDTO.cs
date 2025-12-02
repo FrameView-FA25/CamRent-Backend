@@ -82,5 +82,15 @@ namespace CamRent_Application.DTOs
 			public BookingStatus Status { get; set; }
 			public string StatusText { get; set; }
 		}
+
+		// QR payload cho booking, dùng để renter hiển thị QR và staff scan
+		public class BookingQrDTO
+		{
+			public Guid BookingId { get; set; }
+			// Chuỗi được encode vào QR (ví dụ: "booking:{GuidN}")
+			public string Payload { get; set; } = string.Empty;
+			// Ảnh QR dưới dạng byte[] (PNG), khi serialize JSON sẽ thành base64
+			public byte[] PngImage { get; set; } = Array.Empty<byte>();
+		}
 	}
 }

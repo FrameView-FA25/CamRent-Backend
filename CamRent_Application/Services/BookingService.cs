@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Linq.Expressions;
 using static CamRent_Application.DTOs.BookingDTO;
+using QRCoder;
 
 namespace CamRent_Application.Services
 {
@@ -594,6 +595,34 @@ namespace CamRent_Application.Services
 			booking.Status = status;
 			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 			return await _unitOfWork.Complete();
+		}
+
+		public async Task<BookingQrDTO?> GenerateBookingQrForRenterAsync(Guid bookingId, Guid renterId, CancellationToken ct = default)
+		{
+			// Chỉ cho phép renter lấy QR của chính booking của mình
+			var booking = await _unitOfWork.Repository<Booking>()
+				.FirstOrDefaultAsync(b => b.Id == bookingId && b.RenterId == renterId);
+
+			if (booking == null)
+				return null;
+
+			var payload = $"booking:{bookingId:N}";
+			var png = GenerateQrPng(payload);
+
+			return new BookingQrDTO
+			{
+				BookingId = bookingId,
+				Payload = payload,
+				PngImage = png
+			};
+		}
+
+		private static byte[] GenerateQrPng(string text)
+		{
+			using var generator = new QRCodeGenerator();
+			using var data = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.M);
+			var pngCode = new PngByteQRCode(data);
+			return pngCode.GetGraphic(6);
 		}
 	}
 }

@@ -1,6 +1,7 @@
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using static CamRent_Application.DTOs.BookingDTO;
+using System.Threading;
 
 namespace CamRent_Application.IServices
 {
@@ -22,5 +23,8 @@ namespace CamRent_Application.IServices
 
 		// Added: update booking status by id (returns >0 on success)
 		Task<int> UpdateBookingStatusAsync(Guid bookingId, BookingStatus status);
+
+		// QR cho booking để renter hiển thị cho staff scan
+		Task<BookingQrDTO?> GenerateBookingQrForRenterAsync(Guid bookingId, Guid renterId, CancellationToken ct = default);
 	}
 }

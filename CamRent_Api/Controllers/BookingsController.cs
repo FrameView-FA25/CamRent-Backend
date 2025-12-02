@@ -42,6 +42,25 @@ namespace CamRent_Api.Controllers
 			return Ok(booking);
 		}
 
+		// QR cho renter: dùng để hiển thị cho staff quét khi nhận/trả hàng
+		[HttpGet("{id:guid}/qr")]
+		[Authorize(Policy = "Renter")]
+		[SwaggerOperation(Summary = "QR booking cho renter", Description = "Tạo QR cho booking của renter hiện tại để staff quét khi nhận/trả hàng. Quyền: Renter")]
+		public async Task<IActionResult> GetBookingQr(Guid id)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var qr = await _bookingService.GenerateBookingQrForRenterAsync(id, Guid.Parse(userId), HttpContext.RequestAborted);
+			if (qr == null)
+				return NotFound();
+
+			return Ok(qr);
+		}
+
 		[HttpPost()]
 		[Authorize(Policy = "Renter")]
 		[SwaggerOperation(Summary = "Tạo booking từ giỏ hàng", Description = "Chuyển trạng thái giỏ hàng hiện tại của renter thành booking chờ duyệt. Quyền: Renter")]
