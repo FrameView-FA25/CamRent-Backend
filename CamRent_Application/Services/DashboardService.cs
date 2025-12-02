@@ -190,6 +190,48 @@ namespace CamRent_Application.Services
 			};
 		}
 
+		public async Task<StaffDashboardDTO> GetStaffDashboardAsync(Guid staffUserId, CancellationToken ct = default)
+		{
+			// Booking được phân công cho staff này
+			var bookings = await _uow.Repository<Booking>()
+				.ListAsync(b => b.StaffId == staffUserId);
+
+			var totalBookings = bookings.Count();
+			var bookingsByStatus = bookings
+				.GroupBy(b => b.Status)
+				.Select(g => new BookingStatusCount
+				{
+					Status = g.Key,
+					StatusText = g.Key.GetDisplayName(),
+					Count = g.Count()
+				})
+				.ToList();
+
+			var today = DateTime.UtcNow.Date;
+			var todayPickups = bookings.Count(b => b.PickupAt.Date == today);
+			var todayReturns = bookings.Count(b => b.ReturnAt.Date == today);
+
+			// Verification requests do staff này phụ trách
+			var verifications = await _uow.Repository<VerificationRequest>()
+				.ListAsync(v => v.StaffId == staffUserId);
+			var pendingVerifs = verifications.Count(v => v.Status == VerificationStatus.Pending);
+
+			// Reviews do staff này moderates
+			var reviews = await _uow.Repository<Review>()
+				.ListAsync(r => r.ReviewedByStaffId == staffUserId);
+			var pendingReviews = reviews.Count(r => r.Status == ReviewStatus.Pending);
+
+			return new StaffDashboardDTO
+			{
+				TotalAssignedBookings = totalBookings,
+				BookingsByStatus = bookingsByStatus,
+				TodayPickupBookings = todayPickups,
+				TodayReturnBookings = todayReturns,
+				PendingVerificationRequests = pendingVerifs,
+				PendingReviewsToModerate = pendingReviews
+			};
+		}
+
 		public async Task<OwnerDashboardDTO> GetOwnerDashboardAsync(Guid ownerUserId, CancellationToken ct = default)
 		{
 			// Lấy thiết bị của owner

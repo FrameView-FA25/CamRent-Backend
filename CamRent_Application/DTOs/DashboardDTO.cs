@@ -108,6 +108,22 @@ namespace CamRent_Application.DTOs
 		// 12 tháng gần nhất
 		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 	}
+
+	// Dashboard dành cho Staff (nhân viên vận hành tại chi nhánh / platform)
+	public class StaffDashboardDTO
+	{
+		// Booking được phân công cho staff này
+		public int TotalAssignedBookings { get; set; }
+		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
+
+		// Công việc trong ngày
+		public int TodayPickupBookings { get; set; }
+		public int TodayReturnBookings { get; set; }
+
+		// Nhiệm vụ hỗ trợ khác
+		public int PendingVerificationRequests { get; set; }
+		public int PendingReviewsToModerate { get; set; }
+	}
 }
 
 
