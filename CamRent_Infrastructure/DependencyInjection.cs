@@ -49,7 +49,11 @@ namespace CamRent_Infrastructure
 
 			// Email
 			services.Configure<EmailOptions>(config.GetSection("Email"));
-			services.AddScoped<IEmailService, SmtpEmailService>();
+			// Dùng SendGrid HTTP API để tránh bị chặn SMTP trên môi trường cloud
+			services.AddHttpClient<IEmailService, SendGridEmailService>((sp, http) =>
+			{
+				http.BaseAddress = new Uri("https://api.sendgrid.com/");
+			});
 
 			// Embeddings (Gemini)
 			services.Configure<GeminiOptions>(config.GetSection("Gemini"));
