@@ -47,6 +47,24 @@ namespace CamRent_Api.Controllers
 			return Ok(data);
 		}
 
+		// Dashboard cho Staff: các booking/nhiệm vụ được phân công cho nhân viên
+		[HttpGet("staff")]
+		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(
+			Summary = "Dashboard cho Staff",
+			Description = "Trả về số liệu tổng quan cho nhân viên: booking được phân công, công việc trong ngày, ...")]
+		public async Task<IActionResult> GetStaffDashboard()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var data = await _dashboard.GetStaffDashboardAsync(Guid.Parse(userId), HttpContext.RequestAborted);
+			return Ok(data);
+		}
+
 		// Dashboard cho Owner: tổng quan thiết bị & doanh thu của riêng owner
 		[HttpGet("owner")]
 		[Authorize(Policy = "Owner")]
