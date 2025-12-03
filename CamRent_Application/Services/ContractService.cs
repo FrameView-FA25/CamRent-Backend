@@ -68,9 +68,11 @@ namespace CamRent_Application.Services
 			var contractRepo = _unitOfWork.Repository<Contract>();
 			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
 
-			var booking = await bookingRepo.GetByIdAsync(bookingId)
+			var booking = (await bookingRepo.ListAsync(include: q => q
+				.Include(b => b.Branch))).FirstOrDefault(b => b.Id == bookingId)
 				?? throw new AppException("Booking not found");
-
+			if(booking.Branch == null)
+				return null;
 			// nếu cần include navigation: tự dùng repo custom hoặc context (tuỳ bạn)
 			// ví dụ: _unitOfWork.BookingRepository.GetBookingWithDetailsAsync(...)
 			var check = await contractRepo.AnyAsync(c => c.BookingId == bookingId && c.Status == ContractStatus.PendingSignatures);
@@ -106,7 +108,7 @@ namespace CamRent_Application.Services
 				Id = Guid.NewGuid(),
 				ContractId = contract.Id,
 				Role = ContractSignerRole.Platform,
-				UserId = staffUserId,
+				UserId = booking.Branch.ManagerId,
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(platformSignature);
@@ -122,9 +124,12 @@ namespace CamRent_Application.Services
 			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
 
 			// 1. Kiểm tra owner tồn tại
-			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(verificationId)
+			var verification = (await _unitOfWork.Repository<VerificationRequest>().ListAsync(include: q => q
+				.Include(v => v.Branch))).FirstOrDefault(v => v.Id == verificationId)
 				?? throw new AppException("Verification not found");
-
+			var check = await contractRepo.AnyAsync(c => c.VerificationId == verificationId && c.Status == ContractStatus.PendingSignatures);
+			if (check)
+				throw new AppException("A pending contract already exists for this verification");
 			// 2. Tạo contract Verification
 			var contract = new Contract
 			{
@@ -157,7 +162,7 @@ namespace CamRent_Application.Services
 				Id = Guid.NewGuid(),
 				ContractId = contract.Id,
 				Role = ContractSignerRole.Platform,
-				UserId = staffUserId,   // staff đang tạo hợp đồng
+				UserId = verification.Branch.ManagerId,  // staff đang tạo hợp đồng
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(platformSignature);
