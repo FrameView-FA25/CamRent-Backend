@@ -63,7 +63,7 @@ namespace CamRent_Application.Services
 						.Include(v => v.Inspections)
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
-						.Include(b => b.Contracts)
+						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
@@ -95,7 +95,7 @@ namespace CamRent_Application.Services
 						.Include(v => v.Inspections)
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
-						.Include(b => b.Contracts)
+						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
@@ -192,7 +192,7 @@ namespace CamRent_Application.Services
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(v => v.Inspections)
-						.Include(b => b.Contracts)
+						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				)).FirstOrDefault();
 			if (verification == null) return null;
 			var response = _mapper.Map<VerificationResponseDTO>(verification);
