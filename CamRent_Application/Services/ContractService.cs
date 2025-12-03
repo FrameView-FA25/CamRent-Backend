@@ -73,6 +73,9 @@ namespace CamRent_Application.Services
 
 			// nếu cần include navigation: tự dùng repo custom hoặc context (tuỳ bạn)
 			// ví dụ: _unitOfWork.BookingRepository.GetBookingWithDetailsAsync(...)
+			var check = await contractRepo.AnyAsync(c => c.BookingId == bookingId && c.Status == ContractStatus.PendingSignatures);
+			if (check)
+				throw new AppException("A pending contract already exists for this booking");
 
 			var contract = new Contract
 			{
