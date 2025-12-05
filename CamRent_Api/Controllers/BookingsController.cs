@@ -1,9 +1,11 @@
 ﻿using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
+using CamRent_Api.Hubs;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using static CamRent_Api.Models.BookingModel;
 using static CamRent_Application.DTOs.BookingDTO;
@@ -19,10 +21,12 @@ namespace CamRent_Api.Controllers
 
 		private readonly IBookingService _bookingService;
 		private readonly IPricingService _pricingService;
-		public BookingsController(IBookingService bookingService, IPricingService pricingService)
+		private readonly IHubContext<NotificationHub> _hub;
+		public BookingsController(IBookingService bookingService, IPricingService pricingService, IHubContext<NotificationHub> hub)
 		{
 			_bookingService = bookingService;
 			_pricingService = pricingService;
+			_hub = hub;
 		}
 
 		[HttpGet]
@@ -186,6 +190,25 @@ namespace CamRent_Api.Controllers
 			var result = await _bookingService.UpdateBookingStatusAsync(id, status);
 			if (result > 0)
 			{
+				// Bắn signalr cho renter, staff, manager, owner liên quan biết booking đổi trạng thái
+				var booking = await _bookingService.GetByIdAsync(id);
+				if (booking != null)
+				{
+					var renterId = booking.RenterId?.ToString();
+					if (!string.IsNullOrEmpty(renterId))
+					{
+						await _hub.Clients.User(renterId)
+							.SendAsync("BookingUpdated", new { booking.Id, booking.Status, booking.StatusText });
+					}
+
+					// Broadcast theo role để dashboard Staff/Manager/Admin có thể reload
+					await _hub.Clients.Group("role:Staff")
+						.SendAsync("BookingUpdatedForStaff", new { booking.Id, booking.Status, booking.StatusText });
+					await _hub.Clients.Group("role:BranchManager")
+						.SendAsync("BookingUpdatedForManager", new { booking.Id, booking.Status, booking.StatusText });
+					await _hub.Clients.Group("role:Admin")
+						.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
+				}
 				return NoContent();
 			}
 			return BadRequest();
