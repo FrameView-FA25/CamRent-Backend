@@ -10,6 +10,7 @@ using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;		
 using System.Text;
 using static CamRent_Application.DTOs.AuthDTO;
+using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Application.Services
 {
@@ -30,8 +31,9 @@ namespace CamRent_Application.Services
 
 		public async Task<List<User>> GetAllUsers()
 		{
-			var result = await _unitOfWork.Repository<User>().GetAllAsync();
-			return (List<User>)result;
+			var result = await _unitOfWork.Repository<User>()
+				.ListAsync(include: q => q.Include(u => u.Roles));
+			return result.ToList();
 		}
 
 		public async Task<User> GetUserProfileById(Guid id)
