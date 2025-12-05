@@ -38,8 +38,10 @@ namespace CamRent_Application.Services
 
 		public async Task<User> GetUserProfileById(Guid id)
 		{
-			var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
-			return user!;
+			var users = await _unitOfWork.Repository<User>()
+				.ListAsync(p => p.Id == id, include: q => q.Include(u => u.Roles));
+			var user = users.FirstOrDefault() ?? throw new InvalidOperationException("User not found");
+			return user;
 		}
 
 		public async Task<Guid> GetUserIdByManagerId(Guid managerId)
