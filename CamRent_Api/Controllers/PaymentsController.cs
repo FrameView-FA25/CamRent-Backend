@@ -1,12 +1,14 @@
 using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
+using CamRent_Api.Hubs;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using CamRent_Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.AspNetCore.SignalR;
 using static CamRent_Api.Models.PaymentModel;
 
 namespace CamRent_Api.Controllers
@@ -20,12 +22,14 @@ namespace CamRent_Api.Controllers
     	private readonly IPricingService _pricingService;
     	private readonly IPayOsService _payOsService;
 		private readonly IBookingService _bookingService;
-		public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IPayOsService payOsService, IBookingService bookingService)
+		private readonly IHubContext<NotificationHub> _hub;
+		public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IPayOsService payOsService, IBookingService bookingService, IHubContext<NotificationHub> hub)
 		{
 			_paymentService = paymentService;
 			_pricingService = pricingService;
 			_payOsService = payOsService;
 			_bookingService = bookingService;
+			_hub = hub;
 		}
 
 		[HttpPost("authorize")]
@@ -87,6 +91,34 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> Capture(Guid id, [FromBody] CaptureRequest request)
 		{
 			await _paymentService.CaptureAsync(id, request.Amount);
+
+			var payment = await _paymentService.GetByIdAsync(id);
+			if (payment != null)
+			{
+				// Thông báo cho renter của booking (nếu lấy được)
+				var booking = await _bookingService.GetByIdAsync(payment.BookingId);
+				var renterId = booking?.RenterId?.ToString();
+				if (!string.IsNullOrEmpty(renterId))
+				{
+					await _hub.Clients.User(renterId)
+						.SendAsync("PaymentUpdated", new
+						{
+							payment.Id,
+							Status = payment.Status.ToString(),
+							payment.CapturedAmount,
+							payment.RefundedAmount
+						});
+				}
+
+				// Broadcast cho dashboard Staff/Manager/Admin
+				await _hub.Clients.Group("role:Staff")
+					.SendAsync("PaymentUpdatedForStaff", new { payment.Id, Status = payment.Status.ToString() });
+				await _hub.Clients.Group("role:BranchManager")
+					.SendAsync("PaymentUpdatedForManager", new { payment.Id, Status = payment.Status.ToString() });
+				await _hub.Clients.Group("role:Admin")
+					.SendAsync("PaymentUpdatedForAdmin", new { payment.Id, Status = payment.Status.ToString() });
+			}
+
 			return NoContent();
 		}
 
@@ -98,6 +130,31 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> Refund(Guid id, [FromBody] RefundRequest request)
 		{
 			await _paymentService.RefundAsync(id, request.Amount);
+			var payment = await _paymentService.GetByIdAsync(id);
+			if (payment != null)
+			{
+				var booking = await _bookingService.GetByIdAsync(payment.BookingId);
+				var renterId = booking?.RenterId?.ToString();
+				if (!string.IsNullOrEmpty(renterId))
+				{
+					await _hub.Clients.User(renterId)
+						.SendAsync("PaymentUpdated", new
+						{
+							payment.Id,
+							Status = payment.Status.ToString(),
+							payment.CapturedAmount,
+							payment.RefundedAmount
+						});
+				}
+
+				await _hub.Clients.Group("role:Staff")
+					.SendAsync("PaymentUpdatedForStaff", new { payment.Id, Status = payment.Status.ToString() });
+				await _hub.Clients.Group("role:BranchManager")
+					.SendAsync("PaymentUpdatedForManager", new { payment.Id, Status = payment.Status.ToString() });
+				await _hub.Clients.Group("role:Admin")
+					.SendAsync("PaymentUpdatedForAdmin", new { payment.Id, Status = payment.Status.ToString() });
+			}
+
 			return NoContent();
 		}
 
