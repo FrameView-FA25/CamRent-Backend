@@ -3,6 +3,8 @@ using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
+using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Api.Controllers
 {
@@ -12,10 +14,12 @@ namespace CamRent_Api.Controllers
 	public class UsersController : ControllerBase
 	{
 		private readonly IUserService _userService;
+		private readonly IAuthService _authService;
 
-		public UsersController(IUserService userService)
+		public UsersController(IUserService userService, IAuthService authService)
 		{
 			_userService = userService;
+			_authService = authService;
 		}
 
 		public sealed class AdminUserResponse
@@ -27,6 +31,22 @@ namespace CamRent_Api.Controllers
 			public UserStatus Status { get; set; }
 			public DateTime CreatedAt { get; set; }
 			public string[] Roles { get; set; } = Array.Empty<string>();
+		}
+
+		public sealed class CreateUserRequest
+		{
+			public string Email { get; set; } = string.Empty;
+			public string Phone { get; set; } = string.Empty;
+			public string Password { get; set; } = "123456"; // FE nên ép đổi sau
+			public string FullName { get; set; } = string.Empty;
+			public UserRole Role { get; set; } = UserRole.Staff;
+		}
+
+		public sealed class UpdateUserRequest
+		{
+			public string? Phone { get; set; }
+			public string? FullName { get; set; }
+			public UserStatus? Status { get; set; }
 		}
 
 		[HttpGet]
@@ -64,6 +84,69 @@ namespace CamRent_Api.Controllers
 				total,
 				items = paged
 			});
+		}
+
+		[HttpGet("{id:guid}")]
+		[SwaggerOperation(Summary = "Chi tiết user (Admin)", Description = "Trả về chi tiết 1 user kèm roles. Chỉ dành cho Admin.")]
+		public async Task<ActionResult<AdminUserResponse>> GetById(Guid id)
+		{
+			var u = await _userService.GetUserProfileById(id);
+			var dto = new AdminUserResponse
+			{
+				Id = u.Id,
+				Email = u.Email,
+				Phone = u.Phone,
+				FullName = u.FullName,
+				Status = u.Status,
+				CreatedAt = u.CreatedAt,
+				Roles = u.Roles.Select(r => r.Role.ToString()).ToArray()
+			};
+			return Ok(dto);
+		}
+
+		[HttpPost]
+		[SwaggerOperation(Summary = "Tạo user mới (Admin)", Description = "Admin tạo user mới với 1 role (Staff/Manager/Owner/...); mật khẩu tạm, FE nên buộc đổi sau.")]
+		public async Task<ActionResult<Guid>> Create([FromBody] CreateUserRequest req)
+		{
+			var currentAdminId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+							  ?? User.FindFirst("sub")?.Value
+							  ?? User.FindFirst("uid")?.Value;
+
+			var reg = new RegisterRequest
+			{
+				Email = req.Email,
+				Phone = req.Phone,
+				Password = req.Password,
+				FullName = req.FullName
+			};
+
+			var id = await _authService.Register(reg, Guid.Parse(currentAdminId!), req.Role);
+			if (id == Guid.Empty)
+				return BadRequest("Email đã được đăng kí.");
+
+			return Ok(id);
+		}
+
+		[HttpPut("{id:guid}")]
+		[SwaggerOperation(Summary = "Cập nhật user (Admin)", Description = "Admin cập nhật thông tin cơ bản và trạng thái user.")]
+		public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserRequest req)
+		{
+			var user = await _userService.GetUserProfileById(id);
+			if (!string.IsNullOrWhiteSpace(req.Phone)) user.Phone = req.Phone;
+			if (!string.IsNullOrWhiteSpace(req.FullName)) user.FullName = req.FullName;
+			if (req.Status.HasValue) user.Status = req.Status.Value;
+
+			await _userService.UpdateUser(user);
+			return NoContent();
+		}
+
+		[HttpDelete("{id:guid}")]
+		[SwaggerOperation(Summary = "Xóa user (Admin)", Description = "Xóa một user khỏi hệ thống.")]
+		public async Task<IActionResult> Delete(Guid id)
+		{
+			var result = await _userService.DeleteUser(id);
+			if (result > 0) return NoContent();
+			return NotFound();
 		}
 	}
 }
