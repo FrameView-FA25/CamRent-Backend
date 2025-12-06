@@ -27,7 +27,7 @@ namespace CamRent_Api.Controllers
 
 		// GET api/wallets/balance
 		[HttpGet("balance")]
-		[Authorize(Policy = "Renter")]
+		[Authorize]
 		public async Task<ActionResult> GetMyBalance()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -39,7 +39,7 @@ namespace CamRent_Api.Controllers
 
 		// GET api/wallets/me - xem ví + lịch sử
 		[HttpGet("me")]
-		[Authorize(Policy = "Renter")]
+		[Authorize]
 		public async Task<ActionResult<WalletSummaryResponse>> GetMyWallet()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -51,7 +51,7 @@ namespace CamRent_Api.Controllers
 
 		// POST api/wallets/topup - tạo link nạp ví qua PayOS
 		[HttpPost("topup")]
-		[Authorize(Policy = "Renter")]
+		[Authorize]
 		public async Task<ActionResult> TopupWallet([FromBody] WalletTopupRequest request)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
