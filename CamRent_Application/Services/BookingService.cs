@@ -25,9 +25,14 @@ namespace CamRent_Application.Services
 			_mapper = mapper;
 		}
 
-		public async Task<BookingResponseDTO?> GetByIdAsync(Guid bookingId)
+		public async Task<BookingResponseDTO?> GetByIdAsync(Guid? bookingId)
 		{
-			var booking =  (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.Id == bookingId, 
+			if (!bookingId.HasValue)
+			{
+				return null;
+			}
+			
+			var booking =  (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.Id == bookingId.Value, 
 				include: b => b.Include(b => b.Items)
 							.ThenInclude(i => i.Camera)
 						.Include(b => b.Items)
@@ -106,7 +111,7 @@ namespace CamRent_Application.Services
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
 						.Include(b => b.Inspections)
-						.Include(b => b.Renter)
+						.Include(b => b.Renter)	
 						.Include(b => b.Contracts))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);

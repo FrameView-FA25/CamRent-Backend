@@ -7,7 +7,7 @@ namespace CamRent_Application.IServices
 {
 	public interface IBookingService
 	{
-		Task<BookingResponseDTO?> GetByIdAsync(Guid bookingId);
+		Task<BookingResponseDTO?> GetByIdAsync(Guid? bookingId);
 		Task<List<BookingResponseDTO>> GetAllAsync();
 		Task<int> CreateBookingAsync(CreateBookingRequest createBookingRequest, Guid renterId);
 		Task<int> AssignStaffToBookingsAsync(Guid bookingId, Guid staffUserId);

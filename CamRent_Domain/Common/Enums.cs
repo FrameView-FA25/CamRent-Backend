@@ -48,7 +48,7 @@ namespace CamRent_Domain.Common
         [Display(Name = "Giỏ hàng")]
         Draft = 0,
 
-        [Display(Name = "Chờ duyệt")]
+        [Display(Name = "Chờ thanh toán")]
         PendingApproval = 1,
 
         [Display(Name = "Đã xác nhận")]
@@ -156,12 +156,15 @@ namespace CamRent_Domain.Common
         Rejected = 3
     }
 
-   
-
     public enum PaymentType
     {
         Deposit = 1,
         Rental = 2,
+	}
+	public enum PaymentMethod
+	{
+		PayOs = 1,
+		Wallet = 2
 	}
 }
 

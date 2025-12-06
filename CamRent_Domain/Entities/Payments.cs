@@ -4,8 +4,8 @@ namespace CamRent_Domain.Entities
 {
     public class Payment : BaseEntity
     {
-        public Guid BookingId { get; set; }
-        public Booking Booking { get; set; } = default!;
+        public Guid? BookingId { get; set; }
+        public Booking? Booking { get; set; }
 
         public PaymentStatus Status { get; set; }
         public string Provider { get; set; } = "PayOS";

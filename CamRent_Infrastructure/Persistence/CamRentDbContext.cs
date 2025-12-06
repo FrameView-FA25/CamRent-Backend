@@ -44,8 +44,9 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<VerificationRequestItem> VerificationRequestItems => Set<VerificationRequestItem>();
 		public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
         public DbSet<ResetPasswordToken> ResetPasswordTokens => Set<ResetPasswordToken>();
-
-        public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
+        public DbSet<Wallet> Wallets => Set<Wallet>();
+        public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+		public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -319,6 +320,22 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(hr => hr.Inspection)
                 .WithMany()
                 .HasForeignKey(hr => hr.InspectionId);
+            modelBuilder.Entity<Wallet>()
+                .HasOne(w => w.User)
+                .WithMany()
+                .HasForeignKey(w => w.UserId);
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.Wallet)
+                .WithMany(w => w.Transactions)
+                .HasForeignKey(wt => wt.WalletId);
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.Payment)
+                .WithMany()
+                .HasForeignKey(wt => wt.PaymentId);
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.Booking)
+                .WithMany()
+                .HasForeignKey(wt => wt.BookingId);
 		}
 
         private static string ToSnakeCase(string name)

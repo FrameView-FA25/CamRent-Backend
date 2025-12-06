@@ -13,7 +13,7 @@ namespace CamRent_Application
 		{
 			services.AddScoped<IPayOsService, PayOsService>();
 			services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-
+			services.AddScoped<IWalletService, WalletService>();
 			services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();
 			services.AddScoped<IBranchService, BranchService>();
 			services.AddScoped<IAccessoryService, AccessoryService>();

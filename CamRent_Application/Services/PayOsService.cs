@@ -6,13 +6,14 @@ using CamRent_Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PayOS;
-using PayOS.Models; // quan trọng: chỉ cần namespace này
+using PayOS.Models;
 using PayOS.Models.V2.PaymentRequests;
 using PayOS.Models.Webhooks;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static CamRent_Application.DTOs.PayOsWebhookDTO;
 
 public sealed class PayOsService : IPayOsService
 {
@@ -42,27 +43,23 @@ public sealed class PayOsService : IPayOsService
 		string cancelUrl,
 		CancellationToken ct = default)
 	{
-		// orderCode phải là số nguyên dương
 		var orderCode = Math.Abs(BitConverter.ToInt32(paymentId.ToByteArray(), 0));
 		if (orderCode == 0) orderCode = 1;
 
 		var req = new CreatePaymentLinkRequest
 		{
 			OrderCode = orderCode,
-			Amount = (int)amount,           // PayOS dùng int VND
+			Amount = (int)amount,
 			Description = description,
 			ReturnUrl = returnUrl,
 			CancelUrl = cancelUrl
-			// SDK không bắt buộc Items, nên bỏ cho gọn
 		};
 
-		// Không có overload nhận CancellationToken, gọi như docs
 		var res = await _client.PaymentRequests.CreateAsync(req);
 
 		var checkoutUrl = res.CheckoutUrl
 			?? throw new InvalidOperationException("PayOS response missing checkoutUrl");
 
-		// Lưu mapping để webhook tra ngược
 		var payment = await _uow.Repository<Payment>().GetByIdAsync(paymentId);
 		if (payment != null)
 		{
@@ -75,18 +72,17 @@ public sealed class PayOsService : IPayOsService
 		return checkoutUrl;
 	}
 
-	public async Task<bool> HandleWebhookAsync(Webhook webhook, CancellationToken ct = default)
+	public async Task<PayOsWebhookResult?> HandleWebhookAsync(Webhook webhook, CancellationToken ct = default)
 	{
 		WebhookData data;
 		try
 		{
-			// Verify chữ ký + parse data
 			data = await _client.Webhooks.VerifyAsync(webhook);
 		}
 		catch (Exception ex)
 		{
 			_logger.LogWarning(ex, "Invalid PayOS webhook");
-			return false;
+			return null;
 		}
 
 		var orderCode = data.OrderCode;
@@ -96,7 +92,7 @@ public sealed class PayOsService : IPayOsService
 		var payments = await _uow.Repository<Payment>()
 			.ListAsync(p => p.Provider == "PayOS" && p.ProviderPaymentId == orderCode.ToString());
 		var payment = payments.FirstOrDefault();
-		if (payment == null) return false;
+		if (payment == null) return null;
 
 		var ev = new PaymentEvent
 		{
@@ -116,9 +112,27 @@ public sealed class PayOsService : IPayOsService
 			payment.Status = PaymentStatus.Captured;
 			payment.CapturedAmount = amount;
 			await _uow.Repository<Payment>().UpdateAsync(payment);
+			if (payment.BookingId.HasValue)
+			{
+				var bookingRepo = _uow.Repository<Booking>();
+				var booking = await bookingRepo.GetByIdAsync(payment.BookingId.Value);
+				if (booking != null && booking.Status == BookingStatus.PendingApproval)
+				{
+					booking.Status = BookingStatus.Confirmed;
+					await bookingRepo.UpdateAsync(booking);
+				}
+			}
 		}
 
 		await _uow.Complete();
-		return true;
+
+		return new PayOsWebhookResult
+		{
+			Success = success,
+			PaymentId = payment.Id,
+			UserId = payment.CreatedByUserId,
+			BookingId = payment.BookingId,
+			Amount = amount
+		};
 	}
 }

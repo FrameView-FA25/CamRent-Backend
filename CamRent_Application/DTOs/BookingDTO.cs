@@ -38,7 +38,6 @@ namespace CamRent_Application.DTOs
 
 			// Snapshot pricing values for immutability
 			public decimal SnapshotBaseDailyRate { get; set; }
-			public decimal SnapshotDepositPercent { get; set; }
 			public decimal SnapshotPlatformFeePercent { get; set; }
 			public decimal SnapshotRentalTotal { get; set; }
 			public decimal SnapshotDepositAmount { get; set; }

@@ -1,15 +1,16 @@
+using CamRent_Api.Hubs;
 using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
-using CamRent_Api.Hubs;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using CamRent_Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.SignalR;
+using Swashbuckle.AspNetCore.Annotations;
 using static CamRent_Api.Models.PaymentModel;
+using static CamRent_Application.DTOs.WalletDTO;
 
 namespace CamRent_Api.Controllers
 {
@@ -18,17 +19,26 @@ namespace CamRent_Api.Controllers
 	[Authorize]
 	public class PaymentsController : ControllerBase
 	{
-    	private readonly IPaymentService _paymentService;
-    	private readonly IPricingService _pricingService;
-    	private readonly IPayOsService _payOsService;
+		private readonly IPaymentService _paymentService;
+		private readonly IPricingService _pricingService;
+		private readonly IPayOsService _payOsService;
 		private readonly IBookingService _bookingService;
+		private readonly IWalletService _walletService;
 		private readonly IHubContext<NotificationHub> _hub;
-		public PaymentsController(IPaymentService paymentService, IPricingService pricingService, IPayOsService payOsService, IBookingService bookingService, IHubContext<NotificationHub> hub)
+
+		public PaymentsController(
+			IPaymentService paymentService,
+			IPricingService pricingService,
+			IPayOsService payOsService,
+			IBookingService bookingService,
+			IWalletService walletService,
+			IHubContext<NotificationHub> hub)
 		{
 			_paymentService = paymentService;
 			_pricingService = pricingService;
 			_payOsService = payOsService;
 			_bookingService = bookingService;
+			_walletService = walletService;
 			_hub = hub;
 		}
 
@@ -36,7 +46,17 @@ namespace CamRent_Api.Controllers
 		[Authorize(Policy = "Renter")]
 		public async Task<ActionResult<Guid>> Authorize([FromBody] CreateAuthorizationRequest request)
 		{
+			// 1) Lấy booking & tính snapshot
 			var booking = await _bookingService.GetByIdAsync(request.BookingId);
+			if (booking == null)
+				return NotFound("Booking not found");
+
+			if (booking.RenterId == null)
+				return BadRequest("Booking does not have renter");
+
+			var renterId = booking.RenterId.Value;
+
+			// rental = tổng tiền thuê + deposit thiết bị (theo cách bạn đang làm)
 			var rental = booking.SnapshotRentalTotal + booking.SnapshotDepositAmount;
 			var deposit = booking.SnapshotRentalTotal * booking.SnapshotPlatformFeePercent;
 
@@ -45,7 +65,7 @@ namespace CamRent_Api.Controllers
 			switch (request.Mode)
 			{
 				case PaymentType.Deposit:
-					// LẦN 1: chỉ thu tiền cọc
+					// LẦN 1: chỉ thu tiền cọc (platform fee)
 					authorizedAmount = deposit;
 					break;
 
@@ -60,6 +80,44 @@ namespace CamRent_Api.Controllers
 					return BadRequest("Invalid payment mode");
 			}
 
+			// 2) Nếu thanh toán bằng ví
+			if (request.Method == PaymentMethod.Wallet)
+			{
+				if (authorizedAmount <= 0)
+					return BadRequest("No amount to pay by wallet");
+
+				// Trừ tiền trong ví
+				var walletReq = new WalletTransactionRequest
+				{
+					Amount = authorizedAmount,
+					Type = request.Mode == PaymentType.Deposit ? "pay_deposit" : "pay_rental",
+					PaymentId = null,               // chưa có paymentId, nếu cần có thể update sau
+					BookingId = booking.Id,
+					Description = request.Mode == PaymentType.Deposit
+						? $"Thanh toán tiền cọc booking {booking.Id} bằng ví"
+						: $"Thanh toán tiền thuê booking {booking.Id} bằng ví"
+				};
+
+				var ok = await _walletService.DebitAsync(renterId, walletReq);
+				if (!ok)
+					return BadRequest("Wallet balance not enough");
+
+				// Tạo Payment với Provider = Wallet, đã captured
+				var paymentId = await _paymentService.CreateWalletPaymentAsync(
+					booking.Id,
+					rentalAmount: rental,
+					depositAmount: deposit,
+					mode: request.Mode,
+					capturedAmount: authorizedAmount
+				);
+
+				// (Optional) Nếu bạn muốn link lại PaymentId vào transaction ví vừa tạo,
+				// có thể thêm method riêng trong WalletService để update PaymentId cho transaction gần nhất.
+
+				return Ok(paymentId);
+			}
+
+			// 3) Ngược lại: thanh toán qua PayOS (flow cũ)
 			var id = await _paymentService.CreateAuthorizationAsync(
 				request.BookingId,
 				rentalAmount: rental,
