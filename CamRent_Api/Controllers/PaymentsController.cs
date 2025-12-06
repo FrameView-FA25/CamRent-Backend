@@ -184,7 +184,7 @@ namespace CamRent_Api.Controllers
 		[Authorize(Policy = "BranchManager")]
 		[SwaggerOperation(
 			Summary = "Refund một phần/toàn bộ payment",
-			Description = "Thực hiện hoàn tiền thủ công cho renter, cập nhật số tiền đã refund trong payment.")]
+			Description = "Thực hiện hoàn tiền thủ công cho renter, cập nhật số tiền đã refund trong payment và cộng tiền về ví của renter.")]
 		public async Task<IActionResult> Refund(Guid id, [FromBody] RefundRequest request)
 		{
 			await _paymentService.RefundAsync(id, request.Amount);
@@ -195,6 +195,18 @@ namespace CamRent_Api.Controllers
 				var renterId = booking?.RenterId?.ToString();
 				if (!string.IsNullOrEmpty(renterId))
 				{
+					// Refund về ví của renter
+					var walletRefundReq = new WalletTransactionRequest
+					{
+						Amount = request.Amount,
+						Type = "refund",
+						PaymentId = payment.Id,
+						BookingId = payment.BookingId,
+						Description = $"Hoàn tiền về ví cho payment {payment.Id}"
+					};
+
+					await _walletService.CreditAsync(Guid.Parse(renterId), walletRefundReq);
+
 					await _hub.Clients.User(renterId)
 						.SendAsync("PaymentUpdated", new
 						{

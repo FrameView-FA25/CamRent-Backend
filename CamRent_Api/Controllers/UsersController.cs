@@ -86,24 +86,6 @@ namespace CamRent_Api.Controllers
 			});
 		}
 
-		[HttpGet("{id:guid}")]
-		[SwaggerOperation(Summary = "Chi tiết user (Admin)", Description = "Trả về chi tiết 1 user kèm roles. Chỉ dành cho Admin.")]
-		public async Task<ActionResult<AdminUserResponse>> GetById(Guid id)
-		{
-			var u = await _userService.GetUserProfileById(id);
-			var dto = new AdminUserResponse
-			{
-				Id = u.Id,
-				Email = u.Email,
-				Phone = u.Phone,
-				FullName = u.FullName,
-				Status = u.Status,
-				CreatedAt = u.CreatedAt,
-				Roles = u.Roles.Select(r => r.Role.ToString()).ToArray()
-			};
-			return Ok(dto);
-		}
-
 		[HttpPost]
 		[SwaggerOperation(Summary = "Tạo user mới (Admin)", Description = "Admin tạo user mới với 1 role (Staff/Manager/Owner/...); mật khẩu tạm, FE nên buộc đổi sau.")]
 		public async Task<ActionResult<Guid>> Create([FromBody] CreateUserRequest req)
@@ -140,14 +122,7 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		[HttpDelete("{id:guid}")]
-		[SwaggerOperation(Summary = "Xóa user (Admin)", Description = "Xóa một user khỏi hệ thống.")]
-		public async Task<IActionResult> Delete(Guid id)
-		{
-			var result = await _userService.DeleteUser(id);
-			if (result > 0) return NoContent();
-			return NotFound();
-		}
+		// Nếu sau này cần soft-delete, có thể thêm endpoint mới tại đây.
 	}
 }
 
