@@ -9,6 +9,7 @@ using static CamRent_Application.DTOs.CameraDTO;
 using static CamRent_Application.DTOs.ContractDTO;
 using static CamRent_Application.DTOs.InspectionDTO;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
+using static CamRent_Application.DTOs.WalletDTO;
 
 namespace CamRent_Application.Common
 {
@@ -218,7 +219,8 @@ namespace CamRent_Application.Common
 					opt => opt.MapFrom(s => s.Branch != null && s.Branch.Address != null
 						? s.Branch.Address.District + "," + s.Branch.Address.Province
 						: null));
-
+			CreateMap<Wallet, WalletSummaryResponse>();
+			CreateMap<WalletTransaction, WalletTransactionResponse>();
 		}
 	}
 }

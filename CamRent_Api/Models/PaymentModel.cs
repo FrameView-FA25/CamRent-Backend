@@ -9,7 +9,10 @@ namespace CamRent_Api.Models
 		{
 			[Required]
 			public Guid BookingId { get; set; }
+			[Required]
 			public PaymentType Mode { get; set; }
+			[Required]
+			public PaymentMethod Method { get; set; }   // PayOs / Wallet
 		}
 
 		public class AddLineRequest

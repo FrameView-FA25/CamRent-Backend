@@ -170,7 +170,7 @@ namespace CamRent_Application.Services
 
 			// Payments for bookings in this branch
 			var bookingIds = bookings.Select(b => b.Id).ToHashSet();
-			var payments = await _uow.Repository<Payment>().ListAsync(p => bookingIds.Contains(p.BookingId));
+			var payments = await _uow.Repository<Payment>().ListAsync(p => bookingIds.Contains((Guid)p.BookingId));
 			var totalCaptured = payments.Sum(p => p.CapturedAmount);
 
 			// Disputes for bookings in branch
