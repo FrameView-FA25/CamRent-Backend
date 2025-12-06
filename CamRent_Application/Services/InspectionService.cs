@@ -57,6 +57,48 @@ namespace CamRent_Application.Services
 
 			inspection.CreatedAt = DateTime.UtcNow;
 			inspection.CreatedByUserId = staffId;
+			if (inspection.Passed == true)
+			{
+				if (inspection.CameraId != null)
+				{
+					var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(inspection.CameraId.Value);
+					if (camera != null)
+					{
+						camera.IsConfirmed = true;
+						await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
+					}
+				}
+				else if (inspection.AccessoryId != null)
+				{
+					var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(inspection.AccessoryId.Value);
+					if (accessory != null)
+					{
+						accessory.IsConfirmed = true;
+						await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
+					}
+				}
+			}
+			else if (inspection.Passed == false)
+			{
+				if (inspection.CameraId != null)
+				{
+					var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(inspection.CameraId.Value);
+					if (camera != null)
+					{
+						camera.IsConfirmed = false;
+						await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
+					}
+				}
+				else if (inspection.AccessoryId != null)
+				{
+					var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(inspection.AccessoryId.Value);
+					if (accessory != null)
+					{
+						accessory.IsConfirmed = false;
+						await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
+					}
+				}
+			}
 
 			// CreatedAt thì nên để DbContext/SaveChanges xử lý (BaseEntity)
 			await _unitOfWork.Repository<Inspection>().AddAsync(inspection);
@@ -157,6 +199,47 @@ namespace CamRent_Application.Services
 			// Use CreatedByUserId to track staff who performed update
 			inspection.UpdatedByUserId = staffId;
 			inspection.UpdatedAt = DateTime.UtcNow;
+			if (inspection.Passed == true)
+			{
+				if (inspection.CameraId != null)
+				{
+					var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(inspection.CameraId.Value);
+					if (camera != null)
+					{
+						camera.IsConfirmed = true;
+						await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
+					}
+				}
+				else if (inspection.AccessoryId != null)
+				{
+					var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(inspection.AccessoryId.Value);
+					if (accessory != null)
+					{
+						accessory.IsConfirmed = true;
+						await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
+					}
+				}
+			}
+			else if(inspection.Passed == false) { 
+				if (inspection.CameraId != null)
+				{
+					var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(inspection.CameraId.Value);
+					if (camera != null)
+					{
+						camera.IsConfirmed = false;
+						await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
+					}
+				}
+				else if (inspection.AccessoryId != null)
+				{
+					var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(inspection.AccessoryId.Value);
+					if (accessory != null)
+					{
+						accessory.IsConfirmed = false;
+						await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
+					}
+				}
+			}
 
 			await _unitOfWork.Repository<Inspection>().UpdateAsync(inspection);
 			return await _unitOfWork.Complete();
@@ -181,38 +264,6 @@ namespace CamRent_Application.Services
 
 			await _unitOfWork.Repository<Inspection>().DeleteAsync(id);
 			return await _unitOfWork.Complete();
-		}
-
-		public async Task<int> ApproveInspectionAsync(Guid id, Guid managerId, bool pass)
-		{
-			var inspectionTask = await _unitOfWork.Repository<Inspection>().GetByIdAsync(id);
-			inspectionTask.ManagerId = managerId;
-			inspectionTask.Passed = pass;
-			inspectionTask.PerformedAt = DateTime.UtcNow;
-			await _unitOfWork.Repository<Inspection>().UpdateAsync(inspectionTask);
-			if(inspectionTask.VerificationId != null && pass)
-			{
-				if(inspectionTask.CameraId != null)
-				{
-					var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(inspectionTask.CameraId.Value);
-					if (camera != null)
-					{
-						camera.IsConfirmed = true;
-						await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
-					}
-				}
-				else if(inspectionTask.AccessoryId != null)
-				{
-					var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(inspectionTask.AccessoryId.Value);
-					if (accessory != null)
-					{
-						accessory.IsConfirmed = true;
-						await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
-					}
-				}
-			}
-			var result = await _unitOfWork.Complete();
-			return result;
 		}
 	}
 }
