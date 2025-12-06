@@ -279,11 +279,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(i => i.VerificationId);
 
             modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Manager)
-                .WithMany()
-                .HasForeignKey(i => i.ManagerId);
-
-            modelBuilder.Entity<Inspection>()
                 .HasOne(i => i.Branch)
                 .WithMany()
                 .HasForeignKey(i => i.BranchId);

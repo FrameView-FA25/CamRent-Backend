@@ -154,21 +154,6 @@ namespace CamRent_Api.Controllers
 
 			return Ok(new { Message = "Cập nhật camera thành công." });
 		}
-
-		[HttpPut("{id:guid}/approve")]
-		[Authorize(Policy = "BranchManager")]
-		[SwaggerOperation(Summary = "Phê duyệt inspection", Description = "Phê duyệt một inspection. Quyền: BranchManager.")]
-		public async Task<IActionResult> ApproveInspection(Guid id, bool pass)
-		{
-			var managerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-					  ?? User.FindFirst("sub")?.Value
-					  ?? User.FindFirst("uid")?.Value;
-			var result = await _inspectionService.ApproveInspectionAsync(id, Guid.Parse(managerId), pass);
-			if (result > 0)
-				return Ok(new { Message = "Inspection được phê duyệt thành công." });
-			return BadRequest(new { Message = "Inspection phê duyệt thất bại." });
-		}
-
 		// New: delete inspection
 		[HttpDelete("{id:guid}")]
 		[Authorize(Policy = "ManagerOrStaff")]

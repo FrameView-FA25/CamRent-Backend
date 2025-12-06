@@ -12,9 +12,6 @@ namespace CamRent_Domain.Entities
         public bool? Passed { get; set; }
         public string Notes { get; set; } = string.Empty;
 		public User? Staff { get; set; }
-		public DateTime? PerformedAt { get; set; }
-		public Guid? ManagerId { get; set; }
-		public User? Manager { get; set; }
 		public Guid? BranchId { get; set; }
 		public Branch? Branch { get; set; }
 		public Guid? CameraId { get; set; }

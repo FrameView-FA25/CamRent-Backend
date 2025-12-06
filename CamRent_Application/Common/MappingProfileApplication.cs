@@ -170,10 +170,8 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.Verification, opt => opt.Ignore())
 				.ForMember(d => d.Branch, opt => opt.Ignore())
 				.ForMember(d => d.Staff, opt => opt.Ignore())
-				.ForMember(d => d.Manager, opt => opt.Ignore())
 				.ForMember(d => d.Camera, opt => opt.Ignore())
-				.ForMember(d => d.Accessory, opt => opt.Ignore())
-				.ForMember(d => d.PerformedAt, opt => opt.Ignore());
+				.ForMember(d => d.Accessory, opt => opt.Ignore());
 
 			// Entity -> DTO
 			CreateMap<Inspection, InspectionResponseDTO>()
@@ -195,8 +193,7 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.Media, opt => opt.Ignore());
 
 			CreateMap<UpdateInspectionRequest, Inspection>()
-				.ForMember(x => x.Id, opt => opt.Ignore())
-				.ForMember(x => x.ManagerId, opt => opt.Ignore());
+				.ForMember(x => x.Id, opt => opt.Ignore());
 
 			CreateMap<UpdateVerificationRequestDTO, VerificationRequest>()
 				.ForMember(d => d.Items, o => o.Ignore())        // xử lý Items trong service
