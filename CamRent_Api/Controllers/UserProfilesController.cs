@@ -53,8 +53,12 @@ namespace CamRent_Api.Controllers
 
 			var userId = Guid.Parse(userIdClaim.Value);
 
-			await _userService.UpdateUserSignAsync(userId, req.SignatureBase64);
-			return NoContent();
+			var result = await _userService.UpdateUserSignAsync(userId, req.SignatureBase64);
+			if(result <= 0)
+			{
+				return BadRequest("Cập nhật chữ ký thất bại.");
+			}
+			return Ok("Cập nhật chữ ký thành công");
 		}
 	}
 }

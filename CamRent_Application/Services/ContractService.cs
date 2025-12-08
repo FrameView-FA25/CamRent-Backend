@@ -262,7 +262,7 @@ namespace CamRent_Application.Services
 
 
 
-		private async Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures)
+		public async Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures)
 		{
 			// Load đầy đủ navigation nếu cần: Booking, Branch, Renter, ...
 			// nếu contract hiện tại chưa có => bạn phải load lại bằng repo custom

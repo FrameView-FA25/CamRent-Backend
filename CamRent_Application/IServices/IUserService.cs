@@ -19,6 +19,6 @@ namespace CamRent_Application.IServices
 
 		Task<(Guid id, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
 		Task UpdateProfileAsync(Guid userId, string? bankNo, string? bankName, string? bankAccName);
-		Task UpdateUserSignAsync(Guid userId, string signatureBase64);
+		Task<int> UpdateUserSignAsync(Guid userId, string signatureBase64);
 	}	
 }
