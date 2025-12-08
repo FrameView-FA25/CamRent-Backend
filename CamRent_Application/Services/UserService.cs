@@ -128,8 +128,8 @@ namespace CamRent_Application.Services
 
 			// 5) Cập nhật tất cả ContractSignature liên quan đến user này
 			//    (giả sử ContractSignature có field SignedByUserId)
-			var managerSignatures = await contractSignatureRepo.ListAsync(include: q => q.Include(c => c.Contract),filter: s =>
-				s.UserId == userId && s.Contract.Status == ContractStatus.PendingSignatures );
+			var managerSignatures = (await contractSignatureRepo.ListAsync(include: q => q.Include(c => c.Contract),filter: s =>
+				s.UserId == userId && s.Contract.Status == ContractStatus.PendingSignatures && s.Contract.VerificationId == null)).ToList();
 
 			foreach (var sig in managerSignatures)
 			{	

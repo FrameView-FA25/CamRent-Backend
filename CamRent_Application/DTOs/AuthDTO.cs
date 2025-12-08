@@ -25,15 +25,8 @@ namespace CamRent_Application.DTOs
 		public sealed class AuthResponse
 		{
 			public string Token { get; set; } = default!;
-			public DateTime ExpiresAtUtc { get; set; }
-			public string FullName { get; set; } = string.Empty;
-			public string Email { get; set; } = string.Empty;
-			public string[] Roles { get; set; } = Array.Empty<string>();
+			//public string[] Roles { get; set; } = Array.Empty<string>();
 
-			// Thông tin bổ sung cho FE sau khi đăng nhập
-			public DateTime CreatedAt { get; set; }
-			public string PhoneNumber { get; set; } = string.Empty;
-			public Address? Address { get; set; }
 		}
 
 		public sealed class JwtOptions

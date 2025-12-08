@@ -152,9 +152,8 @@ namespace CamRent_Domain.Common
     public enum VerificationStatus
     {
         Pending = 0,
-        Verified = 1,
-        Approved = 2,
-        Rejected = 3
+        Approved = 1,
+        Rejected = 2
     }
 
     public enum PaymentType
