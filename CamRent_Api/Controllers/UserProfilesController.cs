@@ -31,9 +31,29 @@ namespace CamRent_Api.Controllers
 
 		[HttpPut("{userId:guid}")]
 		[SwaggerOperation(Summary = "Cập nhật hồ sơ người dùng", Description = "Cập nhật thông tin định danh/KYC và tài khoản ngân hàng của userId cung cấp. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> Update(Guid userId, [FromBody] UpdateProfileRequest req)
+		public async Task<IActionResult> UpdateUserBank(Guid userId, [FromBody] UpdateProfileRequest req)
 		{
-			await _userService.UpdateProfileAsync(userId, req.NationalId, req.KycStatus, req.BankNo, req.BankName, req.BankAccName);
+			await _userService.UpdateProfileAsync(userId, req.BankNo, req.BankName, req.BankAccName);
+			return NoContent();
+		}
+		[HttpPut("sign")]
+		[Authorize(Policy = ("BranchManager"))] // bất kỳ user đăng nhập
+		[SwaggerOperation(
+			Summary = "Cập nhật chữ kí",
+			Description = "Cập nhật chữ ký cho user hiện tại. Quyền: Người dùng đã đăng nhập"
+		)]
+		public async Task<IActionResult> UpdateUserSign([FromBody] UpdateSignRequest req)
+		{
+			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)
+							 ?? User.FindFirst("sub")
+							 ?? User.FindFirst("uid");
+
+			if (userIdClaim == null)
+				return Unauthorized();
+
+			var userId = Guid.Parse(userIdClaim.Value);
+
+			await _userService.UpdateUserSignAsync(userId, req.SignatureBase64);
 			return NoContent();
 		}
 	}
