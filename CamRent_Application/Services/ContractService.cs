@@ -235,6 +235,9 @@ namespace CamRent_Application.Services
 			{
 				// tất cả đã ký => generate contract final
 				await GenerateAndUploadFinalPdfAsync(contract, allSignatures);
+				contract.Status = ContractStatus.Signed;
+				await _unitOfWork.Repository<Contract>().UpdateAsync(contract);
+				await _unitOfWork.Complete();
 			}
 
 			return contract;
