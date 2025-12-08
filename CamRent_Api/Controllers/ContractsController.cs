@@ -65,7 +65,7 @@ namespace CamRent_Api.Controllers
 			Summary = "Tạo hợp đồng booking",
 			Description = "Tạo hợp đồng điện tử cho booking giữa CamRent và renter."
 		)]
-		[ProducesResponseType(typeof(CreateBookingContractResponse), 200)]
+		[ProducesResponseType(typeof(CreateContractResponse), 200)]
 		public async Task<IActionResult> CreateBookingContract([FromRoute] Guid bookingId)
 		{
 			var userId = GetCurrentUserId();
@@ -74,7 +74,7 @@ namespace CamRent_Api.Controllers
 
 			var contract = await _contractService.CreateBookingContractAsync(bookingId, userId.Value);
 
-			var response = new CreateBookingContractResponse
+			var response = new CreateContractResponse
 			{
 				ContractId = contract.Id
 			};

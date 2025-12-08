@@ -1,15 +1,17 @@
-﻿using CamRent_Application.DTOs;
+﻿using CamRent_Api.Hubs;
+using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
-using CamRent_Api.Hubs;
+using CamRent_Application.Services;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using static CamRent_Api.Models.BookingModel;
+using static CamRent_Api.Models.ContractModel;
 using static CamRent_Application.DTOs.BookingDTO;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -21,11 +23,13 @@ namespace CamRent_Api.Controllers
 
 		private readonly IBookingService _bookingService;
 		private readonly IPricingService _pricingService;
+		private readonly IContractService _contractService;
 		private readonly IHubContext<NotificationHub> _hub;
-		public BookingsController(IBookingService bookingService, IPricingService pricingService, IHubContext<NotificationHub> hub)
+		public BookingsController(IBookingService bookingService, IPricingService pricingService, IContractService contractService, IHubContext<NotificationHub> hub)
 		{
 			_bookingService = bookingService;
 			_pricingService = pricingService;
+			_contractService = contractService;
 			_hub = hub;
 		}
 
@@ -74,9 +78,15 @@ namespace CamRent_Api.Controllers
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
 			var booking = await _bookingService.CreateBookingAsync(request, Guid.Parse(userId));
-			if (booking == 0) return BadRequest("Tạo booking thất bại.");
-			return Ok("Tạo đơn hàng thành công");
+			if (booking == Guid.Empty) return BadRequest("Tạo booking thất bại.");
+			var contract = await _contractService.CreateBookingContractAsync(booking, Guid.Parse(userId));
 
+			var response = new CreateContractResponse
+			{
+				ContractId = contract.Id
+			};
+
+			return Ok(response);
 		}
 		[HttpGet("renterbookings")]
 		[Authorize(Policy = "Renter")]
