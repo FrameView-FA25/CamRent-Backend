@@ -28,12 +28,12 @@ namespace CamRent_Application.Services
 			return result;
 		}
 
-		public async Task<int> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId)
+		public async Task<Guid> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId)
 		{
 			var verification = _mapper.Map<VerificationRequest>(verificationRequestDTO);
 			if(verification.Items == null)
 			{
-				return 0;
+				return Guid.Empty;
 			}	
 			verification.CreatedByUserId = ownerId;
 			verification.CreatedAt = DateTime.UtcNow;
@@ -46,8 +46,8 @@ namespace CamRent_Application.Services
 			}
 
 			await _unitOfWork.Repository<VerificationRequest>().AddAsync(verification);
-			var result = await _unitOfWork.Complete();
-			return result;
+			await _unitOfWork.Complete();
+			return verification.Id;
 		}
 		
 
