@@ -1,4 +1,4 @@
-﻿using CamRent_Domain.Entities;
+using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Application.IServices
 {
-	public interface IUserService
+		public interface IUserService
 	{
 		
 		Task<List<User>> GetAllUsers();
@@ -18,6 +18,22 @@ namespace CamRent_Application.IServices
 		Task<int> DeleteUser(Guid id);
 
 		Task<(Guid id, Guid userId, string? nationalId, string kycStatus, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
-		Task UpdateProfileAsync(Guid userId, string? nationalId, string? kycStatus, string? bankNo, string? bankName, string? bankAccName);
+
+		/// <summary>
+		/// Cập nhật hồ sơ của user: thông tin cơ bản (email, tên, phone, address) + KYC + ngân hàng.
+		/// </summary>
+		Task UpdateProfileAsync(
+		 Guid userId,
+		 string? nationalId,
+		 string? kycStatus,
+		 string? bankNo,
+		 string? bankName,
+		 string? bankAccName,
+		 string? fullName,
+		 string? phone,
+		 string? email,
+		 string? country,
+		 string? province,
+		 string? district);
 	}
 }
