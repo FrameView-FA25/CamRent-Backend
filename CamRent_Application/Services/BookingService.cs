@@ -527,6 +527,7 @@ namespace CamRent_Application.Services
 
 			// ====== CHUYỂN TRẠNG THÁI ======
 			cart.Status = BookingStatus.PendingApproval;
+			cart.CreatedAt = DateTime.UtcNow;
 
 			await bookingRepo.UpdateAsync(cart);
 			await _unitOfWork.Complete();

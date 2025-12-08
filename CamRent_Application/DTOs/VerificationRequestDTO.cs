@@ -28,6 +28,7 @@ namespace CamRent_Application.DTOs
 
 			public string? Notes { get; set; }
 
+			public DateTime CreatedAt { get; set; }
 			public Guid? CreatedByUserId { get; set; }
 
 			public List<VerificationItemDTO>? Items { get; set; }
