@@ -1,4 +1,4 @@
-﻿using CamRent_Domain.Common;
+using CamRent_Domain.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +12,6 @@ namespace CamRent_Application.IServices
 	{
 		Task<AuthResponse> GetToken(string email, string password);
 		Task<Guid> Register(RegisterRequest user, Guid? userId, UserRole role);
+			Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
 	}
 }
