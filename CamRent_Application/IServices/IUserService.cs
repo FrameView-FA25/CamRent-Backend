@@ -17,7 +17,8 @@ namespace CamRent_Application.IServices
 		Task<int> UpdateUser(User user);
 		Task<int> DeleteUser(Guid id);
 
-		Task<(Guid id, Guid userId, string? nationalId, string kycStatus, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
-		Task UpdateProfileAsync(Guid userId, string? nationalId, string? kycStatus, string? bankNo, string? bankName, string? bankAccName);
-	}
+		Task<(Guid id, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
+		Task UpdateProfileAsync(Guid userId, string? bankNo, string? bankName, string? bankAccName);
+		Task UpdateUserSignAsync(Guid userId, string signatureBase64);
+	}	
 }

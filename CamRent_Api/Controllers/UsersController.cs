@@ -121,7 +121,6 @@ namespace CamRent_Api.Controllers
 			await _userService.UpdateUser(user);
 			return NoContent();
 		}
-
 		// Nếu sau này cần soft-delete, có thể thêm endpoint mới tại đây.
 	}
 }

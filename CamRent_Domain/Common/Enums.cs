@@ -25,7 +25,8 @@ namespace CamRent_Domain.Common
         Combo = 4,
         Inspection = 5,
         ContractDocument = 6,
-		ContractSignature = 7
+		ContractSignature = 7,
+		UserSignature = 8
 	}
     public enum DeviceCategory
     {

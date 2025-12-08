@@ -98,6 +98,14 @@ namespace CamRent_Infrastructure.Persistence
 				e.HasIndex(x => x.Key).IsUnique();
 			});
 
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.SignatureAsset)
+                .WithMany()
+                .HasForeignKey(u => u.SignatureAssetId);
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Avatar)
+                .WithMany()
+                .HasForeignKey(u => u.AvatarId);
 			// Relationships
 			modelBuilder.Entity<UserBranchMembership>()
                 .HasOne(m => m.User)
