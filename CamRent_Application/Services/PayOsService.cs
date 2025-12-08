@@ -1,4 +1,4 @@
-using CamRent_Application.Common;
+﻿using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -87,10 +87,14 @@ public sealed class PayOsService : IPayOsService
 
 		var orderCode = data.OrderCode;
 		var amount = data.Amount;
-		var success = webhook.Success && data.Code == "00";
 
-		var payments = await _uow.Repository<Payment>()
-			.ListAsync(p => p.Provider == "PayOS" && p.ProviderPaymentId == orderCode.ToString());
+		var isPaid = data.Code == "00"; // hoặc data.Status == "PAID" tuỳ SDK
+
+		var paymentRepo = _uow.Repository<Payment>();
+		var payments = await paymentRepo
+			.ListAsync(p => p.Provider == "PayOS"
+						 && p.ProviderPaymentId == orderCode.ToString());
+
 		var payment = payments.FirstOrDefault();
 		if (payment == null) return null;
 
@@ -100,18 +104,21 @@ public sealed class PayOsService : IPayOsService
 			PaymentId = payment.Id,
 			Provider = "PayOS",
 			Type = "webhook",
-			Status = success ? "PAID" : "FAILED",
+			Status = isPaid ? "PAID" : "FAILED",
 			RawData = System.Text.Json.JsonSerializer.Serialize(webhook),
 			Amount = amount,
 			CreatedAt = DateTime.UtcNow
 		};
 		await _uow.Repository<PaymentEvent>().AddAsync(ev);
 
-		if (success)
+		var alreadyCaptured = payment.Status == PaymentStatus.Captured;
+
+		if (isPaid && !alreadyCaptured)
 		{
 			payment.Status = PaymentStatus.Captured;
 			payment.CapturedAmount = amount;
-			await _uow.Repository<Payment>().UpdateAsync(payment);
+			await paymentRepo.UpdateAsync(payment);
+
 			if (payment.BookingId.HasValue)
 			{
 				var bookingRepo = _uow.Repository<Booking>();
@@ -128,11 +135,13 @@ public sealed class PayOsService : IPayOsService
 
 		return new PayOsWebhookResult
 		{
-			Success = success,
+			// Chỉ trả Success=true nếu đây là lần ĐẦU tiên capture
+			Success = isPaid && !alreadyCaptured,
 			PaymentId = payment.Id,
 			UserId = payment.CreatedByUserId,
 			BookingId = payment.BookingId,
 			Amount = amount
 		};
 	}
+
 }
