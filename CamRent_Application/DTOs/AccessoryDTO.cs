@@ -35,7 +35,6 @@ namespace CamRent_Application.DTOs
 			public decimal DepositPercent { get; set; }
 
 			public bool IsConfirmed { get; set; } 
-			public bool IsAvailable { get; set; } 
 			public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
 			public Guid? OwnerUserId { get; set; }
 			public User? OwnerName { get; set; }

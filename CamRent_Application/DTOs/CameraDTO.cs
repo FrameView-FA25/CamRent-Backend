@@ -32,7 +32,6 @@ namespace CamRent_Application.DTOs
 			public string? SpecsJson { get; set; }
 
 			public bool IsConfirmed { get; set; } = false;
-			public bool IsAvailable { get; set; } = false;
 			public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
 			public Guid? OwnerUserId { get; set; }
 			public string? OwnerName { get; set; }

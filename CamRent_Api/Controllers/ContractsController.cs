@@ -58,46 +58,6 @@ namespace CamRent_Api.Controllers
 		}
 		#endregion
 
-		// 1) Tạo hợp đồng booking
-		[HttpPost("booking/{bookingId:guid}")]
-		[Authorize(/* Policy = "StaffOrManager" */)]
-		[SwaggerOperation(
-			Summary = "Tạo hợp đồng booking",
-			Description = "Tạo hợp đồng điện tử cho booking giữa CamRent và renter."
-		)]
-		[ProducesResponseType(typeof(CreateContractResponse), 200)]
-		public async Task<IActionResult> CreateBookingContract([FromRoute] Guid bookingId)
-		{
-			var userId = GetCurrentUserId();
-			if (userId == null)
-				return Unauthorized();
-
-			var contract = await _contractService.CreateBookingContractAsync(bookingId, userId.Value);
-
-			var response = new CreateContractResponse
-			{
-				ContractId = contract.Id
-			};
-
-			return Ok(response);
-		}
-		[HttpPost("verification/{verificationId:guid}")]
-		[Authorize(/* Policy = "StaffOrManager" */)]
-		public async Task<IActionResult> CreateVerificationContract([FromRoute] Guid verificationId)
-		{
-			var userId = GetCurrentUserId();
-			if (userId == null)
-				return Unauthorized();
-
-			var contract = await _contractService.CreateVerificationContractAsync(verificationId, userId.Value);
-
-			return Ok(new
-			{
-				contract.Id,
-				contract.Type,
-				contract.Status
-			});
-		}
 
 		[HttpGet("{contractId:guid}/preview")]
 		[Authorize] // tuỳ bạn, có thể cho renter/owner/staff xem

@@ -37,15 +37,7 @@ namespace CamRent_Domain.Entities
 		// Thời điểm giao/nhận thực tế
 		public DateTime HandoverAt { get; set; } = DateTime.UtcNow;
 
-		// Tình trạng thiết bị, mô tả nhanh
-		public string? ConditionNote { get; set; }
-
-		// Có thể lưu JSON mô tả item nếu muốn tách khỏi Booking
-		public string? ItemsJson { get; set; }
-
 		// Link tới file chữ ký / pdf biên bản
 		public string? PartySignatureUrl { get; set; }
-		public string? StaffSignatureUrl { get; set; }
-		public string? ReceiptPdfUrl { get; set; }
 	}
 }
