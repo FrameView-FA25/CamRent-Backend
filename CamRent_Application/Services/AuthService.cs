@@ -1,4 +1,4 @@
-﻿using CamRent_Application.Interfaces;
+using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
@@ -16,7 +16,7 @@ using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Application.Services
 {
-	public class AuthService : IAuthService
+		public class AuthService : IAuthService
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IPasswordHasher<User> _hasher;
@@ -97,6 +97,22 @@ namespace CamRent_Application.Services
 				throw new Exception("Tài khoản chưa hoạt động hoặc bị khóa.");
 
 			return GenerateJwt(user);
+		}
+
+		public async Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+		{
+			var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+			if (user == null) return false;
+
+			// Verify current password
+			var verify = _hasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword);
+			if (verify == PasswordVerificationResult.Failed) return false;
+
+			// Update to new password
+			user.PasswordHash = _hasher.HashPassword(user, newPassword);
+			await _unitOfWork.Repository<User>().UpdateAsync(user);
+			await _unitOfWork.Complete();
+			return true;
 		}
 
 		private AuthResponse GenerateJwt(User user)
