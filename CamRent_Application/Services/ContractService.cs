@@ -157,17 +157,14 @@ namespace CamRent_Application.Services
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(ownerSignature);
-			var signManagerId = verification.Branch.Manager.SignatureAssetId;
-			var isSignedByManager = signManagerId != null;	
 			// 4. Tạo slot chữ ký cho CamRent (Platform)
 			var platformSignature = new ContractSignature
 			{
 				Id = Guid.NewGuid(),
 				ContractId = contract.Id,
 				Role = ContractSignerRole.Platform,
-				UserId = verification.Branch.ManagerId,  // staff đang tạo hợp đồng
-				SignatureAssetId = signManagerId,
-				IsSigned = isSignedByManager
+				UserId = verification.Branch.ManagerId, 
+				IsSigned = false
 			};
 			await signatureRepo.AddAsync(platformSignature);
 

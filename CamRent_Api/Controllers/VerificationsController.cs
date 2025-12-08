@@ -119,7 +119,10 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Cập nhật trạng thái verification", Description = "Cập nhật trạng thái của một yêu cầu verification. Quyền: BranchManager.")]
 		public async Task<IActionResult> UpdateStatus(Guid id, string note, VerificationStatus status)
 		{
-			var result = await _verificationService.UpdateVerificationStatusAsync(id, note, status);
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var result = await _verificationService.UpdateVerificationStatusAsync(id, Guid.Parse(userId), note, status);
 			if (result > 0)
 			{
 				return Ok(new { Message = "Cập nhật trạng thái thành công." });

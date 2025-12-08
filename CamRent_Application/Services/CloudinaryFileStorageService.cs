@@ -105,7 +105,6 @@ namespace CamRent_Application.Services
 
 		public async Task DeleteByAssetIdAsync(Guid fileAssetId)
 		{
-			// load FileAsset
 			var asset = await _unitOfWork.Repository<FileAsset>().GetByIdAsync(fileAssetId);
 			if (asset == null)
 			{
@@ -113,24 +112,31 @@ namespace CamRent_Application.Services
 				return;
 			}
 
-			// Nếu có ProviderKey, xóa trên Cloudinary
 			if (!string.IsNullOrEmpty(asset.ProviderKey))
 			{
 				var delParams = new DeletionParams(asset.ProviderKey);
 				var result = await _cloudinary.DestroyAsync(delParams);
 
-				// Chấp nhận "ok" hoặc "not_found" (nếu cloud đã bị xóa trước đó)
-				if (result.StatusCode != HttpStatusCode.OK || (result.Result != "ok" && result.Result != "not_found"))
+				var statusOk = result.StatusCode == HttpStatusCode.OK;
+				var res = (result.Result ?? string.Empty).ToLowerInvariant();
+
+				// Cloudinary có thể trả "ok", "not_found", hoặc "not found"
+				var isAcceptable =
+					res == "ok" ||
+					res.Contains("not found");
+
+				if (!statusOk || !isAcceptable)
 				{
-					throw new Exception($"Cloudinary delete failed for ProviderKey={asset.ProviderKey}: {result.Error?.Message ?? result.Result}");
+					throw new Exception(
+						$"Cloudinary delete failed for ProviderKey={asset.ProviderKey}: {result.Error?.Message ?? result.Result}");
 				}
 			}
 
 			// Xóa bản ghi DB
 			await _unitOfWork.Repository<FileAsset>().DeleteAsync(asset.Id);
 
-			// Commit
 			await _unitOfWork.Complete();
 		}
+
 	}
 }
