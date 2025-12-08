@@ -28,10 +28,12 @@ namespace CamRent_Application.DTOs
 
 			public Guid? RenterId { get; set; }
 			public User? Renter { get; set; }
-
+			public Guid? StaffId { get; set; }
+			public string StaffName { get; set; }
 			public DateTime PickupAt { get; set; }
 			public DateTime ReturnAt { get; set; }
 			public Address? Location { get; set; }
+			public DateTime CreatedAt { get; set; }
 			public BookingStatus Status { get; set; }
 
 			public string StatusText { get; set; } = "";
@@ -41,7 +43,6 @@ namespace CamRent_Application.DTOs
 			public decimal SnapshotPlatformFeePercent { get; set; }
 			public decimal SnapshotRentalTotal { get; set; }
 			public decimal SnapshotDepositAmount { get; set; }
-
 			public ICollection<BookingItemDTO>? Items { get; set; } 
 			public ICollection<ContractResponse>? Contracts { get; set; } 
 			public ICollection<InspectionResponseDTO>? Inspections { get; set; }
