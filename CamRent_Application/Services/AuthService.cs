@@ -132,14 +132,7 @@ namespace CamRent_Application.Services
 
 			return new AuthResponse
 			{
-				Token = tokenStr,
-				ExpiresAtUtc = expires,
-				FullName = user.FullName,
-				Roles = user.Roles.Select(x => x.Role.ToString()).ToArray(),
-				Email = user.Email,
-				CreatedAt = user.CreatedAt,
-				PhoneNumber = user.Phone ?? string.Empty,
-				Address = user.Address
+				Token = tokenStr
 			};
 		}
 	}

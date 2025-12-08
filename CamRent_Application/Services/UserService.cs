@@ -92,7 +92,12 @@ namespace CamRent_Application.Services
 
 			if (string.IsNullOrWhiteSpace(signatureBase64))
 				throw new InvalidOperationException("Signature data is empty");
-
+			var fileAsset = await fileAssetRepo.FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.UserSignature && f.OwnerId == userId);
+			if (fileAsset != null)
+			{
+				// Xoá file cũ trên Cloudinary
+				await _fileStorage.DeleteByAssetIdAsync(fileAsset.Id);
+			}
 			// 1) Decode base64 (có thể có prefix "data:image/png;base64,....")
 			var cleaned = signatureBase64;
 			if (cleaned.StartsWith("data:image"))
