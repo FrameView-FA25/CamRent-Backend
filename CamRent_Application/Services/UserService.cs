@@ -3,15 +3,16 @@ using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;		
+using System.Diagnostics.Contracts;
 using System.IdentityModel.Tokens.Jwt;     
 using System.Security.Claims;             
-using Microsoft.IdentityModel.Tokens;		
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using static CamRent_Application.DTOs.AuthDTO;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography.X509Certificates;
 
 namespace CamRent_Application.Services
 {
@@ -19,10 +20,12 @@ namespace CamRent_Application.Services
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IFileStorageService _fileStorage;
-		public UserService(IUnitOfWork uow, IFileStorageService fileStorage)
+		private readonly IContractService _contractService;
+		public UserService(IUnitOfWork uow, IFileStorageService fileStorage, IContractService contractService)
 		{
 			_unitOfWork = uow;
 			_fileStorage = fileStorage;
+			_contractService = contractService;
 		}
 
 		public async Task<int> DeleteUser(Guid id)
@@ -78,7 +81,7 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Complete();
 		}
 
-		public async Task UpdateUserSignAsync(Guid userId, string signatureBase64)
+		public async Task<int> UpdateUserSignAsync(Guid userId, string signatureBase64)
 		{
 			var userRepo = _unitOfWork.Repository<User>();
 			var fileAssetRepo = _unitOfWork.Repository<FileAsset>();
@@ -120,8 +123,8 @@ namespace CamRent_Application.Services
 
 			// 5) Cập nhật tất cả ContractSignature liên quan đến user này
 			//    (giả sử ContractSignature có field SignedByUserId)
-			var managerSignatures = await contractSignatureRepo.ListAsync(s =>
-				s.UserId == userId && s.Contract.Status == ContractStatus.PendingSignatures);
+			var managerSignatures = await contractSignatureRepo.ListAsync(include: q => q.Include(c => c.Contract),filter: s =>
+				s.UserId == userId && s.Contract.Status == ContractStatus.PendingSignatures );
 
 			foreach (var sig in managerSignatures)
 			{	
@@ -132,10 +135,21 @@ namespace CamRent_Application.Services
 				await contractSignatureRepo.UpdateAsync(sig);
 			}
 
-			await _unitOfWork.Complete();
+			var result = await _unitOfWork.Complete();
 
-			// Nếu bạn muốn regenerate lại PDF cho các contract đã ký,
-			// có thể làm thêm bước 6 (ở dưới).
+			foreach (var sig in managerSignatures)
+			{
+				var allSignatures = (await contractSignatureRepo.GetAllAsync())
+				.Where(s => s.ContractId == sig.ContractId)
+				.ToList();
+
+				if (allSignatures.All(s => s.IsSigned))
+				{
+					// tất cả đã ký => generate contract final
+					await _contractService.GenerateAndUploadFinalPdfAsync(sig.Contract, allSignatures);
+				}
+			}
+			return result;
 		}
 
 	}
