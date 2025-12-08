@@ -4,7 +4,7 @@ namespace CamRent_Domain.Entities
 {
     public class Booking : BaseEntity
     {
-        public string BookingCode { get; set; } = string.Empty;
+        public string? BookingCode { get; set; } = string.Empty;
 		public Guid? RenterId { get; set; }
         public User? Renter { get; set; }
 
