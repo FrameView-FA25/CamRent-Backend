@@ -46,88 +46,84 @@ namespace CamRent_Api.Controllers
 		[Authorize(Policy = "Renter")]
 		public async Task<ActionResult<Guid>> Authorize([FromBody] CreateAuthorizationRequest request)
 		{
-			// 1) Lấy booking & tính snapshot
 			var booking = await _bookingService.GetByIdAsync(request.BookingId);
-			if (booking == null)
-				return NotFound("Booking not found");
+			if (booking == null) return NotFound("Booking not found");
 
-			if (booking.RenterId == null)
-				return BadRequest("Booking does not have renter");
+			var renterId = booking.RenterId ?? throw new InvalidOperationException("Booking has no renter");
 
-			var renterId = booking.RenterId.Value;
+			var rentalTotal = booking.SnapshotRentalTotal;      // A
+			var deviceDeposit = booking.SnapshotDepositAmount;  // C
+			var advance = rentalTotal * booking.SnapshotPlatformFeePercent;                  // B
+			var remainingRental = rentalTotal - advance;        // 90%
 
-			// rental = tổng tiền thuê + deposit thiết bị (theo cách bạn đang làm)
-			var rental = booking.SnapshotRentalTotal + booking.SnapshotDepositAmount;
-			var deposit = booking.SnapshotRentalTotal * booking.SnapshotPlatformFeePercent;
-
-			decimal authorizedAmount;
+			decimal rentalPart;
+			decimal depositPart;
+			decimal totalThisTime;
 
 			switch (request.Mode)
 			{
-				case PaymentType.Deposit:
-					// LẦN 1: chỉ thu tiền cọc (platform fee)
-					authorizedAmount = deposit;
+				case PaymentType.Deposit:   // LẦN 1: 10% tiền thuê
+					rentalPart = advance;
+					depositPart = 0;
+					totalThisTime = rentalPart;
 					break;
 
-				case PaymentType.Rental:
-					// LẦN 2: thu phần còn lại (rental - deposit)
-					var remaining = rental - deposit;
-					if (remaining < 0) remaining = 0;
-					authorizedAmount = remaining;
+				case PaymentType.Rental:    // LẦN 2: 90% + cọc thiết bị
+					rentalPart = remainingRental;
+					depositPart = deviceDeposit;
+					totalThisTime = rentalPart + depositPart;
 					break;
 
 				default:
 					return BadRequest("Invalid payment mode");
 			}
 
-			// 2) Nếu thanh toán bằng ví
 			if (request.Method == PaymentMethod.Wallet)
 			{
-				if (authorizedAmount <= 0)
+				// Thanh toán bằng ví
+				if (totalThisTime <= 0)
 					return BadRequest("No amount to pay by wallet");
 
-				// Trừ tiền trong ví
 				var walletReq = new WalletTransactionRequest
 				{
-					Amount = authorizedAmount,
-					Type = request.Mode == PaymentType.Deposit ? "pay_deposit" : "pay_rental",
-					PaymentId = null,               // chưa có paymentId, nếu cần có thể update sau
+					Amount = totalThisTime,
+					Type = request.Mode == PaymentType.Deposit ? "pay_rental_advance" : "pay_rental_and_deposit",
+					PaymentId = null,
 					BookingId = booking.Id,
 					Description = request.Mode == PaymentType.Deposit
-						? $"Thanh toán tiền cọc booking {booking.Id} bằng ví"
-						: $"Thanh toán tiền thuê booking {booking.Id} bằng ví"
+						? $"Thanh toán 10% tiền thuê booking {booking.Id} bằng ví"
+						: $"Thanh toán 90% tiền thuê + cọc thiết bị booking {booking.Id} bằng ví"
 				};
 
 				var ok = await _walletService.DebitAsync(renterId, walletReq);
 				if (!ok)
 					return BadRequest("Wallet balance not enough");
 
-				// Tạo Payment với Provider = Wallet, đã captured
 				var paymentId = await _paymentService.CreateWalletPaymentAsync(
 					booking.Id,
-					rentalAmount: rental,
-					depositAmount: deposit,
+					rentalAmount: rentalPart,
+					depositAmount: depositPart,
 					mode: request.Mode,
-					capturedAmount: authorizedAmount
+					capturedAmount: totalThisTime
 				);
-
-				// (Optional) Nếu bạn muốn link lại PaymentId vào transaction ví vừa tạo,
-				// có thể thêm method riêng trong WalletService để update PaymentId cho transaction gần nhất.
 
 				return Ok(paymentId);
 			}
+			else
+			{
+				// Thanh toán qua PayOS (hoặc provider online khác)
+				var paymentId = await _paymentService.CreateAuthorizationAsync(
+					booking.Id,
+					rentalAmount: rentalPart,
+					depositAmount: depositPart,
+					mode: request.Mode,
+					authorizedAmountOverride: totalThisTime
+				);
 
-			// 3) Ngược lại: thanh toán qua PayOS (flow cũ)
-			var id = await _paymentService.CreateAuthorizationAsync(
-				request.BookingId,
-				rentalAmount: rental,
-				depositAmount: deposit,
-				mode: request.Mode,
-				authorizedAmountOverride: authorizedAmount
-			);
-
-			return Ok(id);
+				return Ok(paymentId);
+			}
 		}
+
 
 
 		[HttpPost("{id:guid}/lines")]

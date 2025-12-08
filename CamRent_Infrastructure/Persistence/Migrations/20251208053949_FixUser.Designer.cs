@@ -3,6 +3,7 @@ using System;
 using CamRent_Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    partial class CamRentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251208053949_FixUser")]
+    partial class FixUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,6 +68,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<decimal>("EstimatedValueVnd")
                         .HasColumnType("numeric")
                         .HasColumnName("estimated_value_vnd");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
 
                     b.Property<bool>("IsConfirmed")
                         .HasColumnType("boolean")
@@ -125,6 +132,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("BookingCode")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("booking_code");
 
@@ -338,6 +346,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<decimal>("EstimatedValueVnd")
                         .HasColumnType("numeric")
                         .HasColumnName("estimated_value_vnd");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
 
                     b.Property<bool>("IsConfirmed")
                         .HasColumnType("boolean")
@@ -958,6 +970,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
+                    b.Property<string>("ConditionNote")
+                        .HasColumnType("text")
+                        .HasColumnName("condition_note");
+
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uuid")
                         .HasColumnName("contract_id");
@@ -978,6 +994,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("inspection_id");
 
+                    b.Property<string>("ItemsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("items_json");
+
                     b.Property<string>("PartySignatureUrl")
                         .HasColumnType("text")
                         .HasColumnName("party_signature_url");
@@ -986,6 +1006,14 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("party_type");
+
+                    b.Property<string>("ReceiptPdfUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("receipt_pdf_url");
+
+                    b.Property<string>("StaffSignatureUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("staff_signature_url");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -1141,11 +1169,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<string>("ProviderPaymentId")
                         .HasColumnType("text")
                         .HasColumnName("provider_payment_id");
-
-                    b.Property<string>("Purpose")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("purpose");
 
                     b.Property<decimal>("RefundedAmount")
                         .HasColumnType("numeric")

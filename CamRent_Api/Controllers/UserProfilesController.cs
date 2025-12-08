@@ -18,7 +18,7 @@ namespace CamRent_Api.Controllers
 			_userService = userService;
 		}
 
-		[HttpGet("me")]
+		[HttpGet("UserID")]
 		[SwaggerOperation(Summary = "Thông tin hồ sơ người dùng hiện tại", Description = "Trả về profile của người dùng dựa trên token (NameIdentifier). Quyền: Người dùng đã đăng nhập")]
 		public async Task<ActionResult<object>> GetUserProfile()
 		{
@@ -29,30 +29,36 @@ namespace CamRent_Api.Controllers
 			return Ok(p);
 		}
 
-		[HttpPut("me")]
-		[SwaggerOperation(Summary = "Cập nhật hồ sơ tài khoản của chính mình", Description = "Người dùng đã đăng nhập có thể cập nhật email, tên, phone, địa chỉ, KYC và thông tin ngân hàng của chính họ. Không phụ thuộc role.")]
-		public async Task<IActionResult> Update([FromBody] UpdateProfileRequest req)
+		[HttpPut("{userId:guid}")]
+		[SwaggerOperation(Summary = "Cập nhật hồ sơ người dùng", Description = "Cập nhật thông tin định danh/KYC và tài khoản ngân hàng của userId cung cấp. Quyền: Người dùng đã đăng nhập")]
+		public async Task<IActionResult> UpdateUserBank(Guid userId, [FromBody] UpdateProfileRequest req)
 		{
-			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
-					  ?? User.FindFirst("sub")?.Value
-					  ?? User.FindFirst("uid")?.Value;
-
-			var userId = Guid.Parse(userIdStr);
-
-			await _userService.UpdateProfileAsync(
-				userId,
-				req.NationalId,
-				req.KycStatus,
-				req.BankNo,
-				req.BankName,
-				req.BankAccName,
-				req.FullName,
-				req.Phone,
-				req.Email,
-				req.Country,
-				req.Province,
-				req.District);
+			await _userService.UpdateProfileAsync(userId, req.BankNo, req.BankName, req.BankAccName);
 			return NoContent();
+		}
+		[HttpPut("sign")]
+		[Authorize(Policy = ("BranchManager"))] // bất kỳ user đăng nhập
+		[SwaggerOperation(
+			Summary = "Cập nhật chữ kí",
+			Description = "Cập nhật chữ ký cho user hiện tại. Quyền: Người dùng đã đăng nhập"
+		)]
+		public async Task<IActionResult> UpdateUserSign([FromBody] UpdateSignRequest req)
+		{
+			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)
+							 ?? User.FindFirst("sub")
+							 ?? User.FindFirst("uid");
+
+			if (userIdClaim == null)
+				return Unauthorized();
+
+			var userId = Guid.Parse(userIdClaim.Value);
+
+			var result = await _userService.UpdateUserSignAsync(userId, req.SignatureBase64);
+			if(result <= 0)
+			{
+				return BadRequest("Cập nhật chữ ký thất bại.");
+			}
+			return Ok("Cập nhật chữ ký thành công");
 		}
 	}
 }

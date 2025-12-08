@@ -28,12 +28,12 @@ namespace CamRent_Application.Services
 			return result;
 		}
 
-		public async Task<int> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId)
+		public async Task<Guid> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId)
 		{
 			var verification = _mapper.Map<VerificationRequest>(verificationRequestDTO);
 			if(verification.Items == null)
 			{
-				return 0;
+				return Guid.Empty;
 			}	
 			verification.CreatedByUserId = ownerId;
 			verification.CreatedAt = DateTime.UtcNow;
@@ -46,8 +46,8 @@ namespace CamRent_Application.Services
 			}
 
 			await _unitOfWork.Repository<VerificationRequest>().AddAsync(verification);
-			var result = await _unitOfWork.Complete();
-			return result;
+			await _unitOfWork.Complete();
+			return verification.Id;
 		}
 		
 
@@ -266,12 +266,22 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
-		public async Task<int> UpdateVerificationStatusAsync(Guid id, string note, VerificationStatus status)
+		public async Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string note, VerificationStatus status)
 		{
 			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(id);
 			if (verification == null) return 0;
 			verification.Status = status;
 			verification.Notes = note;
+			if (status == VerificationStatus.Approved)
+			{
+				var manager = await _unitOfWork.Repository<User>().GetByIdAsync(managerId);
+				var contract = await _unitOfWork.Repository<Contract>().FirstOrDefaultAsync(c => c.VerificationId == id && c.Status == ContractStatus.PendingSignatures);
+				var managerSigner = await _unitOfWork.Repository<ContractSignature>().FirstOrDefaultAsync(s => s.UserId == managerId && s.Role == ContractSignerRole.Platform && s.ContractId == contract.Id);
+
+				managerSigner.SignatureAssetId = manager.SignatureAssetId;
+				managerSigner.SignedAt = DateTime.UtcNow;
+				managerSigner.IsSigned = true;
+			}
 			await _unitOfWork.Repository<VerificationRequest>().UpdateAsync(verification);
 			return await _unitOfWork.Complete();
 		}

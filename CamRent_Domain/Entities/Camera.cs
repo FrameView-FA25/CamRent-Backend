@@ -22,7 +22,6 @@ namespace CamRent_Domain.Entities
 		public decimal? DepositCapMaxVnd { get; set; }
 
 		public bool IsConfirmed { get; set; } = false;
-		public bool IsAvailable { get; set; } = false;
 		public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
 		public Guid? OwnerUserId { get; set; }
         public User? OwnerUser { get; set; }

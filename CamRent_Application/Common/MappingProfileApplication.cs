@@ -43,7 +43,9 @@ namespace CamRent_Application.Common
 
 			CreateMap<Booking, BookingResponseDTO>()
 			.ForMember(d => d.StatusText,
-				opt => opt.MapFrom(s => s.Status.GetDisplayName()));
+				opt => opt.MapFrom(s => s.Status.GetDisplayName()))
+			.ForMember(d => d.StaffName,
+				opt => opt.MapFrom(s => s.Staff != null ? s.Staff.FullName : null));
 			CreateMap<BookingItem, BookingItemDTO>()
 				// Map ItemId: ưu tiên Camera → Accessory → Combo
 				.ForMember(d => d.ItemId,

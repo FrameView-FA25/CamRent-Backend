@@ -3,6 +3,7 @@ using System;
 using CamRent_Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    partial class CamRentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251208063704_FixHandoverReceipt")]
+    partial class FixHandoverReceipt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,6 +128,7 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("BookingCode")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("booking_code");
 
@@ -1141,11 +1145,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<string>("ProviderPaymentId")
                         .HasColumnType("text")
                         .HasColumnName("provider_payment_id");
-
-                    b.Property<string>("Purpose")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("purpose");
 
                     b.Property<decimal>("RefundedAmount")
                         .HasColumnType("numeric")

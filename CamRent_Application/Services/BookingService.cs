@@ -487,7 +487,7 @@ namespace CamRent_Application.Services
 			return Task.FromResult(statuses);
 		}
 
-		public async Task<int> CreateBookingAsync(CreateBookingRequest createBookingRequest, Guid renterId)
+		public async Task<Guid> CreateBookingAsync(CreateBookingRequest createBookingRequest, Guid renterId)
 		{
 			var bookingRepo = _unitOfWork.Repository<Booking>();
 
@@ -527,9 +527,11 @@ namespace CamRent_Application.Services
 
 			// ====== CHUYỂN TRẠNG THÁI ======
 			cart.Status = BookingStatus.PendingApproval;
+			cart.CreatedAt = DateTime.UtcNow;
 
 			await bookingRepo.UpdateAsync(cart);
-			return await _unitOfWork.Complete();
+			await _unitOfWork.Complete();
+			return cart.Id;
 		}
 
 		// Kiểm tra 1 BookingItem có conflict hay không (true = rảnh)

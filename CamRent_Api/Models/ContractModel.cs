@@ -9,7 +9,7 @@ namespace CamRent_Api.Models
 			public string SignatureBase64 { get; set; } = default!;
 		}
 
-		public class CreateBookingContractResponse
+		public class CreateContractResponse
 		{
 			public Guid ContractId { get; set; }
 		}

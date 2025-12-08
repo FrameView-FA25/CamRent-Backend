@@ -1,12 +1,14 @@
 ﻿using CamRent_Application.IServices;
+using CamRent_Application.Services;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
+using static CamRent_Api.Models.ContractModel;
 using static CamRent_Api.Models.VerificationModel;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -15,9 +17,11 @@ namespace CamRent_Api.Controllers
 	public class VerificationsController : ControllerBase
 	{
 		private readonly IVerificationService _verificationService;
-		public VerificationsController(IVerificationService verificationService)
+		private readonly IContractService _contractService;
+		public VerificationsController(IVerificationService verificationService, IContractService contractService)
 		{
 			_verificationService = verificationService;
+			_contractService = contractService;
 		}
 		[HttpGet("get_by_user_id")]
 		[Authorize(Policy ="OwnerOrManagerOrStaff")]
@@ -56,11 +60,17 @@ namespace CamRent_Api.Controllers
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
 			var result = await _verificationService.CreateVerificationAsync(request, Guid.Parse(userId));
-			if (result > 0)
+			if (result == Guid.Empty)
 			{
-				return Ok(new { Message = "Tạo yêu cầu xác minh thành công." });
+				return Ok(new { Message = "Tạo yêu cầu xác minh thất bại." });
 			}
-			return BadRequest(new { Message = "Tạo yêu cầu xác minh thất bại." });
+			var contract = await _contractService.CreateVerificationContractAsync(result, Guid.Parse(userId));
+
+			var response = new CreateContractResponse
+			{
+				ContractId = contract.Id
+			};
+			return Ok(response);
 		}
 
 		[HttpPut("assign_staff")]
@@ -109,7 +119,10 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Cập nhật trạng thái verification", Description = "Cập nhật trạng thái của một yêu cầu verification. Quyền: BranchManager.")]
 		public async Task<IActionResult> UpdateStatus(Guid id, string note, VerificationStatus status)
 		{
-			var result = await _verificationService.UpdateVerificationStatusAsync(id, note, status);
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var result = await _verificationService.UpdateVerificationStatusAsync(id, Guid.Parse(userId), note, status);
 			if (result > 0)
 			{
 				return Ok(new { Message = "Cập nhật trạng thái thành công." });

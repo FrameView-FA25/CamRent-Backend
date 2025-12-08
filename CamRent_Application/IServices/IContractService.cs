@@ -13,6 +13,7 @@ namespace CamRent_Application.IServices
 		Task<Contract> SignContractAsync(Guid contractId, ContractSignerRole role,
 			string signatureBase64, Guid? userId, string? ip, string? userAgent);
 		Task<byte[]?> DownloadContractPdfAsync(Guid contractId);
+		Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures);
 		Task<Contract?> GetByIdAsync(Guid contractId);
 
 		Task<ContractResponse?> GetContractByIdAsync(Guid contractId);

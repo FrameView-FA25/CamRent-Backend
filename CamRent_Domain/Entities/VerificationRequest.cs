@@ -4,7 +4,8 @@ namespace CamRent_Domain.Entities
 {
     public class VerificationRequest : BaseEntity
     {
-        public string? Name { get; set; }
+        public string? VerificationCode { get; set; }
+		public string? Name { get; set; }
         public string? PhoneNumber { get; set; }
 		public DateTime InspectionDate { get; set; }
 		public VerificationStatus Status { get; set; }

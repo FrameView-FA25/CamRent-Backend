@@ -69,7 +69,7 @@ namespace CamRent_Application.Services
 			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
 
 			var booking = (await bookingRepo.ListAsync(include: q => q
-				.Include(b => b.Branch))).FirstOrDefault(b => b.Id == bookingId)
+				.Include(b => b.Branch).ThenInclude(b => b.Manager))).FirstOrDefault(b => b.Id == bookingId)
 				?? throw new AppException("Booking not found");
 			if(booking.Branch == null)
 				return null;
@@ -101,7 +101,8 @@ namespace CamRent_Application.Services
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(renterSignature);
-
+			var signManagerId = booking.Branch.Manager.SignatureAssetId;
+			var isSignedByManager = signManagerId != null;
 			// tạo signer platform (staff)
 			var platformSignature = new ContractSignature
 			{
@@ -109,7 +110,8 @@ namespace CamRent_Application.Services
 				ContractId = contract.Id,
 				Role = ContractSignerRole.Platform,
 				UserId = booking.Branch.ManagerId,
-				IsSigned = false
+				SignatureAssetId = signManagerId,
+				IsSigned = isSignedByManager
 			};
 			await signatureRepo.AddAsync(platformSignature);
 
@@ -125,7 +127,7 @@ namespace CamRent_Application.Services
 
 			// 1. Kiểm tra owner tồn tại
 			var verification = (await _unitOfWork.Repository<VerificationRequest>().ListAsync(include: q => q
-				.Include(v => v.Branch))).FirstOrDefault(v => v.Id == verificationId)
+				.Include(v => v.Branch).ThenInclude(v => v.Manager))).FirstOrDefault(v => v.Id == verificationId)
 				?? throw new AppException("Verification not found");
 			var check = await contractRepo.AnyAsync(c => c.VerificationId == verificationId && c.Status == ContractStatus.PendingSignatures);
 			if (check)
@@ -155,14 +157,13 @@ namespace CamRent_Application.Services
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(ownerSignature);
-
 			// 4. Tạo slot chữ ký cho CamRent (Platform)
 			var platformSignature = new ContractSignature
 			{
 				Id = Guid.NewGuid(),
 				ContractId = contract.Id,
 				Role = ContractSignerRole.Platform,
-				UserId = verification.Branch.ManagerId,  // staff đang tạo hợp đồng
+				UserId = verification.Branch.ManagerId, 
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(platformSignature);
@@ -234,6 +235,9 @@ namespace CamRent_Application.Services
 			{
 				// tất cả đã ký => generate contract final
 				await GenerateAndUploadFinalPdfAsync(contract, allSignatures);
+				contract.Status = ContractStatus.Signed;
+				await _unitOfWork.Repository<Contract>().UpdateAsync(contract);
+				await _unitOfWork.Complete();
 			}
 
 			return contract;
@@ -258,7 +262,7 @@ namespace CamRent_Application.Services
 
 
 
-		private async Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures)
+		public async Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures)
 		{
 			// Load đầy đủ navigation nếu cần: Booking, Branch, Renter, ...
 			// nếu contract hiện tại chưa có => bạn phải load lại bằng repo custom
