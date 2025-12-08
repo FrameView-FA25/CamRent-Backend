@@ -30,10 +30,41 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPut("{userId:guid}")]
-		[SwaggerOperation(Summary = "Cập nhật hồ sơ người dùng", Description = "Cập nhật thông tin định danh/KYC và tài khoản ngân hàng của userId cung cấp. Quyền: Người dùng đã đăng nhập")]
+		[SwaggerOperation(Summary = "Cập nhật thông tin ngân hàng của user", Description = "Cập nhật thông tin tài khoản ngân hàng cho userId cung cấp. Thực tế FE nên truyền đúng ID của chính user hiện tại. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> UpdateUserBank(Guid userId, [FromBody] UpdateProfileRequest req)
 		{
-			await _userService.UpdateProfileAsync(userId, req.BankNo, req.BankName, req.BankAccName);
+			// Chỉ cho phép user tự cập nhật bank info của chính mình
+			var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+							  ?? User.FindFirst("sub")?.Value
+							  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(currentUserId) || Guid.Parse(currentUserId) != userId)
+				return Forbid();
+
+			await _userService.UpdateProfileAsync(Guid.Parse(currentUserId), req.BankNo, req.BankName, req.BankAccName);
+			return NoContent();
+		}
+
+		[HttpPut("me")]
+		[SwaggerOperation(
+			Summary = "Cập nhật thông tin tài khoản của chính người dùng",
+			Description = "Người dùng đã đăng nhập tự cập nhật email, họ tên, số điện thoại và địa chỉ của chính mình. Quyền: Người dùng đã đăng nhập")]
+		public async Task<IActionResult> UpdateMyAccount([FromBody] UpdateAccountRequest req)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			await _userService.UpdateAccountAsync(
+				Guid.Parse(userId),
+				req.Email,
+				req.FullName,
+				req.Phone,
+				req.Country,
+				req.Province,
+				req.District);
+
 			return NoContent();
 		}
 		[HttpPut("sign")]

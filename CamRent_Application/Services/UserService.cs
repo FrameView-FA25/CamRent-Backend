@@ -1,4 +1,4 @@
-﻿using CamRent_Application.Interfaces;
+using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
@@ -77,6 +77,46 @@ namespace CamRent_Application.Services
 			user.BankAccountNumber = bankNo ?? user.BankAccountNumber;
 			user.BankName = bankName ?? user.BankName;
 			user.BankAccountName = bankAccName ?? user.BankAccountName;
+			await _unitOfWork.Repository<User>().UpdateAsync(user);
+			await _unitOfWork.Complete();
+		}
+
+		public async Task UpdateAccountAsync(Guid userId, string? email, string? fullName, string? phone, string? country, string? province, string? district)
+		{
+			var user = (await _unitOfWork.Repository<User>().ListAsync(p => p.Id == userId)).FirstOrDefault()
+				?? throw new InvalidOperationException("User not found");
+
+			// Email: nếu đổi thì update cả NormalizedEmail
+			if (!string.IsNullOrWhiteSpace(email) && !email.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
+			{
+				var trimmed = email.Trim();
+				// Optional: check trùng email
+				var exists = await _unitOfWork.Repository<User>()
+					.ListAsync(u => u.Email == trimmed && u.Id != userId);
+				if (exists.Any())
+					throw new InvalidOperationException("Email đã được sử dụng bởi tài khoản khác.");
+
+				user.Email = trimmed;
+				user.NormalizedEmail = trimmed.ToUpperInvariant();
+			}
+
+			if (!string.IsNullOrWhiteSpace(fullName))
+				user.FullName = fullName.Trim();
+
+			if (!string.IsNullOrWhiteSpace(phone))
+				user.Phone = phone.Trim();
+
+			// Địa chỉ: nếu có bất kỳ field nào được gửi lên thì cập nhật
+			if (!string.IsNullOrWhiteSpace(country)
+				|| !string.IsNullOrWhiteSpace(province)
+				|| !string.IsNullOrWhiteSpace(district))
+			{
+				user.Address ??= new Address();
+				if (!string.IsNullOrWhiteSpace(country)) user.Address.Country = country!;
+				if (!string.IsNullOrWhiteSpace(province)) user.Address.Province = province!;
+				if (!string.IsNullOrWhiteSpace(district)) user.Address.District = district!;
+			}
+
 			await _unitOfWork.Repository<User>().UpdateAsync(user);
 			await _unitOfWork.Complete();
 		}
