@@ -43,6 +43,23 @@ namespace CamRent_Api.Models
 			[Url]
 			public string CancelUrl { get; set; } = string.Empty;
 		}
+
+		public class PaymentStatusResponse
+		{
+			public Guid PaymentId { get; set; }
+
+			public string PaymentStatus { get; set; } = default!;
+
+			public Guid? BookingId { get; set; }
+
+			public string? BookingStatus { get; set; }
+
+			public decimal AuthorizedAmount { get; set; }
+
+			public decimal CapturedAmount { get; set; }
+
+			public bool IsPaid { get; set; }
+		}
 	}
 }
 

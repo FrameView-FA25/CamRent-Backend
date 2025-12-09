@@ -256,7 +256,37 @@ namespace CamRent_Api.Controllers
 				HttpContext.RequestAborted);
 
 
-			return Ok(new { redirectUrl = url });
+			return Ok(new
+			{
+				paymentId = id,          // thêm cái này
+				redirectUrl = url
+			});
+		}
+		[HttpGet("{id:guid}/status")]
+		[Authorize(Policy = "Renter")] // hoặc policy rộng hơn tuỳ bạn
+		[SwaggerOperation(
+	Summary = "Lấy trạng thái payment + booking",
+	Description = "Cho mobile kiểm tra trạng thái mới nhất sau khi thanh toán PayOS (dựa trên webhook đã cập nhật DB).")]
+		public async Task<ActionResult<PaymentStatusResponse>> GetStatus(Guid id)
+		{
+			var payment = await _paymentService.GetByIdAsync(id);
+			if (payment == null)
+				return NotFound("Payment not found");
+
+			var booking = await _bookingService.GetByIdAsync(payment.BookingId);
+
+			var response = new PaymentStatusResponse
+			{
+				PaymentId = payment.Id,
+				PaymentStatus = payment.Status.ToString(),
+				BookingId = payment.BookingId,
+				BookingStatus = booking?.Status.ToString(),
+				AuthorizedAmount = payment.AuthorizedAmount,
+				CapturedAmount = payment.CapturedAmount,
+				IsPaid = payment.Status == PaymentStatus.Captured
+			};
+
+			return Ok(response);
 		}
 
 		// Test-only: confirm capture after manual transfer verification

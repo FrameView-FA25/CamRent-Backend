@@ -250,23 +250,6 @@ namespace CamRent_Api.Controllers
 			return BadRequest();
 		}
 
-		[HttpGet("{id:guid}/quote")]
-		[SwaggerOperation(Summary = "Tính quote giá thuê", Description = "Tính toán giá thuê, deposit, phí platform cho booking cụ thể. Quyền: Người dùng đã đăng nhập")]
-		public async Task<ActionResult<PricingQuoteResult>> Quote(Guid id, [FromQuery] decimal? platformFeePercent, [FromQuery] decimal ownerShareRatio = 0.75m)
-		{
-			var quote = await _pricingService.QuoteBookingAsync(id, platformFeePercent, ownerShareRatio);
-			return Ok(quote);
-		}
-
-
-		[HttpPost("{id:guid}/settlement")]
-		[SwaggerOperation(Summary = "Tính toán quyết toán cọc", Description = "Tính toán khoản khấu trừ/hoàn trả deposit dựa trên thông số bàn giao sau khi kết thúc booking. Quyền: Người dùng đã đăng nhập")]
-		public async Task<ActionResult<DepositSettlement>> Settlement(Guid id, [FromBody] SettlementRequest request)
-		{
-			var result = await _pricingService.ComputeSettlementAsync(id, request.LateDays, request.RepairCost, request.DowntimeDays, request.MissingAccessoriesCost, request.CleaningCost);
-			return Ok(result);
-		}
-
 		
 	}
 }
