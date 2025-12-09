@@ -75,6 +75,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Đổi mật khẩu sau khi đăng nhập", Description = "Người dùng đã đăng nhập cung cấp mật khẩu hiện tại và mật khẩu mới để thay đổi mật khẩu.")]
 		public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
 		{
+			// Lấy userId từ JWT, xác thực mật khẩu hiện tại và nếu đúng thì thay bằng mật khẩu mới.
 			var userIdStr = User.FindFirst("sub")?.Value
 				?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
 				?? User.FindFirst("uid")?.Value;

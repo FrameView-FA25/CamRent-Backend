@@ -14,9 +14,29 @@ namespace CamRent_Api.Controllers
 		private readonly IDisputeService _dispute;
 		public DisputesController(IDisputeService dispute) { _dispute = dispute; }
 
-		public sealed class OpenRequest { public Guid BookingId { get; set; } public string Title { get; set; } = string.Empty; public string Description { get; set; } = string.Empty; public string Severity { get; set; } = "minor"; }
-		public sealed class AddItemRequest { public string Type { get; set; } = string.Empty; public decimal Amount { get; set; } public string? Notes { get; set; } }
-		public sealed class UpdateStatusRequest { public string Status { get; set; } = "under_review"; public string? ResolutionNote { get; set; } }
+		// Payload khi mở một dispute mới cho một booking (do Staff tạo dựa trên phản ánh của renter/owner).
+		public sealed class OpenRequest
+		{
+			public Guid BookingId { get; set; }
+			public string Title { get; set; } = string.Empty;
+			public string Description { get; set; } = string.Empty;
+			public string Severity { get; set; } = "minor";
+		}
+
+		// Một khoản bồi thường cụ thể trong dispute (ví dụ: hỏng ống kính, mất phụ kiện...).
+		public sealed class AddItemRequest
+		{
+			public string Type { get; set; } = string.Empty;
+			public decimal Amount { get; set; }
+			public string? Notes { get; set; }
+		}
+
+		// Dùng khi BranchManager cập nhật trạng thái xử lý dispute.
+		public sealed class UpdateStatusRequest
+		{
+			public string Status { get; set; } = "under_review";
+			public string? ResolutionNote { get; set; }
+		}
 
 		[HttpGet("by-booking/{bookingId:guid}")]
 		[SwaggerOperation(Summary = "Danh sách dispute của booking", Description = "Trả về các dispute mở liên quan tới một booking cụ thể. Quyền: Người dùng đã đăng nhập")]

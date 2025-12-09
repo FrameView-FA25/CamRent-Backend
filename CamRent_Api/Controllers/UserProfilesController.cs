@@ -22,6 +22,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Thông tin hồ sơ người dùng hiện tại", Description = "Trả về profile của người dùng dựa trên token (NameIdentifier). Quyền: Người dùng đã đăng nhập")]
 		public async Task<ActionResult<object>> GetUserProfile()
 		{
+			// Dùng thông tin trong token để lấy đúng hồ sơ (User) của người đang đăng nhập.
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
@@ -33,7 +34,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Cập nhật thông tin ngân hàng của user", Description = "Cập nhật thông tin tài khoản ngân hàng cho userId cung cấp. Thực tế FE nên truyền đúng ID của chính user hiện tại. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> UpdateUserBank(Guid userId, [FromBody] UpdateProfileRequest req)
 		{
-			// Chỉ cho phép user tự cập nhật bank info của chính mình
+			// Chỉ cho phép user tự cập nhật thông tin ngân hàng của chính mình
 			var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 							  ?? User.FindFirst("sub")?.Value
 							  ?? User.FindFirst("uid")?.Value;
@@ -50,6 +51,7 @@ namespace CamRent_Api.Controllers
 			Description = "Người dùng đã đăng nhập tự cập nhật email, họ tên, số điện thoại và địa chỉ của chính mình. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> UpdateMyAccount([FromBody] UpdateAccountRequest req)
 		{
+			// Cho phép user tự sửa email / tên / điện thoại / địa chỉ của chính mình (self‑service profile).
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
