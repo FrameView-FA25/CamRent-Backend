@@ -1,4 +1,4 @@
-﻿using CamRent_Api.Hubs;
+using CamRent_Api.Hubs;
 using CamRent_Application.Common;
 using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
@@ -75,6 +75,8 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Tạo booking từ giỏ hàng", Description = "Chuyển trạng thái giỏ hàng hiện tại của renter thành booking chờ duyệt. Quyền: Renter")]
 		public async Task<ActionResult> CreateBooking([FromBody] CreateBookingRequest request)
 		{
+			// Lấy giỏ hàng hiện tại của renter, tạo booking mới,
+			// đồng thời cố gắng sinh luôn hợp đồng nháp đầu tiên (nếu đủ thông tin chi nhánh).
 			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
 						  ?? User.FindFirst("sub")?.Value
 						  ?? User.FindFirst("uid")?.Value;

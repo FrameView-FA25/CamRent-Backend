@@ -46,6 +46,10 @@ namespace CamRent_Api.Controllers
 		[Authorize(Policy = "Renter")]
 		public async Task<ActionResult<Guid>> Authorize([FromBody] CreateAuthorizationRequest request)
 		{
+			// Tính số tiền phải thanh toán cho booking theo từng đợt:
+			// - Lần 1 (Deposit): thu 10% tiền thuê (advance)
+			// - Lần 2 (Rental): thu 90% tiền thuê còn lại + cọc thiết bị
+			// Sau đó tuỳ theo phương thức (ví hoặc PayOS) mà trừ ví hoặc tạo Payment chờ thanh toán online.
 			var booking = await _bookingService.GetByIdAsync(request.BookingId);
 			if (booking == null) return NotFound("Booking not found");
 
@@ -183,6 +187,8 @@ namespace CamRent_Api.Controllers
 			Description = "Thực hiện hoàn tiền thủ công cho renter, cập nhật số tiền đã refund trong payment và cộng tiền về ví của renter.")]
 		public async Task<IActionResult> Refund(Guid id, [FromBody] RefundRequest request)
 		{
+			// Cập nhật số tiền đã refund trong Payment,
+			// đồng thời cộng số tiền đó vào ví của renter và phát sự kiện realtime cho FE.
 			await _paymentService.RefundAsync(id, request.Amount);
 			var payment = await _paymentService.GetByIdAsync(id);
 			if (payment != null)

@@ -1,4 +1,4 @@
-﻿using CamRent_Application.IServices;
+using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -26,11 +26,11 @@ namespace CamRent_Api.Controllers
 			_payOsService = payOsService;
 		}
 
-		// GET api/wallets/balance
 		[HttpGet("balance")]
 		[Authorize]
 		public async Task<ActionResult> GetMyBalance()
 		{
+			// Lấy số dư ví hiện tại của user đăng nhập.
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
@@ -38,11 +38,11 @@ namespace CamRent_Api.Controllers
 			return Ok(new { balance });
 		}
 
-		// GET api/wallets/me - xem ví + lịch sử
 		[HttpGet("me")]
 		[Authorize]
 		public async Task<ActionResult<WalletSummaryResponse>> GetMyWallet()
 		{
+			// Lấy số dư ví + một số transaction gần nhất để hiển thị lịch sử.
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
@@ -50,7 +50,6 @@ namespace CamRent_Api.Controllers
 			return Ok(summary);
 		}
 
-		// POST api/wallets/topup - tạo link nạp ví qua PayOS
 		[HttpPost("topup")]
 		[Authorize]
 		[SwaggerOperation(
