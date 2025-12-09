@@ -45,7 +45,11 @@ namespace CamRent_Application.Common
 			.ForMember(d => d.StatusText,
 				opt => opt.MapFrom(s => s.Status.GetDisplayName()))
 			.ForMember(d => d.StaffName,
-				opt => opt.MapFrom(s => s.Staff != null ? s.Staff.FullName : null));
+				opt => opt.MapFrom(s => s.Staff != null ? s.Staff.FullName : null))
+			.ForMember(d => d.BranchName,
+				opt => opt.MapFrom(s => s.Branch != null ? s.Branch.Name : null))
+			.ForMember(d => d.BranchAddress,
+				opt => opt.MapFrom(s => s.Branch.Address.District + "," + s.Branch.Address.Province));
 			CreateMap<BookingItem, BookingItemDTO>()
 				// Map ItemId: ưu tiên Camera → Accessory → Combo
 				.ForMember(d => d.ItemId,
