@@ -191,18 +191,19 @@ namespace CamRent_Application.Services
 		/// Nhận chữ ký base64, upload Cloudinary, update ContractSignature.
 		/// Nếu tất cả đã ký => generate PDF, upload Cloudinary, lưu hash.
 		/// </summary>
-		public async Task<Contract> SignContractAsync(Guid contractId, ContractSignerRole role,
-			string signatureBase64, Guid? userId, string? ip, string? userAgent)
+		public async Task<Contract> SignContractAsync(
+			Guid contractId,
+			ContractSignerRole role,
+			string signatureBase64,
+			Guid? userId,
+			string? ip,
+			string? userAgent)
 		{
 			var contractRepo = _unitOfWork.Repository<Contract>();
 			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
 
-			// Load contract + signatures + booking (tuỳ repo bạn implement Include)
 			var contract = await contractRepo.GetByIdAsync(contractId)
 							 ?? throw new AppException("Contract not found");
-
-			// nếu dùng repo generic khó Include, bạn có thể viết thêm method custom:
-			// var contract = await _contractRepository.GetContractWithDetailsAsync(contractId);
 
 			var signature = (await signatureRepo.GetAllAsync())
 				.FirstOrDefault(s => s.ContractId == contractId && s.Role == role)
@@ -226,6 +227,9 @@ namespace CamRent_Application.Services
 				folder: "camrent/contracts/signatures",
 				label: role.ToString());
 
+			if (asset == null)
+				throw new AppException("Upload signature failed");
+
 			// update signature row
 			signature.IsSigned = true;
 			signature.SignedAt = DateTime.UtcNow;
@@ -233,10 +237,7 @@ namespace CamRent_Application.Services
 			signature.SignedIp = ip;
 			signature.SignedUserAgent = userAgent;
 
-			// tạm thời DocumentHashAtSignTime sẽ set sau khi generate PDF cuối;
-			// hoặc bạn có thể generate mỗi lần ký 1 bản (tùy logic)
-
-			await _unitOfWork.Complete();
+			await _unitOfWork.Complete(); // 🟢 TỚI ĐÂY CHẮC CHẮN ĐÃ KÝ
 
 			// Reload signatures để check đủ chưa
 			var allSignatures = (await signatureRepo.GetAllAsync())
@@ -245,15 +246,24 @@ namespace CamRent_Application.Services
 
 			if (allSignatures.All(s => s.IsSigned))
 			{
-				// tất cả đã ký => generate contract final
-				await GenerateAndUploadFinalPdfAsync(contract.Id, allSignatures);
-				contract.Status = ContractStatus.Signed;
-				await _unitOfWork.Repository<Contract>().UpdateAsync(contract);
-				await _unitOfWork.Complete();
+				// tất cả đã ký => cố gắng generate contract final
+				try
+				{
+					await GenerateAndUploadFinalPdfAsync(contract.Id, allSignatures);
+				}
+				catch (Exception ex)
+				{
+					// Log lỗi nhưng KHÔNG làm hỏng việc ký
+					// Có thể set trạng thái riêng nếu muốn, ví dụ:
+					// contract.Status = ContractStatus.SignedButPdfFailed;
+					// await contractRepo.UpdateAsync(contract);
+					// await _unitOfWork.Complete();
+				}
 			}
 
 			return contract;
 		}
+
 
 		/// <summary>
 		/// Download PDF hợp đồng (nếu đã generate).

@@ -136,7 +136,8 @@ namespace CamRent_Api.Controllers
 			{
 				contract.Id,
 				contract.Status,
-				contract.SignedAt
+				contract.SignedAt,
+				contract.FileAssetId
 			});
 		}
 
