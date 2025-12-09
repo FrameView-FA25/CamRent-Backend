@@ -234,7 +234,7 @@ namespace CamRent_Application.Services
 			if (allSignatures.All(s => s.IsSigned))
 			{
 				// tất cả đã ký => generate contract final
-				await GenerateAndUploadFinalPdfAsync(contractId, allSignatures);
+				await GenerateAndUploadFinalPdfAsync(contract.Id, allSignatures);
 				contract.Status = ContractStatus.Signed;
 				await _unitOfWork.Repository<Contract>().UpdateAsync(contract);
 				await _unitOfWork.Complete();
@@ -269,7 +269,7 @@ namespace CamRent_Application.Services
 			var contractRepo = _unitOfWork.Repository<Contract>();
 
 			// Load contract đầy đủ từ DB
-			var contract = await contractRepo.FirstOrDefaultAsync(c => c.Id == contractId);
+			var contract = await contractRepo.GetByIdAsync(contractId);
 
 			if (contract == null)
 				throw new AppException($"Contract {contractId} not found");

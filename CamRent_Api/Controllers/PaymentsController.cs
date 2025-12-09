@@ -107,7 +107,7 @@ namespace CamRent_Api.Controllers
 					capturedAmount: totalThisTime
 				);
 
-				return Ok(paymentId);
+				return Ok("Thanh toán bằng ví thành công");
 			}
 			else
 			{
