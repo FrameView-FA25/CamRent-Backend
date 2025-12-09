@@ -76,7 +76,9 @@ public sealed class PayOsService : IPayOsService
 	}
 
 
-	public async Task<PayOsWebhookResult?> HandleWebhookAsync(Webhook webhook, CancellationToken ct = default)
+	public async Task<PayOsWebhookResult?> HandleWebhookAsync(
+	Webhook webhook,
+	CancellationToken ct = default)
 	{
 		WebhookData data;
 		try
@@ -92,8 +94,8 @@ public sealed class PayOsService : IPayOsService
 		var orderCode = data.OrderCode;
 		var amount = data.Amount;
 
-		// CHỈ dùng code của PayOS để xác định thành công
-		var isPaid = data.Code == "00"; // hoặc nếu SDK có data.Status == "PAID" thì dùng thêm
+		// Thanh toán thành công khi code == "00"
+		var isPaid = data.Code == "00";
 
 		var paymentRepo = _uow.Repository<Payment>();
 
@@ -108,7 +110,9 @@ public sealed class PayOsService : IPayOsService
 			return null;
 		}
 
-		// Log event webhook
+		// Tạo request hash unique để tránh trùng IX_payment_events_request_hash
+		var requestHash = Guid.NewGuid().ToString("N");
+
 		var ev = new PaymentEvent
 		{
 			Id = Guid.NewGuid(),
@@ -116,23 +120,24 @@ public sealed class PayOsService : IPayOsService
 			Provider = "PayOS",
 			Type = "webhook",
 			Status = isPaid ? "PAID" : "FAILED",
+			RequestHash = requestHash,
 			RawData = System.Text.Json.JsonSerializer.Serialize(webhook),
 			Amount = amount,
+			ResponseCode = data.Code,   // OK, property này có
 			CreatedAt = DateTime.UtcNow
+			// Các field còn lại (TransactionNo, BankCode, CardType, PaidAt) để null
 		};
+
 		await _uow.Repository<PaymentEvent>().AddAsync(ev);
 
 		var alreadyCaptured = payment.Status == PaymentStatus.Captured;
 
 		if (isPaid && !alreadyCaptured)
 		{
-			// Update Payment sang Captured
 			payment.Status = PaymentStatus.Captured;
 			payment.CapturedAmount = amount;
-
 			await paymentRepo.UpdateAsync(payment);
 
-			// Nếu là Payment cho Booking thì confirm booking
 			if (payment.BookingId.HasValue)
 			{
 				var bookingRepo = _uow.Repository<Booking>();
@@ -149,7 +154,7 @@ public sealed class PayOsService : IPayOsService
 
 		return new PayOsWebhookResult
 		{
-			// CHỈ Success = true khi đây là lần đầu capture thành công
+			// Chỉ Success = true khi đây là lần đầu capture
 			Success = isPaid && !alreadyCaptured,
 			PaymentId = payment.Id,
 			UserId = payment.CreatedByUserId,
@@ -158,5 +163,7 @@ public sealed class PayOsService : IPayOsService
 			Purpose = payment.Purpose
 		};
 	}
+
+
 
 }
