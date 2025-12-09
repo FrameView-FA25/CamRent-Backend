@@ -30,6 +30,9 @@ namespace CamRent_Application.DTOs
 			public User? Renter { get; set; }
 			public Guid? StaffId { get; set; }
 			public string StaffName { get; set; }
+			public Guid? BranchId { get; set; }
+			public string BranchName { get; set; }
+			public string BranchAddress { get; set; }
 			public DateTime PickupAt { get; set; }
 			public DateTime ReturnAt { get; set; }
 			public Address? Location { get; set; }
