@@ -1,6 +1,7 @@
 ﻿using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using static CamRent_Application.DTOs.WalletDTO;
 
@@ -52,18 +53,31 @@ namespace CamRent_Api.Controllers
 		// POST api/wallets/topup - tạo link nạp ví qua PayOS
 		[HttpPost("topup")]
 		[Authorize]
+		[SwaggerOperation(
+			Summary = "Tạo link nạp ví",
+			Description = "Tạo Payment topup ví và sinh link thanh toán PayOS")]
 		public async Task<ActionResult> TopupWallet([FromBody] WalletTopupRequest request)
 		{
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-					  ?? User.FindFirst("sub")?.Value
-					  ?? User.FindFirst("uid")?.Value;
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					   ?? User.FindFirst("sub")?.Value
+					   ?? User.FindFirst("uid")?.Value;
+
+			if (string.IsNullOrWhiteSpace(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+			{
+				return Unauthorized("Không xác định được user hiện tại.");
+			}
+
+			if (request.Amount <= 0)
+			{
+				return BadRequest("Số tiền nạp phải lớn hơn 0.");
+			}
 
 			// 1) Tạo Payment topup (không gắn booking)
-			var paymentId = await _paymentService.CreateTopupPaymentAsync(Guid.Parse(userId), request.Amount);
+			var paymentId = await _paymentService.CreateTopupPaymentAsync(userId, request.Amount);
 
 			// 2) Tạo link PayOS
 			var shortId = paymentId.ToString("N")[..8];
-			var desc = $"TOPUP-{shortId}";
+			var desc = $"TOPUP-{shortId}"; // < 25 ký tự
 
 			var redirectUrl = await _payOsService.CreatePaymentLinkAsync(
 				paymentId,

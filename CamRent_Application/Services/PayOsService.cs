@@ -36,13 +36,14 @@ public sealed class PayOsService : IPayOsService
 	}
 
 	public async Task<string> CreatePaymentLinkAsync(
-		Guid paymentId,
-		decimal amount,
-		string description,
-		string returnUrl,
-		string cancelUrl,
-		CancellationToken ct = default)
+	Guid paymentId,
+	decimal amount,
+	string description,
+	string returnUrl,
+	string cancelUrl,
+	CancellationToken ct = default)
 	{
+		// orderCode phải là số nguyên dương
 		var orderCode = Math.Abs(BitConverter.ToInt32(paymentId.ToByteArray(), 0));
 		if (orderCode == 0) orderCode = 1;
 
@@ -50,7 +51,7 @@ public sealed class PayOsService : IPayOsService
 		{
 			OrderCode = orderCode,
 			Amount = (int)amount,
-			Description = description,
+			Description = description, // "TOPUP-XXXXXXXX"
 			ReturnUrl = returnUrl,
 			CancelUrl = cancelUrl
 		};
@@ -63,14 +64,17 @@ public sealed class PayOsService : IPayOsService
 		var payment = await _uow.Repository<Payment>().GetByIdAsync(paymentId);
 		if (payment != null)
 		{
+			// Provider đã set khi tạo, nhưng set lại cũng không sao
 			payment.Provider = "PayOS";
 			payment.ProviderPaymentId = orderCode.ToString();
+
 			await _uow.Repository<Payment>().UpdateAsync(payment);
 			await _uow.Complete();
 		}
 
 		return checkoutUrl;
 	}
+
 
 	public async Task<PayOsWebhookResult?> HandleWebhookAsync(Webhook webhook, CancellationToken ct = default)
 	{
@@ -88,16 +92,23 @@ public sealed class PayOsService : IPayOsService
 		var orderCode = data.OrderCode;
 		var amount = data.Amount;
 
-		var isPaid = data.Code == "00"; // hoặc data.Status == "PAID" tuỳ SDK
+		// CHỈ dùng code của PayOS để xác định thành công
+		var isPaid = data.Code == "00"; // hoặc nếu SDK có data.Status == "PAID" thì dùng thêm
 
 		var paymentRepo = _uow.Repository<Payment>();
+
 		var payments = await paymentRepo
 			.ListAsync(p => p.Provider == "PayOS"
 						 && p.ProviderPaymentId == orderCode.ToString());
 
 		var payment = payments.FirstOrDefault();
-		if (payment == null) return null;
+		if (payment == null)
+		{
+			_logger.LogWarning("Payment not found for PayOS orderCode {OrderCode}", orderCode);
+			return null;
+		}
 
+		// Log event webhook
 		var ev = new PaymentEvent
 		{
 			Id = Guid.NewGuid(),
@@ -115,10 +126,13 @@ public sealed class PayOsService : IPayOsService
 
 		if (isPaid && !alreadyCaptured)
 		{
+			// Update Payment sang Captured
 			payment.Status = PaymentStatus.Captured;
 			payment.CapturedAmount = amount;
+
 			await paymentRepo.UpdateAsync(payment);
 
+			// Nếu là Payment cho Booking thì confirm booking
 			if (payment.BookingId.HasValue)
 			{
 				var bookingRepo = _uow.Repository<Booking>();
@@ -135,12 +149,13 @@ public sealed class PayOsService : IPayOsService
 
 		return new PayOsWebhookResult
 		{
-			// Chỉ trả Success=true nếu đây là lần ĐẦU tiên capture
+			// CHỈ Success = true khi đây là lần đầu capture thành công
 			Success = isPaid && !alreadyCaptured,
 			PaymentId = payment.Id,
 			UserId = payment.CreatedByUserId,
 			BookingId = payment.BookingId,
-			Amount = amount
+			Amount = amount,
+			Purpose = payment.Purpose
 		};
 	}
 

@@ -66,6 +66,9 @@ namespace CamRent_Application.Services
 
 		public async Task CreditAsync(Guid userId, WalletTransactionRequest req)
 		{
+			if (req.Amount <= 0)
+				throw new ArgumentException("Amount must be greater than 0 for credit.", nameof(req.Amount));
+
 			var wallet = await GetOrCreateAsync(userId);
 
 			wallet.Balance += req.Amount;
@@ -77,7 +80,7 @@ namespace CamRent_Application.Services
 			{
 				Id = Guid.NewGuid(),
 				WalletId = wallet.Id,
-				Type = req.Type,
+				Type = req.Type,         // "topup"
 				Amount = req.Amount,
 				IsCredit = true,
 				PaymentId = req.PaymentId,
