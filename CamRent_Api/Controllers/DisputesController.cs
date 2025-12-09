@@ -36,8 +36,8 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost]
-		[Authorize(Policy = "Renter")]
-		[SwaggerOperation(Summary = "Renter mở dispute", Description = "Renter gửi dispute mới cho booking (mô tả, mức độ). Quyền: Renter")]
+		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(Summary = "Staff mở dispute", Description = "Staff gửi dispute mới cho booking (mô tả, mức độ). Quyền: Staff")]
 		public async Task<ActionResult<Guid>> Open([FromBody] OpenRequest req)
 		{
 			var id = await _dispute.OpenAsync(req.BookingId, req.Title, req.Description, req.Severity);
