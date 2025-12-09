@@ -185,7 +185,7 @@ namespace CamRent_Application.Services
 
 				if (allSignatures.All(s => s.IsSigned))
 				{
-					await _contractService.GenerateAndUploadFinalPdfAsync(sig.Contract, allSignatures);
+					await _contractService.GenerateAndUploadFinalPdfAsync(sig.ContractId, allSignatures);
 				}
 			}
 

@@ -234,7 +234,7 @@ namespace CamRent_Application.Services
 			if (allSignatures.All(s => s.IsSigned))
 			{
 				// tất cả đã ký => generate contract final
-				await GenerateAndUploadFinalPdfAsync(contract, allSignatures);
+				await GenerateAndUploadFinalPdfAsync(contractId, allSignatures);
 				contract.Status = ContractStatus.Signed;
 				await _unitOfWork.Repository<Contract>().UpdateAsync(contract);
 				await _unitOfWork.Complete();
@@ -262,11 +262,17 @@ namespace CamRent_Application.Services
 
 
 
-		public async Task GenerateAndUploadFinalPdfAsync(Contract contract, List<ContractSignature> signatures)
+		public async Task GenerateAndUploadFinalPdfAsync(Guid contractId, List<ContractSignature> signatures)
 		{
 			// Load đầy đủ navigation nếu cần: Booking, Branch, Renter, ...
 			// nếu contract hiện tại chưa có => bạn phải load lại bằng repo custom
+			var contractRepo = _unitOfWork.Repository<Contract>();
 
+			// Load contract đầy đủ từ DB
+			var contract = await contractRepo.FirstOrDefaultAsync(c => c.Id == contractId);
+
+			if (contract == null)
+				throw new AppException($"Contract {contractId} not found");
 			// 1. Render PDF bytes
 			byte[] pdfBytes = contract.Type switch
 			{
@@ -290,7 +296,6 @@ namespace CamRent_Application.Services
 				label: contract.Type.ToString());
 
 			// 4. Update contract
-			var contractRepo = _unitOfWork.Repository<Contract>();
 			contract.FileAssetId = pdfAsset.Id;
 			contract.FileHash = hash;
 			contract.Status = ContractStatus.Signed;
