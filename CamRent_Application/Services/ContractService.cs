@@ -69,14 +69,22 @@ namespace CamRent_Application.Services
 			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
 
 			var booking = (await bookingRepo.ListAsync(include: q => q
-				.Include(b => b.Branch).ThenInclude(b => b.Manager))).FirstOrDefault(b => b.Id == bookingId)
-				?? throw new AppException("Booking not found");
-			if(booking.Branch == null)
-				return null;
-			// nếu cần include navigation: tự dùng repo custom hoặc context (tuỳ bạn)
-			// ví dụ: _unitOfWork.BookingRepository.GetBookingWithDetailsAsync(...)
-			var check = await contractRepo.AnyAsync(c => c.BookingId == bookingId && c.Status == ContractStatus.PendingSignatures);
-			if (check)
+							.Include(b => b.Branch)
+								.ThenInclude(br => br.Manager)))
+						 .FirstOrDefault(b => b.Id == bookingId)
+						 ?? throw new AppException("Booking not found");
+
+			if (booking.BranchId == null || booking.Branch == null)
+				throw new AppException("Booking does not have a branch assigned");
+
+			if (booking.Branch.ManagerId == null || booking.Branch.Manager == null)
+				throw new AppException("Branch does not have a manager configured");
+
+			var hasPending = await contractRepo.AnyAsync(c =>
+				c.BookingId == bookingId &&
+				c.Status == ContractStatus.PendingSignatures);
+
+			if (hasPending)
 				throw new AppException("A pending contract already exists for this booking");
 
 			var contract = new Contract
@@ -86,12 +94,13 @@ namespace CamRent_Application.Services
 				BookingId = booking.Id,
 				BranchId = booking.BranchId,
 				Status = ContractStatus.PendingSignatures,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = DateTime.UtcNow,
+				CreatedByUserId = staffUserId
 			};
 
 			await contractRepo.AddAsync(contract);
 
-			// tạo signer renter
+			// signer renter
 			var renterSignature = new ContractSignature
 			{
 				Id = Guid.NewGuid(),
@@ -101,9 +110,11 @@ namespace CamRent_Application.Services
 				IsSigned = false
 			};
 			await signatureRepo.AddAsync(renterSignature);
+
+			// signer platform (manager)
 			var signManagerId = booking.Branch.Manager.SignatureAssetId;
 			var isSignedByManager = signManagerId != null;
-			// tạo signer platform (staff)
+
 			var platformSignature = new ContractSignature
 			{
 				Id = Guid.NewGuid(),
@@ -119,6 +130,7 @@ namespace CamRent_Application.Services
 
 			return contract;
 		}
+
 
 		public async Task<Contract> CreateVerificationContractAsync(Guid verificationId, Guid staffUserId)
 		{

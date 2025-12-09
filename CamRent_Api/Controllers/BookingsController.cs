@@ -1,4 +1,5 @@
 ﻿using CamRent_Api.Hubs;
+using CamRent_Application.Common;
 using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
 using CamRent_Application.Services;
@@ -69,25 +70,42 @@ namespace CamRent_Api.Controllers
 			return Ok(qr);
 		}
 
-		[HttpPost()]
+		[HttpPost]
 		[Authorize(Policy = "Renter")]
 		[SwaggerOperation(Summary = "Tạo booking từ giỏ hàng", Description = "Chuyển trạng thái giỏ hàng hiện tại của renter thành booking chờ duyệt. Quyền: Renter")]
 		public async Task<ActionResult> CreateBooking([FromBody] CreateBookingRequest request)
 		{
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-					  ?? User.FindFirst("sub")?.Value
-					  ?? User.FindFirst("uid")?.Value;
-			var booking = await _bookingService.CreateBookingAsync(request, Guid.Parse(userId));
-			if (booking == Guid.Empty) return BadRequest("Tạo booking thất bại.");
-			var contract = await _contractService.CreateBookingContractAsync(booking, Guid.Parse(userId));
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+						  ?? User.FindFirst("sub")?.Value
+						  ?? User.FindFirst("uid")?.Value;
 
-			var response = new CreateContractResponse
+			if (string.IsNullOrWhiteSpace(userIdStr))
+				return Unauthorized();
+
+			var userId = Guid.Parse(userIdStr);
+
+			var bookingId = await _bookingService.CreateBookingAsync(request, userId);
+			if (bookingId == Guid.Empty)
+				return BadRequest("Tạo booking thất bại.");
+
+			try
 			{
-				ContractId = contract.Id
-			};
+				var contract = await _contractService.CreateBookingContractAsync(bookingId, userId);
 
-			return Ok(response);
+				var response = new CreateContractResponse
+				{
+					ContractId = contract.Id
+				};
+
+				return Ok(response);
+			}
+			catch (AppException ex)
+			{
+				// tuỳ bạn: có thể vẫn trả về bookingId cho FE tiếp tục xử lý
+				return BadRequest(new { message = ex.Message, bookingId });
+			}
 		}
+
 		[HttpGet("renterbookings")]
 		[Authorize(Policy = "Renter")]
 		[SwaggerOperation(Summary = "Booking của renter", Description = "Danh sách booking (không bao gồm draft) của renter đang đăng nhập. Quyền: Renter")]
