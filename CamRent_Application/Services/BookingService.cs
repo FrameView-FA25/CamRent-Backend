@@ -139,6 +139,7 @@ namespace CamRent_Application.Services
 			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(
 				filter: b => b.BranchId == branch.Id && b.Status != BookingStatus.Draft,
 				include: b => b
+					.Include(b => b.Staff)
 					.Include(b => b.Items)
 						.ThenInclude(i => i.Camera)
 					.Include(b => b.Items)
