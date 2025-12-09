@@ -92,70 +92,64 @@ namespace CamRent_Application.Services
 
 			if (string.IsNullOrWhiteSpace(signatureBase64))
 				throw new InvalidOperationException("Signature data is empty");
-			var fileAsset = await fileAssetRepo.FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.UserSignature && f.OwnerId == userId);
-			if (fileAsset != null)
-			{
-				// Xoá file cũ trên Cloudinary
-				await _fileStorage.DeleteByAssetIdAsync(fileAsset.Id);
-			}
-			// 1) Decode base64 (có thể có prefix "data:image/png;base64,....")
+			// Decode base64
 			var cleaned = signatureBase64;
 			if (cleaned.StartsWith("data:image"))
 			{
-				var idx = cleaned.IndexOf("base64,");
+				var idx = cleaned.IndexOf("base64,", StringComparison.OrdinalIgnoreCase);
 				if (idx >= 0)
-					cleaned = cleaned.Substring(idx + "base64,".Length);
+					cleaned = cleaned[(idx + "base64,".Length)..];
 			}
-
 			var bytes = Convert.FromBase64String(cleaned);
+			var fileName = $"user_signature_{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}.png";
 
-			var fileName = $"user_signature_{userId}.png";
-
-			// 2) Upload lên Cloudinary (tùy theo chữ ký IFileStorage của bạn)
+			// Upload chữ ký mới
 			var asset = await _fileStorage.UploadAsync(
 				bytes,
 				fileName,
 				"image/png",
 				userId,
-				FileOwnerType.UserSignature,     // nếu bạn có enum này, hoặc đổi lại cho phù hợp
+				FileOwnerType.UserSignature,
 				folder: "camrent/users/signatures",
 				label: "UserSignature");
 
-
-			// 4) Gán vào user
+			// Cập nhật user dùng chữ ký mới
 			user.SignatureAssetId = asset.Id;
 			await userRepo.UpdateAsync(user);
 
-			// 5) Cập nhật tất cả ContractSignature liên quan đến user này
-			//    (giả sử ContractSignature có field SignedByUserId)
-			var managerSignatures = (await contractSignatureRepo.ListAsync(include: q => q.Include(c => c.Contract),filter: s =>
-				s.UserId == userId && s.Contract.Status == ContractStatus.PendingSignatures && s.Contract.VerificationId == null)).ToList();
+			// Cập nhật chữ ký trên các ContractSignature đang pending (như code của bạn)
+			var managerSignatures = (await contractSignatureRepo.ListAsync(
+					include: q => q.Include(c => c.Contract),
+					filter: s =>
+						s.UserId == userId &&
+						s.Contract.Status == ContractStatus.PendingSignatures &&
+						s.Contract.VerificationId == null
+				))
+				.ToList();
 
 			foreach (var sig in managerSignatures)
-			{	
+			{
 				sig.SignatureAssetId = asset.Id;
-				// Không đổi SignedAt, vì thời điểm ký vẫn giữ nguyên,
-				// chỉ thay hình chữ ký.
 				sig.IsSigned = true;
 				await contractSignatureRepo.UpdateAsync(sig);
 			}
 
 			var result = await _unitOfWork.Complete();
 
+			// Sau khi save xong mới generate final PDF nếu tất cả đã ký
 			foreach (var sig in managerSignatures)
 			{
 				var allSignatures = (await contractSignatureRepo.GetAllAsync())
-				.Where(s => s.ContractId == sig.ContractId)
-				.ToList();
+					.Where(s => s.ContractId == sig.ContractId)
+					.ToList();
 
 				if (allSignatures.All(s => s.IsSigned))
 				{
-					// tất cả đã ký => generate contract final
 					await _contractService.GenerateAndUploadFinalPdfAsync(sig.Contract, allSignatures);
 				}
 			}
+
 			return result;
 		}
-
 	}
 }
