@@ -15,6 +15,7 @@ namespace CamRent_Application.DTOs
 			public Guid? UserId { get; set; }
 			public Guid? BookingId { get; set; }
 			public decimal Amount { get; set; }
+			public string? Purpose { get; set; }
 		}
 	}
 }

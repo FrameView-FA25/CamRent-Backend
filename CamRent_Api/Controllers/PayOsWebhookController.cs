@@ -25,8 +25,8 @@ namespace CamRent_Api.Controllers
 		[HttpPost]
 		[AllowAnonymous]
 		[SwaggerOperation(
-			Summary = "Webhook PayOS",
-			Description = "Nhận callback từ PayOS, xác thực chữ ký và cập nhật trạng thái payment/contract tương ứng.")]
+	Summary = "Webhook PayOS",
+	Description = "Nhận callback từ PayOS, xác thực chữ ký và cập nhật trạng thái payment/contract/ví.")]
 		public async Task<IActionResult> Handle([FromBody] Webhook body)
 		{
 			var result = await _payOsService.HandleWebhookAsync(body, HttpContext.RequestAborted);
@@ -35,9 +35,12 @@ namespace CamRent_Api.Controllers
 			if (result == null)
 				return Ok();
 
-			if (result.Success && result.BookingId == null && result.UserId.HasValue)
+			// TOPUP VÍ: Payment không gắn Booking, có UserId, Purpose = wallet_topup
+			if (result.Success
+				&& result.BookingId == null
+				&& result.UserId.HasValue
+				&& string.Equals(result.Purpose, "wallet_topup", StringComparison.OrdinalIgnoreCase))
 			{
-				// Đây là Payment topup ví
 				var creditReq = new WalletTransactionRequest
 				{
 					Amount = result.Amount,
@@ -50,7 +53,7 @@ namespace CamRent_Api.Controllers
 				await _walletService.CreditAsync(result.UserId.Value, creditReq);
 			}
 
-			// Nếu là payment cho booking (BookingId != null) thì tuỳ logic của bạn, ở đây mình bỏ qua
+			// Nếu là payment cho booking (BookingId != null) thì xử lý logic khác ở đây (nếu cần)
 
 			return Ok();
 		}
