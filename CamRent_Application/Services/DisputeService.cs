@@ -93,6 +93,8 @@ namespace CamRent_Application.Services
 				Description = d.Description,
 				Severity = d.Severity,
 				Status = d.Status,
+				CreatedAt = d.CreatedAt,
+				UpdatedAt = d.UpdatedAt,
 				// Nếu vì lý do nào đó TotalAmount chưa được cập nhật, fallback tính từ Items.
 				TotalAmount = d.TotalAmount != 0 ? d.TotalAmount : d.Items.Sum(i => i.Amount),
 				Items = d.Items.Select(i => new DisputeDTO.DisputeItemResponse
