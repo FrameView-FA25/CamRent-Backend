@@ -47,6 +47,7 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Wallet> Wallets => Set<Wallet>();
         public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
 		public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
+        public DbSet<MoneyFlatformSetting> MoneyFlatformSettings => Set<MoneyFlatformSetting>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

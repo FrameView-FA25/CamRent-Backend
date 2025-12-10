@@ -65,6 +65,7 @@ namespace CamRent_Application.Services
 			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
 			var items = await _uow.Repository<DisputeItem>().ListAsync(i => i.DisputeId == disputeId);
 			d.TotalAmount = items.Sum(i => i.Amount);
+			d.Status = "under_review"; // Tự động chuyển trạng thái khi có item mới
 			await _uow.Repository<Dispute>().UpdateAsync(d);
 			await _uow.Complete();
 		}

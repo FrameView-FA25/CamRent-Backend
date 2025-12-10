@@ -34,7 +34,6 @@ namespace CamRent_Api.Controllers
 		// Dùng khi BranchManager cập nhật trạng thái xử lý dispute.
 		public sealed class UpdateStatusRequest
 		{
-			public string Status { get; set; } = "under_review";
 			public string? ResolutionNote { get; set; }
 		}
 
@@ -73,12 +72,22 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		[HttpPost("{id:guid}/status")]
-		[Authorize(Policy = "BranchManager")]
-		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Branch manager cập nhật trạng thái xử lý dispute (under_review/resolved/...). Quyền: BranchManager")]
-		public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
+		[HttpPost("{id:guid}/resolved")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Cập nhật trạng thái xử lý dispute (under_review/resolved/...).")]
+		public async Task<IActionResult> Resolve(Guid id, [FromBody] UpdateStatusRequest req)
 		{
-			await _dispute.UpdateStatusAsync(id, req.Status, req.ResolutionNote);
+			var status = "resolved";
+			await _dispute.UpdateStatusAsync(id, status, req.ResolutionNote);
+			return NoContent();
+		}
+		[HttpPost("{id:guid}/rejected")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Cập nhật trạng thái xử lý dispute (under_review/resolved/...).")]
+		public async Task<IActionResult> Reject(Guid id, [FromBody] UpdateStatusRequest req)
+		{
+			var status = "rejected";
+			await _dispute.UpdateStatusAsync(id, status, req.ResolutionNote);
 			return NoContent();
 		}
 	}

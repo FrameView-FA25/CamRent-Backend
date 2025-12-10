@@ -83,7 +83,7 @@ namespace CamRent_Application.Services
 			// ---------- CẬP NHẬT BOOKING ----------
 			var bookingRepo = _unitOfWork.Repository<Booking>();
 			var booking = await bookingRepo.GetByIdAsync(bookingId);
-			if (booking != null && booking.Status == BookingStatus.PendingApproval)
+			if (booking != null)
 			{
 				booking.Status = BookingStatus.Confirmed;
 				await bookingRepo.UpdateAsync(booking);
@@ -118,7 +118,8 @@ namespace CamRent_Application.Services
 			};
 
 			await _unitOfWork.Repository<Payment>().AddAsync(payment);
-
+			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
+			booking.Status = BookingStatus.PendingApproval;
 			// ---------- LINE CHI TIẾT ----------
 			if (rentalAmount > 0)
 			{

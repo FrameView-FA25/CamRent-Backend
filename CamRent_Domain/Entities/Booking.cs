@@ -16,9 +16,11 @@ namespace CamRent_Domain.Entities
 		public Guid? BranchId { get; set; }
 		public Branch? Branch { get; set; }
 		public BookingStatus Status { get; set; }
+		public bool IsSettled { get; set; } = false;
+		public DateTime? SettledAt { get; set; }
 
-        // Snapshot pricing values for immutability
-        public decimal SnapshotBaseDailyRate { get; set; }
+		// Snapshot pricing values for immutability
+		public decimal SnapshotBaseDailyRate { get; set; }
         public decimal SnapshotPlatformFeePercent { get; set; }
         public decimal SnapshotRentalTotal { get; set; }
         public decimal SnapshotDepositAmount { get; set; }

@@ -2,6 +2,7 @@ using AutoMapper;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
+using CamRent_Domain.Common;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
