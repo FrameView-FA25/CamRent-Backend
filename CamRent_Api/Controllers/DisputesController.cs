@@ -75,19 +75,19 @@ namespace CamRent_Api.Controllers
 		[HttpPut("{id:guid}/resolved")]
 		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Cập nhật trạng thái xử lý dispute (under_review/resolved/...).")]
-		public async Task<IActionResult> Resolve(Guid id, [FromBody] UpdateStatusRequest req)
+		public async Task<IActionResult> Resolve(Guid id)
 		{
 			var status = "resolved";
-			await _dispute.UpdateStatusAsync(id, status, req.ResolutionNote);
+			await _dispute.UpdateStatusAsync(id, status);
 			return NoContent();
 		}
 		[HttpPut("{id:guid}/rejected")]
 		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Cập nhật trạng thái xử lý dispute (under_review/resolved/...).")]
-		public async Task<IActionResult> Reject(Guid id, [FromBody] UpdateStatusRequest req)
+		public async Task<IActionResult> Reject(Guid id)
 		{
 			var status = "rejected";
-			await _dispute.UpdateStatusAsync(id, status, req.ResolutionNote);
+			await _dispute.UpdateStatusAsync(id, status);
 			return NoContent();
 		}
 	}
