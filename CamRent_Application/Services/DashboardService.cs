@@ -13,6 +13,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Application.Services
 {
+	/// <summary>
+	/// Cung cấp các thống kê tổng quan cho nhiều loại người dùng (Admin, BranchManager, Staff, Owner)
+	/// dựa trên dữ liệu booking, payment, dispute, verification, v.v...
+	/// </summary>
 	public sealed class DashboardService : IDashboardService
 	{
 		private readonly IUnitOfWork _uow;
@@ -22,6 +26,14 @@ namespace CamRent_Application.Services
 			_uow = uow;
 		}
 
+		/// <summary>
+		/// Dashboard tổng quan cho Admin toàn hệ thống:
+		/// - Thống kê số lượng user theo từng role
+		/// - Thống kê số lượng chi nhánh, thiết bị, booking
+		/// - Tổng doanh thu thu được / số tiền đã refund
+		/// - Biểu đồ booking + doanh thu theo ngày (30 ngày gần nhất) và theo tháng (12 tháng gần nhất)
+		/// - Thống kê số lượng dispute đang mở / đã xử lý.
+		/// </summary>
 		public async Task<AdminDashboardDTO> GetAdminDashboardAsync(CancellationToken ct = default)
 		{
 			// Users & roles
@@ -138,6 +150,11 @@ namespace CamRent_Application.Services
 			};
 		}
 
+		/// <summary>
+		/// Dashboard cho BranchManager:
+		/// - Thống kê tồn kho (camera/phụ kiện) trong chi nhánh mà manager phụ trách
+		/// - Booking, doanh thu và dispute liên quan tới chi nhánh đó.
+		/// </summary>
 		public async Task<ManagerDashboardDTO> GetManagerDashboardAsync(Guid managerUserId, CancellationToken ct = default)
 		{
 			// Branch that this manager owns
@@ -190,6 +207,12 @@ namespace CamRent_Application.Services
 			};
 		}
 
+		/// <summary>
+		/// Dashboard cho Staff:
+		/// - Số lượng booking được gán cho staff, phân nhóm theo trạng thái
+		/// - Số booking pickup/return trong ngày hôm nay
+		/// - Số verification request và review đang pending mà staff cần xử lý.
+		/// </summary>
 		public async Task<StaffDashboardDTO> GetStaffDashboardAsync(Guid staffUserId, CancellationToken ct = default)
 		{
 			// Booking được phân công cho staff này
@@ -232,6 +255,14 @@ namespace CamRent_Application.Services
 			};
 		}
 
+		/// <summary>
+		/// Dashboard cho Owner:
+		/// - Thống kê tổng số camera/phụ kiện thuộc owner
+		/// - Số booking distinct có sử dụng thiết bị của owner (bỏ qua booking cancel/no-show)
+		/// - Tổng doanh thu gộp (ước tính) theo từng thiết bị
+		/// - Top thiết bị được thuê nhiều nhất
+		/// - Biểu đồ doanh thu/booking theo ngày và theo tháng dựa trên PickupAt.
+		/// </summary>
 		public async Task<OwnerDashboardDTO> GetOwnerDashboardAsync(Guid ownerUserId, CancellationToken ct = default)
 		{
 			// Lấy thiết bị của owner
@@ -275,6 +306,10 @@ namespace CamRent_Application.Services
 			// Lưu doanh thu theo booking để vẽ biểu đồ theo thời gian
 			var bookingRevenue = new Dictionary<Guid, decimal>();
 
+			// Gộp doanh thu theo từng item/booking để:
+			// - tính tổng doanh thu của owner
+			// - thống kê theo từng thiết bị (assetStats)
+			// - chuẩn bị dữ liệu vẽ biểu đồ doanh thu theo thời gian (bookingRevenue)
 			foreach (var item in validItems)
 			{
 				if (item.Booking == null) continue;

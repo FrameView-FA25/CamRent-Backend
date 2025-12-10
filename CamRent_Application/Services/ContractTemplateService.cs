@@ -177,7 +177,7 @@ namespace CamRent_Application.Services
 										columns.RelativeColumn(2);     // Giá/ngày
 										columns.RelativeColumn(2.2f);  // Tiền thuê
 										columns.RelativeColumn(2);     // Tiền cọc
-										columns.RelativeColumn(2);     // Trạng thái thiết bị
+										columns.RelativeColumn(2);     // Tình trạng thiết bị khi giao
 									});
 
 									static void HeaderCell(IContainer container, string text)
@@ -203,7 +203,7 @@ namespace CamRent_Application.Services
 										header.Cell().Element(c => HeaderCell(c, "Giá/ngày"));
 										header.Cell().Element(c => HeaderCell(c, "Tiền thuê"));
 										header.Cell().Element(c => HeaderCell(c, "Tiền cọc"));
-										header.Cell().Element(c => HeaderCell(c, "Trạng thái"));
+										header.Cell().Element(c => HeaderCell(c, "Tình trạng thiết bị khi giao"));
 									});
 
 									int index = 1;
@@ -217,18 +217,12 @@ namespace CamRent_Application.Services
 										table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} đ"));
 										table.Cell().Element(c => BodyCell(c, $"{rentalLine:N0} đ"));
 										table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} đ"));
-										// Trạng thái thiết bị: dựa vào IsConfirmed, nếu cần có thể chi tiết hơn theo Inspection
-										var statusText = "Chưa xác minh";
-										var entityItem = booking.Items.FirstOrDefault(bi => bi.CameraId == item.ItemId || bi.AccessoryId == item.ItemId || bi.ComboId == item.ItemId);
-										if (entityItem?.Camera != null)
-										{
-											statusText = entityItem.Camera.IsConfirmed ? "Đã xác minh" : "Chưa xác minh";
-										}
-										else if (entityItem?.Accessory != null)
-										{
-											statusText = entityItem.Accessory.IsConfirmed ? "Đã xác minh" : "Chưa xác minh";
-										}
-										table.Cell().Element(c => BodyCell(c, statusText));
+
+										// Tình trạng thiết bị thực tế khi giao cho bên thuê.
+										// Hiện tại hợp đồng chỉ ghi chú chung, chi tiết cụ thể (nếu có)
+										// sẽ được thể hiện trong biên bản bàn giao hoặc qua hình ảnh/video.
+										var conditionText = "Theo tình trạng thực tế khi bàn giao thiết bị";
+										table.Cell().Element(c => BodyCell(c, conditionText));
 									}
 								});
 

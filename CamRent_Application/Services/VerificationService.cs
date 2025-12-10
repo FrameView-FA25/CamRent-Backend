@@ -9,6 +9,12 @@ using static CamRent_Application.DTOs.VerificationRequestDTO;
 
 namespace CamRent_Application.Services
 {
+	/// <summary>
+	/// Xử lý toàn bộ nghiệp vụ liên quan đến Verification:
+	/// - Tạo/cập nhật/xóa yêu cầu verification cho thiết bị của owner
+	/// - Gán staff, load chi tiết verification cho Owner/Manager/Staff
+	/// - Cập nhật trạng thái verification và ký hợp đồng liên quan.
+	/// </summary>
 	public class VerificationService : IVerificationService
 	{
 		private readonly IUnitOfWork _unitOfWork;
@@ -19,6 +25,10 @@ namespace CamRent_Application.Services
 			_mapper = mapper;
 		}
 
+		/// <summary>
+		/// Gán một staff cụ thể vào verification request.
+		/// Dùng khi Manager phân công người đi kiểm tra thiết bị.
+		/// </summary>
 		public async Task<int> AssignStaffToVerification(Guid staffId, Guid verificationRequest)
 		{
 			var verification = await  _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(verificationRequest);
@@ -28,6 +38,12 @@ namespace CamRent_Application.Services
 			return result;
 		}
 
+		/// <summary>
+		/// Tạo mới một verification request cho owner:
+		/// - Map DTO sang entity
+		/// - Gán owner tạo yêu cầu
+		/// - Lưu các item (thiết bị cần verification) kèm theo.
+		/// </summary>
 		public async Task<Guid> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId)
 		{
 			var verification = _mapper.Map<VerificationRequest>(verificationRequestDTO);
@@ -80,6 +96,10 @@ namespace CamRent_Application.Services
 			return result;
 		}
 
+		/// <summary>
+		/// Lấy danh sách verification thuộc các branch mà Manager đang quản lý,
+		/// bao gồm đầy đủ navigation (branch, staff, inspections, items, contracts).
+		/// </summary>
 		public async Task<List<VerificationResponseDTO>> GetVerificationByManagerId(Guid managerId)
 		{
 			var verifications = await _unitOfWork
@@ -112,6 +132,9 @@ namespace CamRent_Application.Services
 			return response;
 		}
 
+		/// <summary>
+		/// Lấy danh sách verification do một owner tạo.
+		/// </summary>
 		public async Task<List<VerificationResponseDTO>> GetVerificationByOwnerId(Guid ownerId)
 		{
 			var verifications = await _unitOfWork
@@ -145,6 +168,9 @@ namespace CamRent_Application.Services
 		}
 
 
+		/// <summary>
+		/// Lấy danh sách verification được gán cho một staff cụ thể để xử lý.
+		/// </summary>
 		public async Task<List<VerificationResponseDTO>> GetVerificationByStaffId(Guid staffId)
 		{
 			var verifications = await _unitOfWork
@@ -177,6 +203,9 @@ namespace CamRent_Application.Services
 		}
 
 
+		/// <summary>
+		/// Lấy toàn bộ verification trong hệ thống (dùng cho màn quản trị tổng quan).
+		/// </summary>
 		public async Task<List<VerificationResponseDTO>> GetVerifications()
 		{
 			var verifications = await _unitOfWork
@@ -208,7 +237,10 @@ namespace CamRent_Application.Services
 			return response;
 		}
 
-		// New: get detail by id
+		/// <summary>
+		/// Lấy chi tiết một verification theo Id,
+		/// bao gồm inspections, items, contracts/signatures và media liên quan.
+		/// </summary>
 		public async Task<VerificationResponseDTO?> GetVerificationById(Guid id)
 		{
 			var verification = (await _unitOfWork
@@ -241,7 +273,11 @@ namespace CamRent_Application.Services
 			return response;
 		}
 
-		// New: update verification
+		/// <summary>
+		/// Cập nhật một verification:
+		/// - Map các field được phép sửa từ DTO sang entity
+		/// - Thay thế toàn bộ danh sách items nếu client gửi kèm Items mới.
+		/// </summary>
 		public async Task<int> UpdateVerificationAsync(Guid id, UpdateVerificationRequestDTO request)
 		{
 			// load with items to be able to remove children if needed
@@ -295,6 +331,11 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
+		/// <summary>
+		/// Cập nhật trạng thái của verification (Pending/Approved/Rejected/...).
+		/// Nếu status = Approved, đồng thời tự động ký hợp đồng bởi Platform Manager
+		/// bằng cách gán chữ ký của manager vào ContractSignature tương ứng.
+		/// </summary>
 		public async Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string note, VerificationStatus status)
 		{
 			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(id);
@@ -314,7 +355,9 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Repository<VerificationRequest>().UpdateAsync(verification);
 			return await _unitOfWork.Complete();
 		}
-		// New: delete verification
+		/// <summary>
+		/// Xóa một verification cùng toàn bộ items con của nó.
+		/// </summary>
 		public async Task<int> DeleteVerificationAsync(Guid id)
 		{
 			// load with items to delete children explicitly if needed
