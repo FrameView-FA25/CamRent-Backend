@@ -186,20 +186,37 @@ namespace CamRent_Application.Services
 				.Take(take)
 				.ToList();
 
-			// Cần map WalletId -> UserId, nên load ví tương ứng
+			// Cần map WalletId -> UserId và lấy thông tin ngân hàng tương ứng
 			var walletRepo = _uow.Repository<Wallet>();
 			var walletIds = ordered.Select(t => t.WalletId).Distinct().ToList();
 			var wallets = await walletRepo.ListAsync(w => walletIds.Contains(w.Id));
 			var walletLookup = wallets.ToDictionary(w => w.Id, w => w.UserId);
 
-			var result = ordered.Select(t => new WalletWithdrawHistoryItem
+			// Load thêm thông tin User để có STK/ngân hàng
+			var userRepo = _uow.Repository<User>();
+			var userIds = wallets.Select(w => w.UserId).Distinct().ToList();
+			var users = await userRepo.ListAsync(u => userIds.Contains(u.Id));
+			var userLookup = users.ToDictionary(u => u.Id, u => u);
+
+			var result = ordered.Select(t =>
 			{
-				TransactionId = t.Id,
-				UserId = walletLookup.TryGetValue(t.WalletId, out var uid) ? uid : Guid.Empty,
-				Amount = t.Amount,
-				Type = t.Type,
-				Description = t.Description,
-				CreatedAt = t.CreatedAt
+				walletLookup.TryGetValue(t.WalletId, out var uid);
+				userLookup.TryGetValue(uid, out var user);
+
+				return new WalletWithdrawHistoryItem
+				{
+					TransactionId = t.Id,
+					UserId = uid,
+					Amount = t.Amount,
+					Type = t.Type,
+					Description = t.Description,
+					CreatedAt = t.CreatedAt,
+					BankAccountNumber = user?.BankAccountNumber,
+					BankName = user?.BankName,
+					BankAccountName = user?.BankAccountName,
+					FullName = user?.FullName,
+					Email = user?.Email
+				};
 			}).ToList();
 
 			return result;

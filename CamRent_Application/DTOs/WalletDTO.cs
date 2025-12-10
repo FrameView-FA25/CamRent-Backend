@@ -60,6 +60,15 @@ namespace CamRent_Application.DTOs
 			public string Type { get; set; } = string.Empty;     // withdraw_request / withdraw / withdraw_failed
 			public string? Description { get; set; }
 			public DateTime CreatedAt { get; set; }
+
+			// Thông tin ngân hàng để staff chuyển tiền
+			public string? BankAccountNumber { get; set; }
+			public string? BankName { get; set; }
+			public string? BankAccountName { get; set; }
+
+			// Một số thông tin nhận diện user (tiện hiển thị)
+			public string? FullName { get; set; }
+			public string? Email { get; set; }
 		}
 	}
 }
