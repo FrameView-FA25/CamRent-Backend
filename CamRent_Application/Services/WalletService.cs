@@ -9,6 +9,12 @@ using static CamRent_Application.DTOs.WalletDTO;
 
 namespace CamRent_Application.Services
 {
+	/// <summary>
+	/// Xử lý nghiệp vụ ví điện tử nội bộ cho người dùng:
+	/// - Khởi tạo/lấy ví
+	/// - Ghi nhận biến động số dư (credit/debit)
+	/// - Quản lý quy trình rút tiền (yêu cầu rút, hoàn tất, thất bại).
+	/// </summary>
 	public class WalletService : IWalletService
 	{
 		private readonly IUnitOfWork _uow;
@@ -20,6 +26,9 @@ namespace CamRent_Application.Services
 			_mapper = mapper;
 		}
 
+		/// <summary>
+		/// Lấy ví hiện có của user; nếu chưa tồn tại thì khởi tạo ví mới với số dư = 0.
+		/// </summary>
 		public async Task<Wallet> GetOrCreateAsync(Guid userId)
 		{
 			var repo = _uow.Repository<Wallet>();
@@ -40,12 +49,18 @@ namespace CamRent_Application.Services
 			return wallet;
 		}
 
+		/// <summary>
+		/// Lấy số dư hiện tại của ví (Balance) cho một user.
+		/// </summary>
 		public async Task<decimal> GetBalanceAsync(Guid userId)
 		{
 			var wallet = await GetOrCreateAsync(userId);
 			return wallet.Balance;
 		}
 
+		/// <summary>
+		/// Lấy thông tin tổng quan của ví và một số transaction gần nhất cho user.
+		/// </summary>
 		public async Task<WalletSummaryResponse> GetSummaryAsync(Guid userId, int take = 20)
 		{
 			var wallet = await GetOrCreateAsync(userId);
@@ -64,6 +79,10 @@ namespace CamRent_Application.Services
 			return summary;
 		}
 
+		/// <summary>
+		/// Cộng tiền vào ví (credit), ví dụ sau khi user nạp tiền hoặc refund từ hệ thống.
+		/// Đồng thời log một bản ghi WalletTransaction tương ứng.
+		/// </summary>
 		public async Task CreditAsync(Guid userId, WalletTransactionRequest req)
 		{
 			if (req.Amount <= 0)
@@ -93,6 +112,10 @@ namespace CamRent_Application.Services
 			await _uow.Complete();
 		}
 
+		/// <summary>
+		/// Trừ tiền khỏi ví (debit), ví dụ khi thanh toán booking.
+		/// Nếu số dư không đủ thì trả về false và không tạo transaction.
+		/// </summary>
 		public async Task<bool> DebitAsync(Guid userId, WalletTransactionRequest req)
 		{
 			var wallet = await GetOrCreateAsync(userId);

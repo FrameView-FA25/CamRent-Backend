@@ -4,6 +4,9 @@ using CamRent_Domain.Common;
 
 namespace CamRent_Application.DTOs
 {
+	/// <summary>
+	/// Số lượng booking theo từng trạng thái, dùng chung cho nhiều loại dashboard.
+	/// </summary>
 	public class BookingStatusCount
 	{
 		public BookingStatus Status { get; set; }
@@ -11,6 +14,10 @@ namespace CamRent_Application.DTOs
 		public int Count { get; set; }
 	}
 
+	/// <summary>
+	/// Một điểm dữ liệu trên biểu đồ thời gian (theo ngày/tháng) cho dashboard:
+	/// thể hiện số booking và doanh thu capture được tại mốc thời gian đó.
+	/// </summary>
 	public class DashboardTimePoint
 	{
 		public DateTime Date { get; set; }
@@ -18,6 +25,10 @@ namespace CamRent_Application.DTOs
 		public decimal CapturedRevenue { get; set; }
 	}
 
+	/// <summary>
+	/// Dữ liệu dashboard cho Admin toàn hệ thống:
+	/// tổng quan user, chi nhánh, inventory, booking, doanh thu và dispute.
+	/// </summary>
 	public class AdminDashboardDTO
 	{
 		public int TotalUsers { get; set; }
@@ -43,6 +54,10 @@ namespace CamRent_Application.DTOs
 		public int ResolvedDisputes { get; set; }
 	}
 
+	/// <summary>
+	/// Dữ liệu dashboard cho BranchManager:
+	/// tập trung vào một chi nhánh cụ thể (inventory, booking, doanh thu, dispute).
+	/// </summary>
 	public class ManagerDashboardDTO
 	{
 		public Guid BranchId { get; set; }
@@ -55,6 +70,10 @@ namespace CamRent_Application.DTOs
 		public int OpenDisputes { get; set; }
 	}
 
+	/// <summary>
+	/// Thống kê theo từng thiết bị (camera/phụ kiện) của owner:
+	/// số lần được thuê và doanh thu gộp tạo ra.
+	/// </summary>
 	public class OwnerAssetStat
 	{
 		public Guid ItemId { get; set; }
@@ -64,6 +83,9 @@ namespace CamRent_Application.DTOs
 		public decimal GrossRevenue { get; set; }
 	}
 
+	/// <summary>
+	/// Dữ liệu dashboard cho Owner (chủ thiết bị).
+	/// </summary>
 	public class OwnerDashboardDTO
 	{
 		public int TotalCameras { get; set; }
@@ -75,6 +97,10 @@ namespace CamRent_Application.DTOs
 		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 	}
 
+	/// <summary>
+	/// Dữ liệu dashboard cho Staff:
+	/// số lượng booking, verification và review mà staff cần xử lý.
+	/// </summary>
 	public class StaffDashboardDTO
 	{
 		public int TotalAssignedBookings { get; set; }
