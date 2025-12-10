@@ -52,6 +52,7 @@ namespace CamRent_Application.DTOs
 			public string? Value { get; set; }
 			public bool? Passed { get; set; }
 			public string Notes { get; set; } = string.Empty;
+			public DateTime CreatedAt { get; set; }
 			public List<FileAssetDTO> Media { get; set; } = new();
 		}
 	}
