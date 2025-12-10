@@ -9,7 +9,7 @@ namespace CamRent_Application.IServices
 		Task<Guid> OpenAsync(Guid bookingId, string title, string description, string severity);
 		Task AddItemAsync(Guid disputeId, string type, decimal amount, string? notes);
 		Task AssignAsync(Guid disputeId, Guid? userId);
-		Task UpdateStatusAsync(Guid disputeId, string status, string? resolutionNote);
+		Task UpdateStatusAsync(Guid disputeId, string status);
 	}
 }
 

@@ -76,7 +76,7 @@ namespace CamRent_Application.Services
 			return Task.CompletedTask;
 		}
 
-		public async Task UpdateStatusAsync(Guid disputeId, string status, string? resolutionNote)
+		public async Task UpdateStatusAsync(Guid disputeId, string status)
 		{
 			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
 			d.Status = status;
