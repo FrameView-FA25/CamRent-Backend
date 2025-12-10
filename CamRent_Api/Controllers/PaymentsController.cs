@@ -98,7 +98,7 @@ namespace CamRent_Api.Controllers
 						? $"Thanh toán 10% tiền thuê booking {booking.Id} bằng ví"
 						: $"Thanh toán 90% tiền thuê + cọc thiết bị booking {booking.Id} bằng ví"
 				};
-
+				
 				var ok = await _walletService.DebitAsync(renterId, walletReq);
 				if (!ok)
 					return BadRequest("Wallet balance not enough");
@@ -110,7 +110,6 @@ namespace CamRent_Api.Controllers
 					mode: request.Mode,
 					capturedAmount: totalThisTime
 				);
-
 				return Ok("Thanh toán bằng ví thành công");
 			}
 			else
