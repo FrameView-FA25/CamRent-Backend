@@ -43,6 +43,7 @@ namespace CamRent_Application.Services
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
 						.Include(b => b.Inspections)
+						.Include(b => b.Payments)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);
 			if (result.Inspections != null)
@@ -104,8 +105,10 @@ namespace CamRent_Application.Services
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
-							.ThenInclude(i => i.Combo).
-						Include(b => b.Contracts));
+							.ThenInclude(i => i.Combo)
+						.Include(b => b.Inspections)
+						.Include(b => b.Payments)
+						.Include(b => b.Contracts));
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
@@ -120,7 +123,8 @@ namespace CamRent_Application.Services
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
 						.Include(b => b.Inspections)
-						.Include(b => b.Renter)	
+						.Include(b => b.Renter)
+						.Include(b => b.Payments)
 						.Include(b => b.Contracts))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
@@ -157,6 +161,7 @@ namespace CamRent_Application.Services
 						.ThenInclude(i => i.Combo)
 					.Include(b => b.Inspections)
 					.Include(b => b.Renter)
+					.Include(b => b.Payments)
 					.Include(b => b.Contracts))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
