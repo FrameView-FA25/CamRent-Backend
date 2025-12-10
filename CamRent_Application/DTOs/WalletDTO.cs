@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CamRent_Application.DTOs
@@ -42,6 +42,24 @@ namespace CamRent_Application.DTOs
 			public decimal Amount { get; set; }
 			public string ReturnUrl { get; set; } = string.Empty;
 			public string CancelUrl { get; set; } = string.Empty;
+		}
+
+		// Dùng khi người dùng gửi yêu cầu rút tiền về tài khoản ngân hàng
+		public class WalletWithdrawRequest
+		{
+			public decimal Amount { get; set; }                  // Số tiền muốn rút
+			public string? Note { get; set; }                    // Ghi chú thêm nếu cần
+		}
+
+		// Dùng cho staff xem lịch sử yêu cầu rút và trạng thái xử lý
+		public class WalletWithdrawHistoryItem
+		{
+			public Guid TransactionId { get; set; }
+			public Guid UserId { get; set; }
+			public decimal Amount { get; set; }
+			public string Type { get; set; } = string.Empty;     // withdraw_request / withdraw / withdraw_failed
+			public string? Description { get; set; }
+			public DateTime CreatedAt { get; set; }
 		}
 	}
 }
