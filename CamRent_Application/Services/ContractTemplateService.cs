@@ -95,7 +95,7 @@ namespace CamRent_Application.Services
 			var grandTotal = totalRental + totalDeposit;
 
 			// Dòng tiền
-			var upfrontPercent = 0.10m;
+			var upfrontPercent = booking.SnapshotPlatformFeePercent;
 			var upfrontRental = totalRental * upfrontPercent;   // 10% trả trước
 			var remainingRental = totalRental - upfrontRental;    // 90% còn lại
 			var payOnPickup = remainingRental + totalDeposit; // khi nhận máy
