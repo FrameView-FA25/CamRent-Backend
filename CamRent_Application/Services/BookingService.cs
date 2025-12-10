@@ -538,7 +538,7 @@ namespace CamRent_Application.Services
 
 			// 5) % phí nền tảng – thường lấy từ config
 			// Ví dụ bạn có IOptions<PlatformSettings> _platformSettings;
-			const decimal platformFeePercent = 0.20m; // 20%
+			const decimal platformFeePercent = 0.10m; // 10%
 			cart.SnapshotPlatformFeePercent = platformFeePercent;
 
 			// ====== CHUYỂN TRẠNG THÁI ======
