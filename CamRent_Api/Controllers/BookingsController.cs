@@ -219,6 +219,19 @@ namespace CamRent_Api.Controllers
 			var bookings = await _bookingService.GetBookingsByStaffIdAsync(Guid.Parse(userId));
 			return Ok(bookings);
 		}
+
+		/// <summary>
+		/// Lịch bận của một thiết bị (camera/phụ kiện/combo) để hiển thị calendar tránh trùng lịch.
+		/// </summary>
+		[HttpGet("items/{itemId:guid}/unavailable-ranges")]
+		[SwaggerOperation(
+			Summary = "Các khoảng thời gian thiết bị đã được đặt",
+			Description = "Trả về danh sách khoảng thời gian mà một camera/phụ kiện/combo đã được booking (không còn trống).")]
+		public async Task<ActionResult<IEnumerable<BookingItemUnavailableRangeDTO>>> GetUnavailableRangesForItem(Guid itemId, [FromQuery] ItemType type)
+		{
+			var ranges = await _bookingService.GetUnavailableRangesForItemAsync(itemId, type, HttpContext.RequestAborted);
+			return Ok(ranges);
+		}
 		[HttpPut("{id:guid}/update-status")]
 		[Authorize(Policy = "ManagerOrStaff")]
 		public async Task<IActionResult> UpdateBookingStatus(Guid id, BookingStatus status)

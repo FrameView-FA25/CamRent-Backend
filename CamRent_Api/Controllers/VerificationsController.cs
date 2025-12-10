@@ -1,4 +1,4 @@
-﻿using CamRent_Application.IServices;
+using CamRent_Application.IServices;
 using CamRent_Application.Services;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -22,6 +22,27 @@ namespace CamRent_Api.Controllers
 		{
 			_verificationService = verificationService;
 			_contractService = contractService;
+		}
+
+		/// <summary>
+		/// Danh sách thiết bị (camera/phụ kiện) CHƯA xác minh thuộc sở hữu owner hiện tại.
+		/// Dùng cho màn tạo verification để chỉ hiển thị đúng thiết bị của owner và trạng thái IsConfirmed = false.
+		/// </summary>
+		[HttpGet("owner-devices")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(
+			Summary = "Thiết bị chưa xác minh của owner",
+			Description = "Trả về danh sách camera/phụ kiện có OwnerUserId = current user và IsConfirmed = false.")]
+		public async Task<IActionResult> GetOwnerUnverifiedDevices()
+		{
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			var devices = await _verificationService.GetUnverifiedDevicesForOwnerAsync(Guid.Parse(userIdStr));
+			return Ok(devices);
 		}
 		[HttpGet("get_by_user_id")]
 		[Authorize(Policy ="OwnerOrManagerOrStaff")]

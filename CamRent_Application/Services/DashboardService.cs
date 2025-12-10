@@ -395,6 +395,144 @@ namespace CamRent_Application.Services
 				MonthlyStats = monthlyStats
 			};
 		}
+
+		/// <summary>
+		/// Lịch làm việc của một staff: các booking được phân công (pickup/return) và các verification có InspectionDate
+		/// trong khoảng thời gian from-to (nếu null thì lấy mặc định 30 ngày quanh hôm nay).
+		/// </summary>
+		public async Task<IReadOnlyList<StaffScheduleItemDTO>> GetStaffScheduleAsync(Guid staffUserId, DateTime? from, DateTime? to, CancellationToken ct = default)
+		{
+			var today = DateTime.UtcNow.Date;
+			var fromDate = from?.Date ?? today.AddDays(-7);
+			var toDate = to?.Date ?? today.AddDays(21);
+
+			var result = new List<StaffScheduleItemDTO>();
+
+			// Booking được gán cho staff
+			var bookings = await _uow.Repository<Booking>().ListAsync(b => b.StaffId == staffUserId);
+
+			foreach (var b in bookings)
+			{
+				// Sự kiện nhận máy (pickup)
+				if (b.PickupAt.Date >= fromDate && b.PickupAt.Date <= toDate)
+				{
+					result.Add(new StaffScheduleItemDTO
+					{
+						StaffId = staffUserId,
+						StaffName = b.Staff?.FullName ?? string.Empty,
+						EventType = "BookingPickup",
+						BookingId = b.Id,
+						StartAt = b.PickupAt,
+						EndAt = b.PickupAt,
+						Title = $"Nhận máy booking {b.Id}"
+					});
+				}
+
+				// Sự kiện trả máy (return)
+				if (b.ReturnAt.Date >= fromDate && b.ReturnAt.Date <= toDate)
+				{
+					result.Add(new StaffScheduleItemDTO
+					{
+						StaffId = staffUserId,
+						StaffName = b.Staff?.FullName ?? string.Empty,
+						EventType = "BookingReturn",
+						BookingId = b.Id,
+						StartAt = b.ReturnAt,
+						EndAt = b.ReturnAt,
+						Title = $"Trả máy booking {b.Id}"
+					});
+				}
+			}
+
+			// Verification mà staff phụ trách
+			var verifs = await _uow.Repository<VerificationRequest>()
+				.ListAsync(v => v.StaffId == staffUserId);
+
+			foreach (var v in verifs)
+			{
+				if (v.InspectionDate.Date >= fromDate && v.InspectionDate.Date <= toDate)
+				{
+					result.Add(new StaffScheduleItemDTO
+					{
+						StaffId = staffUserId,
+						StaffName = v.Staff?.FullName ?? string.Empty,
+						EventType = "Verification",
+						VerificationId = v.Id,
+						StartAt = v.InspectionDate,
+						EndAt = v.InspectionDate,
+						Title = $"Kiểm tra thiết bị verification {v.Id}"
+					});
+				}
+			}
+
+			return result
+				.OrderBy(e => e.StartAt)
+				.ToList();
+		}
+
+		/// <summary>
+		/// Workload của tất cả staff trong chi nhánh của manager: số booking + verification được giao,
+		/// cùng số lượng pickup/return trong ngày hiện tại.
+		/// </summary>
+		public async Task<StaffWorkloadSummaryDTO> GetStaffWorkloadForManagerAsync(Guid managerUserId, DateTime? from, DateTime? to, CancellationToken ct = default)
+		{
+			var branches = await _uow.Repository<Branch>().ListAsync(b => b.ManagerId == managerUserId);
+			var branch = branches.FirstOrDefault()
+				?? throw new InvalidOperationException("Branch not found for this manager");
+
+			var branchId = branch.Id;
+			var today = DateTime.UtcNow.Date;
+			var fromDate = from?.Date ?? today.AddDays(-7);
+			var toDate = to?.Date ?? today.AddDays(21);
+
+			// Staff trong chi nhánh này = những user có booking hoặc verification thuộc branch
+			var bookings = await _uow.Repository<Booking>()
+				.ListAsync(b => b.BranchId == branchId && b.StaffId != null);
+			var verifs = await _uow.Repository<VerificationRequest>()
+				.ListAsync(v => v.BranchId == branchId && v.StaffId != null);
+
+			var staffIds = bookings.Select(b => b.StaffId!.Value)
+				.Concat(verifs.Select(v => v.StaffId!.Value))
+				.Distinct()
+				.ToList();
+
+			var staffLookup = (await _uow.Repository<User>().ListAsync(u => staffIds.Contains(u.Id)))
+				.ToDictionary(u => u.Id, u => u.FullName);
+
+			var items = new List<StaffWorkloadItemDTO>();
+
+			foreach (var staffId in staffIds)
+			{
+				var staffBookings = bookings.Where(b => b.StaffId == staffId).ToList();
+				var staffVerifs = verifs.Where(v => v.StaffId == staffId).ToList();
+
+				var assignedBookingsInRange = staffBookings
+					.Count(b => b.PickupAt.Date <= toDate && b.ReturnAt.Date >= fromDate);
+
+				var assignedVerifsInRange = staffVerifs
+					.Count(v => v.InspectionDate.Date >= fromDate && v.InspectionDate.Date <= toDate);
+
+				var todayPickups = staffBookings.Count(b => b.PickupAt.Date == today);
+				var todayReturns = staffBookings.Count(b => b.ReturnAt.Date == today);
+
+				items.Add(new StaffWorkloadItemDTO
+				{
+					StaffId = staffId,
+					StaffName = staffLookup.TryGetValue(staffId, out var name) ? name : string.Empty,
+					AssignedBookings = assignedBookingsInRange,
+					AssignedVerifications = assignedVerifsInRange,
+					TodayPickupBookings = todayPickups,
+					TodayReturnBookings = todayReturns
+				});
+			}
+
+			return new StaffWorkloadSummaryDTO
+			{
+				BranchId = branchId,
+				BranchName = branch.Name,
+				Staffs = items
+			};
+		}
 	}
 }
 

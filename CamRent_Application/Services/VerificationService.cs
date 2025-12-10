@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
@@ -49,7 +49,36 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Complete();
 			return verification.Id;
 		}
-		
+
+		/// <summary>
+		/// Thiết bị (camera/phụ kiện) của owner chưa được xác minh (IsConfirmed = false).
+		/// Dùng cho màn tạo verification để lọc đúng thiết bị thuộc sở hữu owner.
+		/// </summary>
+		public async Task<List<VerificationItemDTO>> GetUnverifiedDevicesForOwnerAsync(Guid ownerId)
+		{
+			var cameras = await _unitOfWork.Repository<Camera>()
+				.ListAsync(c => c.OwnerUserId == ownerId && !c.IsConfirmed);
+			var accessories = await _unitOfWork.Repository<Accessory>()
+				.ListAsync(a => a.OwnerUserId == ownerId && !a.IsConfirmed);
+
+			var result = new List<VerificationItemDTO>();
+
+			result.AddRange(cameras.Select(c => new VerificationItemDTO
+			{
+				ItemId = c.Id,
+				ItemName = $"{c.Brand} {c.Model}",
+				ItemType = ItemType.Camera
+			}));
+
+			result.AddRange(accessories.Select(a => new VerificationItemDTO
+			{
+				ItemId = a.Id,
+				ItemName = $"{a.Brand} {a.Model}",
+				ItemType = ItemType.Accessory
+			}));
+
+			return result;
+		}
 
 		public async Task<List<VerificationResponseDTO>> GetVerificationByManagerId(Guid managerId)
 		{
