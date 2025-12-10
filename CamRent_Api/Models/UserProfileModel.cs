@@ -4,14 +4,14 @@ namespace CamRent_Api.Models
 {
 	public class UserProfileModel
 	{
-		public class UpdateProfileRequest
-		{
-			[StringLength(64)]
-			public string? BankNo { get; set; }
-			[StringLength(128)]
-			public string? BankName { get; set; }
-			[StringLength(128)]
-			public string? BankAccName { get; set; }
+		public class UpdateProfileRequest 
+		{ 
+			[StringLength(64)] 
+			public string? BankNo { get; set; } 
+			[StringLength(128)] 
+			public string? BankName { get; set; } 
+			[StringLength(128)] 
+			public string? BankAccName { get; set; } 
 		}
 
 		// Cập nhật thông tin tài khoản của chính user (email, tên, địa chỉ, phone)
