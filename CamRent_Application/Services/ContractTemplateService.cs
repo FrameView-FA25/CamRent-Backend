@@ -156,6 +156,9 @@ namespace CamRent_Application.Services
 							col.Item().Text($"• Số ngày thuê dự kiến: {rentalDays} ngày");
 							if (booking.Location != null)
 								col.Item().Text($"• Địa chỉ giao hàng (nếu chọn giao): {booking.Location.Province}, {booking.Location.District}");
+							// Hiệu lực hợp đồng = từ thời điểm nhận máy đến thời điểm trả máy theo booking
+							col.Item().Text(
+								$"• Thời hạn hiệu lực hợp đồng: từ {booking.PickupAt:dd/MM/yyyy HH:mm} đến {booking.ReturnAt:dd/MM/yyyy HH:mm}");
 
 							// II. Danh sách thiết bị & dòng tiền theo thiết bị
 							col.Item().Text("4. Thiết bị thuê và dòng tiền")
@@ -174,6 +177,7 @@ namespace CamRent_Application.Services
 										columns.RelativeColumn(2);     // Giá/ngày
 										columns.RelativeColumn(2.2f);  // Tiền thuê
 										columns.RelativeColumn(2);     // Tiền cọc
+										columns.RelativeColumn(2);     // Trạng thái thiết bị
 									});
 
 									static void HeaderCell(IContainer container, string text)
@@ -199,6 +203,7 @@ namespace CamRent_Application.Services
 										header.Cell().Element(c => HeaderCell(c, "Giá/ngày"));
 										header.Cell().Element(c => HeaderCell(c, "Tiền thuê"));
 										header.Cell().Element(c => HeaderCell(c, "Tiền cọc"));
+										header.Cell().Element(c => HeaderCell(c, "Trạng thái"));
 									});
 
 									int index = 1;
@@ -212,6 +217,18 @@ namespace CamRent_Application.Services
 										table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} đ"));
 										table.Cell().Element(c => BodyCell(c, $"{rentalLine:N0} đ"));
 										table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} đ"));
+										// Trạng thái thiết bị: dựa vào IsConfirmed, nếu cần có thể chi tiết hơn theo Inspection
+										var statusText = "Chưa xác minh";
+										var entityItem = booking.Items.FirstOrDefault(bi => bi.CameraId == item.ItemId || bi.AccessoryId == item.ItemId || bi.ComboId == item.ItemId);
+										if (entityItem?.Camera != null)
+										{
+											statusText = entityItem.Camera.IsConfirmed ? "Đã xác minh" : "Chưa xác minh";
+										}
+										else if (entityItem?.Accessory != null)
+										{
+											statusText = entityItem.Accessory.IsConfirmed ? "Đã xác minh" : "Chưa xác minh";
+										}
+										table.Cell().Element(c => BodyCell(c, statusText));
 									}
 								});
 

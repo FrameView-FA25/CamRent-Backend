@@ -1,7 +1,8 @@
-﻿using CamRent_Domain.Common;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,9 +19,9 @@ namespace CamRent_Application.DTOs
 			public string? Name { get; set; }
 			public string? PhoneNumber { get; set; }
 			public DateTime InspectionDate { get; set; }
-			public VerificationStatus Status { get; set; } 
+			public VerificationStatus Status { get; set; }
 			public Guid? StaffId { get; set; }
-			public string? StaffName { get; set; }   // nên cho nullable cho an toàn
+			public string? StaffName { get; set; }
 
 			public Guid? BranchId { get; set; }
 			public string? BranchName { get; set; }
@@ -33,20 +34,20 @@ namespace CamRent_Application.DTOs
 
 			public List<VerificationItemDTO>? Items { get; set; }
 			public ICollection<ContractResponse>? Contracts { get; set; }
-			public List<InspectionResponseDTO>? Inspections { get; set; } 
+			public List<InspectionResponseDTO>? Inspections { get; set; }
 		}
-
 
 		public class CreateVerificationRequestDTO
 		{
 			public string? Name { get; set; }
+			[Required]
 			public string PhoneNumber { get; set; } = string.Empty;
+			[Required]
 			public DateTime InspectionDate { get; set; }
 			public Guid? BranchId { get; set; }
 			public List<VerificationItemDTO>? Items { get; set; }
 		}
 
-		// New: update DTO - partial updates supported (nullable fields)
 		public class UpdateVerificationRequestDTO
 		{
 			public string? Name { get; set; }
@@ -61,7 +62,6 @@ namespace CamRent_Application.DTOs
 			public Guid? ItemId { get; set; }
 			public string? ItemName { get; set; }
 			public ItemType ItemType { get; set; }
-
 		}
 	}
 }

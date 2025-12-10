@@ -11,49 +11,34 @@ namespace CamRent_Application.DTOs
 		public int Count { get; set; }
 	}
 
-	// Điểm dữ liệu theo thời gian cho biểu đồ (theo ngày / theo tháng)
 	public class DashboardTimePoint
 	{
-		// Với thống kê theo ngày: Date = ngày (UTC)
-		// Với thống kê theo tháng: Date = ngày đầu tiên của tháng (UTC)
 		public DateTime Date { get; set; }
-
-		// Số booking được tạo trong khoảng này
 		public int BookingCount { get; set; }
-
-		// Tổng tiền đã capture trong khoảng này
 		public decimal CapturedRevenue { get; set; }
 	}
 
 	public class AdminDashboardDTO
 	{
-		// Users
 		public int TotalUsers { get; set; }
 		public int TotalRenters { get; set; }
 		public int TotalOwners { get; set; }
 		public int TotalStaffs { get; set; }
 		public int TotalBranchManagers { get; set; }
 
-		// Branches & inventory
 		public int TotalBranches { get; set; }
 		public int TotalCameras { get; set; }
 		public int TotalAccessories { get; set; }
 		public int TotalCombos { get; set; }
 
-		// Bookings & payments
 		public int TotalBookings { get; set; }
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
 		public decimal TotalCapturedRevenue { get; set; }
 		public decimal TotalRefundedAmount { get; set; }
 
-		// Thống kê theo thời gian (phục vụ vẽ biểu đồ)
-		// Mặc định: 30 ngày gần nhất
 		public List<DashboardTimePoint> DailyStats { get; set; } = new();
-
-		// Mặc định: 12 tháng gần nhất
 		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 
-		// Disputes
 		public int OpenDisputes { get; set; }
 		public int ResolvedDisputes { get; set; }
 	}
@@ -62,19 +47,11 @@ namespace CamRent_Application.DTOs
 	{
 		public Guid BranchId { get; set; }
 		public string BranchName { get; set; } = string.Empty;
-
-		// Inventory in branch
 		public int CamerasInBranch { get; set; }
 		public int AccessoriesInBranch { get; set; }
-
-		// Bookings in branch
 		public int TotalBookings { get; set; }
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
-
-		// Payments for bookings in branch
 		public decimal TotalCapturedRevenue { get; set; }
-
-		// Disputes related to branch bookings
 		public int OpenDisputes { get; set; }
 	}
 
@@ -91,41 +68,51 @@ namespace CamRent_Application.DTOs
 	{
 		public int TotalCameras { get; set; }
 		public int TotalAccessories { get; set; }
-
-		// Tổng số booking có chứa thiết bị của owner
 		public int TotalBookingsForOwnerItems { get; set; }
-
-		// Doanh thu gộp (chưa trừ platform fee) ước tính từ UnitPrice * days
 		public decimal TotalGrossRevenue { get; set; }
-
-		// Top thiết bị được thuê nhiều nhất
 		public List<OwnerAssetStat> TopRentedAssets { get; set; } = new();
-
-		// Thống kê theo thời gian cho owner (dựa trên booking có thiết bị của owner)
-		// 30 ngày gần nhất
 		public List<DashboardTimePoint> DailyStats { get; set; } = new();
-
-		// 12 tháng gần nhất
 		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 	}
 
-	// Dashboard dành cho Staff (nhân viên vận hành tại chi nhánh / platform)
 	public class StaffDashboardDTO
 	{
-		// Booking được phân công cho staff này
 		public int TotalAssignedBookings { get; set; }
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
-
-		// Công việc trong ngày
 		public int TodayPickupBookings { get; set; }
 		public int TodayReturnBookings { get; set; }
-
-		// Nhiệm vụ hỗ trợ khác
 		public int PendingVerificationRequests { get; set; }
 		public int PendingReviewsToModerate { get; set; }
 	}
+
+	// Event lịch làm việc của staff (booking, verification, ...) cho manager xem
+	public class StaffScheduleItemDTO
+	{
+		public Guid StaffId { get; set; }
+		public string StaffName { get; set; } = string.Empty;
+		public string EventType { get; set; } = string.Empty; // BookingPickup, BookingReturn, Verification
+		public Guid? BookingId { get; set; }
+		public Guid? VerificationId { get; set; }
+		public DateTime StartAt { get; set; }
+		public DateTime EndAt { get; set; }
+		public string? Title { get; set; }
+	}
+
+	// Workload theo staff trong 1 khoảng thời gian cho BranchManager
+	public class StaffWorkloadItemDTO
+	{
+		public Guid StaffId { get; set; }
+		public string StaffName { get; set; } = string.Empty;
+		public int AssignedBookings { get; set; }
+		public int AssignedVerifications { get; set; }
+		public int TodayPickupBookings { get; set; }
+		public int TodayReturnBookings { get; set; }
+	}
+
+	public class StaffWorkloadSummaryDTO
+	{
+		public Guid BranchId { get; set; }
+		public string BranchName { get; set; } = string.Empty;
+		public List<StaffWorkloadItemDTO> Staffs { get; set; } = new();
+	}
 }
-
-
-
-

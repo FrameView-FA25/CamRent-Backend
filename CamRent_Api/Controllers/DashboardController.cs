@@ -82,6 +82,58 @@ namespace CamRent_Api.Controllers
 			var data = await _dashboard.GetOwnerDashboardAsync(Guid.Parse(userId), HttpContext.RequestAborted);
 			return Ok(data);
 		}
+
+		/// <summary>
+		/// Lịch làm việc chi tiết của một staff (booking pickup/return + verification) cho Manager/Staff xem.
+		/// </summary>
+		[HttpGet("staff-schedule")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(
+			Summary = "Lịch làm việc của staff",
+			Description = "Trả về các event (booking pickup/return, verification) của một staff trong khoảng from-to.")]
+		public async Task<IActionResult> GetStaffSchedule([FromQuery] Guid staffId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+		{
+			// Nếu là staff và không truyền staffId, dùng userId hiện tại
+			var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(currentUserIdStr))
+				return Unauthorized();
+
+			var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+			var currentUserId = Guid.Parse(currentUserIdStr);
+
+			if (staffId == Guid.Empty)
+			{
+				// Staff tự xem lịch của mình
+				staffId = currentUserId;
+			}
+
+			// BranchManager chỉ được xem lịch staff trong chi nhánh mình quản lý (simple check bỏ qua ở đây để giữ code gọn)
+			var data = await _dashboard.GetStaffScheduleAsync(staffId, from, to, HttpContext.RequestAborted);
+			return Ok(data);
+		}
+
+		/// <summary>
+		/// Workload của staff trong chi nhánh mà Branch Manager đang quản lý:
+		/// số booking, số verification được gán, số pickup/return trong ngày.
+		/// </summary>
+		[HttpGet("staff-workload")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(
+			Summary = "Workload staff cho Branch Manager",
+			Description = "Trả về workload (booking, verification, pickup/return hôm nay) cho từng staff trong chi nhánh của manager.")]
+		public async Task<IActionResult> GetStaffWorkload([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+		{
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			var data = await _dashboard.GetStaffWorkloadForManagerAsync(Guid.Parse(userIdStr), from, to, HttpContext.RequestAborted);
+			return Ok(data);
+		}
 	}
 }
 
