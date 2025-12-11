@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SignalRSwaggerGen;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Reflection;
 using System.Text;
@@ -66,6 +67,9 @@ namespace CamRent_Api
 			services.AddSwaggerGen(options =>
 			{
 				options.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
+
+				// Generate documentation for SignalR hubs (e.g., NotificationHub)
+				options.AddSignalRSwaggerGen();
 
 				options.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
 				{
