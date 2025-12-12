@@ -16,6 +16,11 @@ namespace CamRent_Application.IServices
 		Task<List<CameraResponseDTO>> GetAllAsync();
 		Task<List<CameraResponseDTO>> GetCamerasByOwnerIdAsync(Guid userId);
 		Task<List<CameraResponseDTO>> GetByBranchManagerAsync(Guid managerId);
+		/// <summary>
+		/// Tìm các camera còn trống (không bị booking trùng lịch) trong khoảng thời gian [start, end).
+		/// FE có thể gửi khoảng đã được cộng/trừ 7 ngày theo logic validate trên UI.
+		/// </summary>
+		Task<List<CameraResponseDTO>> SearchAvailableAsync(DateTime start, DateTime end);
 		Task<CameraHistoryDTO> GetHistoryForQrAsync(Guid cameraId);
 		Task<int> CreateAsync(Camera camera);
 		Task<int> UpdateAsync(UpdateCameraRequest request, Guid userId);

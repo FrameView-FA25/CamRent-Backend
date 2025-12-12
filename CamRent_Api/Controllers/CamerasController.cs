@@ -38,6 +38,30 @@ namespace CamRent_Api.Controllers
 			return Ok(cameras);
 		}
 
+		/// <summary>
+		/// Tìm các camera có thể thuê được trong khoảng thời gian [start, end).
+		/// FE có thể gửi khoảng đã được cộng/trừ 7 ngày theo logic validate trên UI.
+		/// </summary>
+		[HttpGet("available")]
+		[AllowAnonymous]
+		[SwaggerOperation(
+			Summary = "Tìm camera khả dụng theo ngày",
+			Description = "Trả về danh sách camera không bị trùng lịch booking trong khoảng start–end. FE có thể gửi khoảng đã padding 7 ngày ở đầu/cuối.")]
+		public async Task<IActionResult> SearchAvailableCameras([FromQuery] DateTime start, [FromQuery] DateTime end)
+		{
+			if (start >= end)
+				return BadRequest("start must be earlier than end");
+
+			var cameras = await _cameraService.SearchAvailableAsync(start, end);
+			var status = cameras.Any();
+
+			return Ok(new
+			{
+				status,
+				cameras
+			});
+		}
+
 		// Camera theo chi nhánh mà Manager quản lý
 		[HttpGet("my-branch")]
 		[Authorize(Policy = "BranchManager")]
