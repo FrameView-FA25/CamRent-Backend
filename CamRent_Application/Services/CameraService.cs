@@ -86,6 +86,54 @@ namespace CamRent_Application.Services
 			return _mapper.Map<List<CameraResponseDTO>>(cameras);
 		}
 
+		/// <summary>
+		/// Tìm các camera còn trống (không bị booking trùng lịch) trong khoảng thời gian [start, end).
+		/// Logic overlap giống với BookingService.IsBookingItemAvailableAsync:
+		/// - Bỏ qua booking Draft / Cancelled / Completed.
+		/// - Xem là conflict nếu (PickupAt < end) && (ReturnAt > start).
+		/// </summary>
+		public async Task<List<CameraResponseDTO>> SearchAvailableAsync(DateTime start, DateTime end)
+		{
+			if (start >= end)
+				throw new ArgumentException("start must be earlier than end", nameof(start));
+
+			// 1) Lấy tất cả BookingItem có CameraId và booking active, trùng lịch với khoảng [start, end)
+			var bookingItems = await _unitOfWork.Repository<BookingItem>()
+				.ListAsync(
+					filter: bi =>
+						bi.CameraId != null &&
+						bi.Booking != null &&
+						bi.Booking.Status != BookingStatus.Draft &&
+						bi.Booking.Status != BookingStatus.Cancelled &&
+						bi.Booking.Status != BookingStatus.Completed &&
+						bi.Booking.PickupAt < end &&
+						bi.Booking.ReturnAt > start,
+					include: q => q.Include(bi => bi.Booking)
+				);
+
+			var unavailableCameraIds = bookingItems
+				.Where(bi => bi.CameraId.HasValue)
+				.Select(bi => bi.CameraId!.Value)
+				.Distinct()
+				.ToHashSet();
+
+			// 2) Lấy danh sách camera không nằm trong tập unavailable, chỉ lấy camera đã confirmed
+			var cameras = await _unitOfWork.Repository<Camera>()
+				.ListAsync(
+					filter: c => c.IsConfirmed && !unavailableCameraIds.Contains(c.Id),
+					include: c => c.Include(c => c.Branch).Include(c => c.OwnerUser)
+				);
+
+			// 3) Gắn media giống các API khác
+			foreach (var camera in cameras)
+			{
+				camera.Media = (await _unitOfWork.Repository<FileAsset>()
+					.ListAsync(f => f.OwnerType == FileOwnerType.Camera && f.OwnerId == camera.Id)).ToList();
+			}
+
+			return _mapper.Map<List<CameraResponseDTO>>(cameras);
+		}
+
 		public async Task<CameraHistoryDTO> GetHistoryForQrAsync(Guid cameraId)
 		{
 			// Camera
