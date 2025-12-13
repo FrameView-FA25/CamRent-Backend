@@ -163,6 +163,41 @@ namespace CamRent_Api.Controllers
 
 			return Ok(data);
 		}
+
+		/// <summary>
+		/// Check 1 slot cụ thể của staff có thể gán booking/verification mới hay không
+		/// theo rule: 1 verify HOẶC 2 booking trong cùng slot.
+		/// </summary>
+		[HttpGet("staff-slot-availability")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(
+			Summary = "Kiểm tra slot của staff có rảnh để gán việc không",
+			Description = "Trả về thông tin canAssign cho 1 staff, ngày và slotIndex với type=booking|verification.")]
+		public async Task<IActionResult> CheckStaffSlotAvailability(
+			[FromQuery] Guid? staffId,
+			[FromQuery] DateTime date,
+			[FromQuery] int slotIndex,
+			[FromQuery] string type = "booking")
+		{
+			var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(currentUserIdStr))
+				return Unauthorized();
+
+			var currentUserId = Guid.Parse(currentUserIdStr);
+
+			// Nếu là staff và không truyền staffId -> mặc định check cho chính mình
+			if (!staffId.HasValue || staffId == Guid.Empty)
+			{
+				staffId = currentUserId;
+			}
+
+			var data = await _dashboard.CheckStaffSlotAvailabilityAsync(
+				staffId.Value, date, slotIndex, type, HttpContext.RequestAborted);
+
+			return Ok(data);
+		}
 	}
 }
 
