@@ -165,4 +165,51 @@ namespace CamRent_Application.DTOs
 		public DateTime End { get; set; }
 		public List<AvailableStaffItemDTO> Staffs { get; set; } = new();
 	}
+
+	/// <summary>
+	/// Kết quả check availability của một staff trong một slot cụ thể.
+	/// Dùng khi Manager/Staff click vào slot để tạo booking/verification mới.
+	/// </summary>
+	public class StaffSlotAvailabilityDTO
+	{
+		public Guid StaffId { get; set; }
+		public string StaffName { get; set; } = string.Empty;
+		public DateTime Date { get; set; }
+		public int SlotIndex { get; set; }
+		/// <summary>
+		/// Loại công việc muốn gán: \"booking\" hoặc \"verification\".
+		/// </summary>
+		public string Type { get; set; } = "booking";
+		public bool CanAssign { get; set; }
+		public int ExistingBookings { get; set; }
+		public int ExistingVerifications { get; set; }
+		public List<StaffSlotBookingBriefDTO> Bookings { get; set; } = new();
+		public List<StaffSlotVerificationBriefDTO> Verifications { get; set; } = new();
+	}
+
+	/// <summary>
+	/// Thông tin ngắn gọn về booking nằm trong slot (dùng cho popup UI).
+	/// </summary>
+	public class StaffSlotBookingBriefDTO
+	{
+		public Guid BookingId { get; set; }
+		public DateTime PickupAt { get; set; }
+		public DateTime ReturnAt { get; set; }
+		public BookingStatus Status { get; set; }
+		public string StatusText { get; set; } = string.Empty;
+		public Guid? RenterId { get; set; }
+		public string? RenterName { get; set; }
+	}
+
+	/// <summary>
+	/// Thông tin ngắn gọn về verification nằm trong slot (dùng cho popup UI).
+	/// </summary>
+	public class StaffSlotVerificationBriefDTO
+	{
+		public Guid VerificationId { get; set; }
+		public DateTime InspectionDate { get; set; }
+		public VerificationStatus Status { get; set; }
+		public Guid? OwnerId { get; set; }
+		public string? OwnerName { get; set; }
+	}
 }

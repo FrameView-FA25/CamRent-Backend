@@ -664,6 +664,102 @@ namespace CamRent_Application.Services
 				Staffs = items
 			};
 		}
+
+		/// <summary>
+		/// Kiểm tra 1 slot cụ thể của staff có thể gán booking/verification mới hay không.
+		/// Quy ước:
+		/// - Mỗi (staff, ngày, slot) tối đa 1 verification HOẶC 2 booking.
+		/// - Nếu đã có verification -> không được gán gì thêm.
+		/// - Nếu đã có 2 booking -> không được gán gì thêm.
+		/// - Nếu có 1 booking và chưa có verification -> có thể gán thêm 1 booking, nhưng không gán verification.
+		/// </summary>
+		public async Task<StaffSlotAvailabilityDTO> CheckStaffSlotAvailabilityAsync(Guid staffUserId, DateTime date, int slotIndex, string type, CancellationToken ct = default)
+		{
+			// Lấy cấu hình slot
+			var slot = (await _uow.Repository<WorkSlotDefinition>().ListAsync())
+				.FirstOrDefault(ws => ws.SlotIndex == slotIndex && ws.IsActive);
+			if (slot == null)
+				throw new InvalidOperationException($"Work slot {slotIndex} is not configured or inactive.");
+
+			var day = date.Date;
+			var slotStart = day.Add(slot.StartTime);
+			var slotEnd = day.Add(slot.EndTime);
+
+			// Booking được xem là nằm trong slot nếu PickupAt nằm trong [slotStart, slotEnd)
+			var bookings = await _uow.Repository<Booking>()
+				.ListAsync(
+					filter: b =>
+						b.StaffId == staffUserId &&
+						b.PickupAt >= slotStart &&
+						b.PickupAt < slotEnd,
+					include: q => q.Include(b => b.Renter)
+				);
+
+			// Verification nằm trong slot nếu InspectionDate nằm trong [slotStart, slotEnd)
+			var verifs = await _uow.Repository<VerificationRequest>()
+				.ListAsync(
+					filter: v =>
+						v.StaffId == staffUserId &&
+						v.InspectionDate >= slotStart &&
+						v.InspectionDate < slotEnd,
+					include: q => q.Include(v => v.Owner)
+				);
+
+			var existingBookings = bookings.Count();
+			var existingVerifs = verifs.Count();
+
+			var newType = (type ?? "booking").ToLowerInvariant();
+			bool canAssign;
+
+			if (newType == "verification")
+			{
+				// Chỉ khi slot trống hoàn toàn
+				canAssign = existingBookings == 0 && existingVerifs == 0;
+			}
+			else
+			{
+				// booking mới
+				canAssign = existingVerifs == 0 && existingBookings < 2;
+			}
+
+			var staff = await _uow.Repository<User>().GetByIdAsync(staffUserId);
+
+			return new StaffSlotAvailabilityDTO
+			{
+				StaffId = staffUserId,
+				StaffName = staff?.FullName ?? string.Empty,
+				Date = day,
+				SlotIndex = slotIndex,
+				Type = newType,
+				CanAssign = canAssign,
+				ExistingBookings = existingBookings,
+				ExistingVerifications = existingVerifs,
+				Bookings = bookings
+					.OrderBy(b => b.PickupAt)
+					.Select(b => new StaffSlotBookingBriefDTO
+					{
+						BookingId = b.Id,
+						PickupAt = b.PickupAt,
+						ReturnAt = b.ReturnAt,
+						Status = b.Status,
+						StatusText = b.Status.GetDisplayName(),
+						RenterId = b.RenterId,
+						RenterName = b.Renter?.FullName
+					})
+					.ToList(),
+				Verifications = verifs
+					.OrderBy(v => v.InspectionDate)
+					.Select(v => new StaffSlotVerificationBriefDTO
+					{
+						VerificationId = v.Id,
+						InspectionDate = v.InspectionDate,
+						Status = v.Status,
+						OwnerId = v.CreatedByUserId,
+						OwnerName = v.Owner?.FullName
+					})
+					.ToList()
+			};
+		}
 	}
 }
 
