@@ -20,17 +20,13 @@ namespace CamRent_Application.DTOs
 			[Required]
 			public string FullName { get; set; } = default!;
 
-			public UserRole Role { get; set; }
-
 		}
 
 		public sealed class AuthResponse
 		{
 			public string Token { get; set; } = default!;
-			public DateTime ExpiresAtUtc { get; set; }
-			public string FullName { get; set; } = string.Empty;
-			public string Email { get; set; } = string.Empty;
-			public string[] Roles { get; set; } = Array.Empty<string>();
+			//public string[] Roles { get; set; } = Array.Empty<string>();
+
 		}
 
 		public sealed class JwtOptions

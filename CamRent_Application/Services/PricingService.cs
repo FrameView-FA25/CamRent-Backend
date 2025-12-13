@@ -44,9 +44,9 @@ namespace CamRent_Application.Services
 
 			foreach (var i in items)
 			{
-				var itemTotal = i.UnitPrice * i.Quantity * days;
+				var itemTotal = i.UnitPrice * days;
 				rentalTotal += itemTotal;
-				depositTotal += i.DepositAmount * i.Quantity;
+				depositTotal += i.DepositAmount;
 
 				var pf = platformFeePercentOverride;
 				if (pf == null)
@@ -96,10 +96,10 @@ namespace CamRent_Application.Services
 			var items = await _unitOfWork.Repository<BookingItem>().ListAsync(bi => bi.BookingId == bookingId);
 			int days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
 
-			decimal rBasePerDay = items.Sum(i => i.UnitPrice * i.Quantity); // dùng unit price ngày
+			decimal rBasePerDay = items.Sum(i => i.UnitPrice); // dùng unit price ngày
 			decimal lateFee = ComputeLateFee(rBasePerDay, lateDays);
 			decimal downtimeFee = 0.5m * rBasePerDay * Math.Max(0, downtimeDays);
-			decimal depositCollected = items.Sum(i => i.DepositAmount * i.Quantity);
+			decimal depositCollected = items.Sum(i => i.DepositAmount);
 
 			decimal totalDeductions = lateFee + repairCost + downtimeFee + missingAccessoriesCost + cleaningCost;
 			decimal refund = Math.Max(0, depositCollected - totalDeductions);

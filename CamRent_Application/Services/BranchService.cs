@@ -31,6 +31,12 @@ namespace CamRent_Application.Services
 			}
 			branch.ManagerId = managerId;
 			await _unitOfWork.Repository<Branch>().UpdateAsync(branch);
+			var membership = new UserBranchMembership
+			{
+				BranchId = branchId,
+				UserId = managerId
+			};
+			await _unitOfWork.Repository<UserBranchMembership>().AddAsync(membership);
 			return await _unitOfWork.Complete();
 		}
 
@@ -71,6 +77,16 @@ namespace CamRent_Application.Services
 			return branchResponse;
 		}
 
+		public async Task<Guid> GetBranchIdByManagerIdAsync(Guid managerId)
+		{
+			var branch = (await _unitOfWork.Repository<Branch>()
+				.ListAsync(filter: b => b.ManagerId == managerId))
+				.FirstOrDefault();
+			if (branch is null)
+				throw new KeyNotFoundException($"No branch found for manager {managerId}.");
+			return branch.Id;
+		}
+
 		public async Task<List<BranchMembership>> GetBranchMembershipsAsync(Guid? branchId,Guid? managerId)
 		{
 			if (branchId is null && managerId is null)
@@ -98,7 +114,7 @@ namespace CamRent_Application.Services
 
 			var memberships = await _unitOfWork.Repository<UserBranchMembership>()
 				.ListAsync(
-					filter: ub => ub.BranchId == resolvedBranchId,
+					filter: ub => ub.BranchId == resolvedBranchId && ub.UserId != managerId,
 					include: ub => ub.Include(x => x.User));
 
 			return _mapper.Map<List<BranchMembership>>(memberships);

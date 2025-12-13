@@ -80,7 +80,10 @@ namespace CamRent_Infrastructure.Weaviate
 
 		public async Task UpsertAsync(string @class, Guid id, object properties, float[]? vector = null, CancellationToken ct = default)
 		{
-			var path = $"/v1/objects/{id}?class={Uri.EscapeDataString(@class)}&consistencyLevel=ALL";
+			// Endpoint cho update theo id
+			var putPath = $"/v1/objects/{id}?class={Uri.EscapeDataString(@class)}&consistencyLevel=ALL";
+			// Endpoint cho create (id nằm trong body, không nằm trên URL)
+			var postPath = "/v1/objects?consistencyLevel=ALL";
 			var body = new Dictionary<string, object>
 			{
 				{ "class", @class },
@@ -89,16 +92,41 @@ namespace CamRent_Infrastructure.Weaviate
 			};
 			if (vector != null) body["vector"] = vector;
 
-			using var req = new HttpRequestMessage(HttpMethod.Put, path)
+			// Helper to serialize body
+			var json = JsonSerializer.Serialize(body, JsonOptions);
+
+			// 1) Thử PUT (update) trước
+			using var putReq = new HttpRequestMessage(HttpMethod.Put, putPath)
 			{
-				Content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json")
+				Content = new StringContent(json, Encoding.UTF8, "application/json")
 			};
-			using var res = await _http.SendAsync(req, ct);
-			if (!res.IsSuccessStatusCode)
+			using var putRes = await _http.SendAsync(putReq, ct);
+			if (putRes.IsSuccessStatusCode) return;
+
+			var putDetail = await putRes.Content.ReadAsStringAsync(ct);
+
+			// Một số instance Weaviate trả lỗi khi update object chưa tồn tại:
+			// "no object with id '...'"
+			if (putDetail.Contains("no object with id", StringComparison.OrdinalIgnoreCase))
 			{
-				var detail = await res.Content.ReadAsStringAsync(ct);
-				_logger.LogWarning("Weaviate upsert failed for {Class}/{Id}. Status {Status}. Detail: {Detail}", @class, id, (int)res.StatusCode, detail);
+				_logger.LogInformation("Weaviate object {Class}/{Id} not found on update, trying create (POST)...", @class, id);
+
+				// 2) Thử POST (create) với id cố định (theo spec: POST /v1/objects, id trong body)
+				using var postReq = new HttpRequestMessage(HttpMethod.Post, postPath)
+				{
+					Content = new StringContent(json, Encoding.UTF8, "application/json")
+			};
+				using var postRes = await _http.SendAsync(postReq, ct);
+				if (postRes.IsSuccessStatusCode) return;
+
+				var postDetail = await postRes.Content.ReadAsStringAsync(ct);
+				_logger.LogWarning("Weaviate create failed for {Class}/{Id}. Status {Status}. Detail: {Detail}", @class, id, (int)postRes.StatusCode, postDetail);
+				throw new InvalidOperationException($"Weaviate create failed for {@class}/{id}. Status {(int)postRes.StatusCode}. Detail: {postDetail}");
 			}
+
+			// Các lỗi khác: ném exception như cũ
+			_logger.LogWarning("Weaviate upsert failed for {Class}/{Id}. Status {Status}. Detail: {Detail}", @class, id, (int)putRes.StatusCode, putDetail);
+			throw new InvalidOperationException($"Weaviate upsert failed for {@class}/{id}. Status {(int)putRes.StatusCode}. Detail: {putDetail}");
 		}
 
 		public async Task<WeaviateQueryResult> NearTextAsync(string @class, string query, int limit = 5, CancellationToken ct = default)

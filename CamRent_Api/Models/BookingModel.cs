@@ -5,21 +5,11 @@ namespace CamRent_Api.Models
 {
 	public class BookingModel
 	{
-		public class CreateBookingRequest
-		{
-			[Required]
-			public Guid RenterId { get; set; }
-			[Required]
-			public DateTime PickupAt { get; set; }
-			[Required]
-			public DateTime ReturnAt { get; set; }
-		}
 
 		public class AddToCartRequest
 		{
 			public Guid Id { get; set; }
 			public ItemType Type { get; set; }
-			public int Quantity { get; set; } = 1;
 		}
 
 		public class RemoveFromCartRequest

@@ -1,65 +1,73 @@
 ﻿using AutoMapper;
+using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using static CamRent_Api.Models.CameraModel;
-using Swashbuckle.AspNetCore.Annotations;
+using static CamRent_Application.DTOs.CameraDTO;
 
 namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	[Consumes("multipart/form-data")]
 	public class CamerasController : ControllerBase
 	{
 		private readonly ICameraService _cameraService;
 		private readonly IMapper _autoMapper;
 		private readonly IFileStorageService _fileStorageService;
-		public CamerasController(ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService)
+		private readonly ILogger<Camera> _logger;
+		public CamerasController(ICameraService cameraService, IMapper autoMapper, IFileStorageService fileStorageService, ILogger<Camera> logger )
 		{
 			_cameraService = cameraService;
 			_autoMapper = autoMapper;
 			_fileStorageService = fileStorageService;
+			_logger = logger;
 		}
 
 		[HttpGet]
 		[AllowAnonymous]
 		[SwaggerOperation(Summary = "Lấy danh sách camera", Description = "Trả về danh sách camera (phân trang). Hỗ trợ tìm kiếm và sắp xếp. Quyền: Công khai")]
-		public async Task<IActionResult> GetAllCameras([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? q = null, [FromQuery] string? sortBy = "createdAt", [FromQuery] string sortDir = "desc")
+		public async Task<IActionResult> GetAllCameras()
 		{
-			page = Math.Max(1, page);
-			pageSize = Math.Clamp(pageSize, 1, 100);
 			var cameras = await _cameraService.GetAllAsync();
-			if (!string.IsNullOrWhiteSpace(q))
-			{
-				var term = q.Trim().ToLowerInvariant();
-				cameras = cameras.Where(c => ($"{c.Brand} {c.Model} {c.Variant}").ToLower().Contains(term)).ToList();
-			}
-			IEnumerable<dynamic> sorted = cameras;
-			if (string.Equals(sortBy, "brand", StringComparison.OrdinalIgnoreCase))
-				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Brand) : cameras.OrderByDescending(c => c.Brand));
-			else if (string.Equals(sortBy, "model", StringComparison.OrdinalIgnoreCase))
-				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Model) : cameras.OrderByDescending(c => c.Model));
-			else
-				sorted = (sortDir == "asc" ? cameras.OrderBy(c => c.Id) : cameras.OrderByDescending(c => c.Id));
+			return Ok(cameras);
+		}
 
-			var total = sorted.Count();
-			var items = sorted.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-			return Ok(new { page, pageSize, total, items });
+		/// <summary>
+		/// Tìm các camera có thể thuê được trong khoảng thời gian [start, end).
+		/// FE có thể gửi khoảng đã được cộng/trừ 7 ngày theo logic validate trên UI.
+		/// </summary>
+		[HttpGet("available")]
+		[AllowAnonymous]
+		[SwaggerOperation(
+			Summary = "Tìm camera khả dụng theo ngày",
+			Description = "Trả về danh sách camera không bị trùng lịch booking trong khoảng start–end. FE có thể gửi khoảng đã padding 7 ngày ở đầu/cuối.")]
+		public async Task<IActionResult> SearchAvailableCameras([FromQuery] DateTime start, [FromQuery] DateTime end)
+		{
+			if (start >= end)
+				return BadRequest("start must be earlier than end");
+
+			var cameras = await _cameraService.SearchAvailableAsync(start, end);
+			var status = cameras.Any();
+
+			return Ok(new
+			{
+				status,
+				cameras
+			});
 		}
 
 		// Camera theo chi nhánh mà Manager quản lý
 		[HttpGet("my-branch")]
 		[Authorize(Policy = "BranchManager")]
 		[SwaggerOperation(Summary = "Danh sách camera của chi nhánh manager", Description = "Trả về danh sách camera thuộc chi nhánh mà BranchManager đang quản lý.")]
-		public async Task<IActionResult> GetCamerasForMyBranch([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+		public async Task<IActionResult> GetCamerasForMyBranch()
 		{
-			page = Math.Max(1, page);
-			pageSize = Math.Clamp(pageSize, 1, 100);
 
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
@@ -68,10 +76,7 @@ namespace CamRent_Api.Controllers
 
 			var managerId = Guid.Parse(userId);
 			var cameras = await _cameraService.GetByBranchManagerAsync(managerId);
-
-			var total = cameras.Count;
-			var items = cameras.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-			return Ok(new { page, pageSize, total, items });
+			return Ok(cameras);
 		}
 
 		[HttpGet("{id:guid}")]
@@ -87,6 +92,7 @@ namespace CamRent_Api.Controllers
 			return Ok(camera);
 		}
 		[HttpGet("GetCamerasByOwnerId")]
+		[Authorize(Policy = "Owner")]
 		[SwaggerOperation(Summary = "Lấy camera của chủ sở hữu", Description = "Trả về các camera thuộc về người dùng đang xác thực. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> GetCamerasByOwnerId()
 		{
@@ -99,6 +105,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Policy = "Owner")]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo camera", Description = "Tạo mới camera. Chấp nhận multipart/form-data kèm file media. Quyền: Owner, Admin")]
 		public async Task<IActionResult> CreateCamera([FromForm] CameraRequest cameraRequest)
 		{
@@ -110,7 +117,7 @@ namespace CamRent_Api.Controllers
 			{
 				return Unauthorized();
 			}
-
+			cameraRequest.DepositPercent = cameraRequest.DepositPercent / 100.0m;
 			var camera = _autoMapper.Map<Camera>(cameraRequest);
 			camera.OwnerUserId = Guid.Parse(userId);
 			var result = await _cameraService.CreateAsync(camera);
@@ -141,19 +148,59 @@ namespace CamRent_Api.Controllers
 			return Ok(new { Message = "Tạo camera thành công." });
 		}
 
-		[HttpPut("{id:guid}")]
+		[HttpPut]
+		[Authorize(Policy = "Owner")]
 		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật camera", Description = "Cập nhật thông tin camera. Chấp nhận multipart/form-data. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateCamera(Guid id, [FromBody] CameraRequest cameraRequest)
+		public async Task<IActionResult> UpdateCamera([FromForm] UpdateCameraRequest updateCameraRequest)
 		{
-			var existingCamera = await _cameraService.GetByIdAsync(id);
-			if (existingCamera == null)
-			{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+			var result = await _cameraService.UpdateAsync(updateCameraRequest, Guid.Parse(userId));
+			// 1) Lấy camera entity (đã include Media)
+			var existing = await _cameraService.GetByIdAsync(updateCameraRequest.Id);
+			if (existing == null)
 				return NotFound();
+
+			existing.Media ??= new List<FileAssetDTO>();
+
+			// 4) XÓA MEDIA CŨ
+			if (updateCameraRequest.RemoveMediaIds != null && updateCameraRequest.RemoveMediaIds.Any())
+			{
+				var toRemove = existing.Media
+					.Where(m => updateCameraRequest.RemoveMediaIds.Contains(m.Id))
+					.ToList();
+
+				foreach (var file in toRemove)
+				{
+					await _fileStorageService.DeleteByAssetIdAsync(file.Id);
+				}
 			}
-			var cameraToUpdate = _autoMapper.Map<Camera>(cameraRequest);
-			cameraToUpdate.Id = id;
-			var result = await _cameraService.UpdateAsync(cameraToUpdate);
+
+			// 5) THÊM MEDIA MỚI (giống Create)
+			if (updateCameraRequest.MediaFiles != null)
+			{
+				foreach (var file in updateCameraRequest.MediaFiles)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: existing.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/accessories/{existing.Id}",
+						label: $"{existing.Brand} {existing.Model}"
+					);
+				}
+			}
+
+			if (result <= 0)
+				return BadRequest(new { Message = "Cập nhật camera thất bại." });
+
 			return Ok(new { Message = "Cập nhật camera thành công." });
 		}
 

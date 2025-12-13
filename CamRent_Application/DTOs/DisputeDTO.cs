@@ -13,7 +13,12 @@ namespace CamRent_Application.DTOs
 			public string Description { get; set; } = string.Empty;
 			public string Severity { get; set; } = "minor";
 			public string Status { get; set; } = "open";
+
 			public decimal TotalAmount { get; set; }
+			// Thời gian tạo dispute (UTC)
+			public DateTime CreatedAt { get; set; }
+			// Thời gian cập nhật gần nhất (UTC), có thể null nếu chưa từng cập nhật
+			public DateTime? UpdatedAt { get; set; }
 			public List<DisputeItemResponse> Items { get; set; } = new();
 		}
 

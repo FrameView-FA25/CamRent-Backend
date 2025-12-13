@@ -2,14 +2,25 @@
 using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CamRent_Application.DTOs.ContractDTO;
+using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Application.DTOs
 {
 	public class BookingDTO
 	{
+		public class CreateBookingRequest
+		{
+			public Address Location { get; set; }
+			[Required]
+			public DateTime PickupAt { get; set; }
+			[Required]
+			public DateTime ReturnAt { get; set; }
+		}
 		public class BookingResponseDTO
 		{
 			public Guid Id { get; set; }
@@ -17,35 +28,36 @@ namespace CamRent_Application.DTOs
 
 			public Guid? RenterId { get; set; }
 			public User? Renter { get; set; }
-
+			public Guid? StaffId { get; set; }
+			public string StaffName { get; set; }
+			public Guid? BranchId { get; set; }
+			public string BranchName { get; set; }
+			public string BranchAddress { get; set; }
 			public DateTime PickupAt { get; set; }
 			public DateTime ReturnAt { get; set; }
+			public Address? Location { get; set; }
+			public DateTime CreatedAt { get; set; }
 			public BookingStatus Status { get; set; }
 
 			public string StatusText { get; set; } = "";
 
 			// Snapshot pricing values for immutability
 			public decimal SnapshotBaseDailyRate { get; set; }
-			public decimal SnapshotDepositPercent { get; set; }
 			public decimal SnapshotPlatformFeePercent { get; set; }
 			public decimal SnapshotRentalTotal { get; set; }
 			public decimal SnapshotDepositAmount { get; set; }
-
-			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
+			public ICollection<BookingItemDTO>? Items { get; set; } 
+			public ICollection<ContractResponse>? Contracts { get; set; } 
+			public ICollection<InspectionResponseDTO>? Inspections { get; set; }
+			public ICollection<Payment>? Payments { get; set; }
 		}
 		public class Cart
 		{
 			public Guid Id { get; set; }
 			public ICollection<BookingItemDTO> Items { get; set; } = new List<BookingItemDTO>();
 
-			public double TotalPrice { get; set; }
 		}
 
-		public class  BookingStatusDTO
-		{
-			public BookingStatus Status { get; set; }
-			public string StatusText { get; set; }
-		}
 		public class BookingItemDTO
 		{
 			public Guid? ItemId { get; set; }
@@ -53,9 +65,36 @@ namespace CamRent_Application.DTOs
 
 			public string ItemType { get; set; }
 
-			public int Quantity { get; set; } = 1;
 			public decimal UnitPrice { get; set; }
 
+			public decimal DepositAmount { get; set; }
+
+			public List<FileAssetDTO>? Media { get; set; }
+
+			public List<BookingItemUnavailableRangeDTO> UnavailableRanges { get; set; }
+
+		}
+		public class BookingItemUnavailableRangeDTO
+		{
+			public Guid BookingId { get; set; }
+			public DateTime StartUtc { get; set; } // PickupAt (UTC)
+			public DateTime EndUtc { get; set; }   // ReturnAt (UTC)
+			public string Status { get; set; } = default!;
+		}
+		public class BookingStatusDTO
+		{
+			public BookingStatus Status { get; set; }
+			public string StatusText { get; set; }
+		}
+
+		// QR payload cho booking, dùng để renter hiển thị QR và staff scan
+		public class BookingQrDTO
+		{
+			public Guid BookingId { get; set; }
+			// Chuỗi được encode vào QR (ví dụ: "booking:{GuidN}")
+			public string Payload { get; set; } = string.Empty;
+			// Ảnh QR dưới dạng byte[] (PNG), khi serialize JSON sẽ thành base64
+			public byte[] PngImage { get; set; } = Array.Empty<byte>();
 		}
 	}
 }

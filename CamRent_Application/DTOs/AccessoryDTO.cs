@@ -1,5 +1,6 @@
 ﻿using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,10 @@ namespace CamRent_Application.DTOs
 			public string? Variant { get; set; }
 			public string? SerialNumber { get; set; }
 
+			public string? SpecsJson { get; set; }
+
 			public string BranchName { get; set; }
+			public string BranchAddress { get; set; }
 
 			public ItemType ItemType => ItemType.Accessory;
 
@@ -29,12 +33,32 @@ namespace CamRent_Application.DTOs
 			// Deposit policy: percent of EstimatedValueVnd, with caps
 			public decimal EstimatedValueVnd { get; set; }
 			public decimal DepositPercent { get; set; }
-			public decimal? DepositCapMinVnd { get; set; }
-			public decimal? DepositCapMaxVnd { get; set; }
 
-			public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
+			public bool IsConfirmed { get; set; } 
+			public AssetLocation Location { get; set; } = AssetLocation.WithOwner;
+			public Guid? OwnerUserId { get; set; }
+			public User? OwnerName { get; set; }
+			public DateTime CreatedAt { get; set; }
+			public ICollection<FileAssetDTO> Media { get; set; } = new List<FileAssetDTO>();
+
+		}
+
+		public class UpdateAccessoryRequest
+		{
+			public Guid Id { get; set; }
+			public string Brand { get; set; } = string.Empty;
+			public string Model { get; set; } = string.Empty;
+			public string? Variant { get; set; }
+			public string? SerialNumber { get; set; }
 			public string? SpecsJson { get; set; }
-			public ICollection<DeviceCategoryLink> Categories { get; set; } = new List<DeviceCategoryLink>();
+			public decimal BaseDailyRate { get; set; }
+			public decimal EstimatedValueVnd { get; set; }
+			public decimal DepositPercent { get; set; }
+
+			// Multipart files coming from form-data
+			public List<IFormFile>? MediaFiles { get; set; }
+
+			public List<Guid>? RemoveMediaIds { get; set; }
 		}
 	}
 }

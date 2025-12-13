@@ -1,6 +1,13 @@
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
+using CamRent_Domain.Entities; // để lấy ContractSignerRole, Contract nếu cần
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using System;
+using System.Net.Mime;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using static CamRent_Api.Models.ContractModel;
 
 namespace CamRent_Api.Controllers
@@ -9,54 +16,149 @@ namespace CamRent_Api.Controllers
 	[Route("api/[controller]")]
 	public class ContractsController : ControllerBase
 	{
-    	private readonly IContractService _contractService;
-    	private readonly IContractTemplateService _templateService;
-    	private readonly IContractSignatureProvider _signatureProvider;
-    	public ContractsController(IContractService contractService, IContractTemplateService templateService, IContractSignatureProvider signatureProvider)
+		private readonly IContractService _contractService;
+		private readonly IContractTemplateService _templateService;
+
+		public ContractsController(
+			IContractService contractService,
+			IContractTemplateService templateService)
 		{
 			_contractService = contractService;
 			_templateService = templateService;
-			_signatureProvider = signatureProvider;
 		}
 
-		[HttpPost]
-		[Authorize(Policy = "BranchManager")]
-		public async Task<ActionResult<Guid>> Create([FromBody] CreateContractRequest request)
+		#region Helpers
+
+		private Guid? GetCurrentUserId()
 		{
-			var id = await _contractService.CreateInstanceAsync(request.BookingId, request.TemplateId);
-			return Ok(id);
+			var id = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					 ?? User.FindFirstValue("sub"); // tuỳ bạn map
+
+			return Guid.TryParse(id, out var guid) ? guid : (Guid?)null;
 		}
 
-		[HttpPost("{id:guid}/sign")]
+
+		[HttpGet("{contractId:guid}")]
 		[Authorize]
-		public async Task<IActionResult> Sign(Guid id, [FromBody] SignContractRequest request)
+		public async Task<IActionResult> GetContract([FromRoute] Guid contractId)
 		{
-			await _contractService.MarkSignedAsync(id, request.SignedFileUrl);
-			return NoContent();
+			var result = await _contractService.GetContractByIdAsync(contractId);
+			if (result == null)
+				return NotFound();
+
+			return Ok(result);
 		}
 
-		[HttpGet("preview/{bookingId:guid}")]
+		[HttpGet]
 		[Authorize]
-		public async Task<IActionResult> Preview(Guid bookingId)
+		public async Task<IActionResult> GetContracts()
 		{
-			var pdf = await _templateService.GeneratePreviewPdfAsync(bookingId, HttpContext.RequestAborted);
-			return File(pdf, "application/pdf", $"Contract_{bookingId}.pdf");
+			var result = await _contractService.GetContractsAsync();
+			return Ok(result);
+		}
+		#endregion
+
+
+		[HttpGet("{contractId:guid}/preview")]
+		[Authorize] // tuỳ bạn, có thể cho renter/owner/staff xem
+		[SwaggerOperation(
+		Summary = "Xem trước hợp đồng (PDF nháp, chưa cần chữ ký)",
+		Description = "Generate file PDF hợp đồng từ dữ liệu Contract + Booking hiện tại, không yêu cầu đã ký."
+		)]
+		public async Task<IActionResult> PreviewContract([FromRoute] Guid contractId)
+		{
+			// 1. Load Contract kèm navigation
+			//    Ở đây mình minh hoạ kiểu generic, bạn có thể đổi sang repo chuyên biệt.
+			var contract = await _contractService.GetByIdAsync(contractId);
+			if (contract == null)
+				return NotFound(new { message = "Contract not found" });
+
+			// Nếu GetByIdAsync không Include Booking/Renter/Branch/Signatures
+			// thì bạn nên tạo 1 method custom, ví dụ:
+			// var contract = await _contractRepository.GetWithDetailsAsync(contractId);
+
+			byte[] pdfBytes;
+
+			switch (contract.Type)
+			{
+				case ContractType.Booking:
+					pdfBytes = await _templateService.RenderBookingContractAsync(contract);
+					break;
+
+				case ContractType.Verification:
+					pdfBytes = await _templateService.RenderVerificationContractAsync(contract);
+					break;
+
+				default:
+					return BadRequest(new { message = "Unsupported contract type for preview" });
+			}
+
+			var fileName = $"contract_preview_{contractId}.pdf";
+			return File(pdfBytes, MediaTypeNames.Application.Pdf, fileName);
 		}
 
-		[HttpPost("{id:guid}/init-sign")]
-		[Authorize]
-		public async Task<ActionResult<string>> InitSign(Guid id)
+
+		// 2) Ký hợp đồng (nhận base64 chữ ký)
+		[HttpPost("{contractId:guid}/sign")]
+		[AllowAnonymous] // hoặc [Authorize] nếu bạn muốn bắt buộc login
+		[SwaggerOperation(
+			Summary = "Ký hợp đồng điện tử",
+			Description = "Nhận chữ ký dạng ảnh base64, lưu Cloudinary, cập nhật trạng thái hợp đồng."
+		)]
+		public async Task<IActionResult> SignContract(
+			[FromRoute] Guid contractId,
+			[FromBody] SignContractRequest request)
 		{
-			var url = await _signatureProvider.CreateEnvelopeAsync(id, HttpContext.RequestAborted);
-			return Ok(new { signUrl = url });
+			var userId = GetCurrentUserId(); // có thể null nếu AllowAnonymous
+			var role = User.FindAll(ClaimTypes.Role).Select(r => r.Value).FirstOrDefault();
+			ContractSignerRole contractSignerRole = ContractSignerRole.Platform; 
+			if (role == UserRole.Owner.ToString())
+			{
+				contractSignerRole = ContractSignerRole.Owner;
+			}
+			else if (role == UserRole.Renter.ToString())
+			{
+				contractSignerRole = ContractSignerRole.Renter;
+			}
+
+			var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+			var ua = Request.Headers["User-Agent"].ToString();
+
+			var contract = await _contractService.SignContractAsync(
+				contractId,
+				contractSignerRole,
+				request.SignatureBase64,
+				userId,
+				ip,
+				ua);
+
+			return Ok(new
+			{
+				contract.Id,
+				contract.Status,
+				contract.SignedAt,
+				contract.FileAssetId
+			});
 		}
 
-		[HttpPost("webhook")]
-		[AllowAnonymous]
-		public async Task<IActionResult> Webhook([FromBody] string payload, [FromHeader(Name = "X-Signature")] string? sig)
+		// 3) Tải file PDF hợp đồng
+		[HttpGet("{contractId:guid}/file")]
+		[Authorize] // tuỳ quyền
+		[SwaggerOperation(
+			Summary = "Tải PDF hợp đồng",
+			Description = "Trả về file PDF của hợp đồng nếu đã generate."
+		)]
+		public async Task<IActionResult> DownloadContractFile([FromRoute] Guid contractId)
 		{
-			await _signatureProvider.HandleWebhookAsync(payload, sig, HttpContext.RequestAborted);
-			return Ok();
+			var pdfBytes = await _contractService.DownloadContractPdfAsync(contractId);
+			if (pdfBytes == null)
+				return NotFound(new
+				{
+					message = "Contract PDF not found or not generated yet."
+				});
+
+			var fileName = $"contract_{contractId}.pdf";
+			return File(pdfBytes, MediaTypeNames.Application.Pdf, fileName);
 		}
 	}
 }

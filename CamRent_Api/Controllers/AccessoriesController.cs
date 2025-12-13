@@ -1,24 +1,33 @@
 ﻿using AutoMapper;
+using CamRent_Api.Models;
+using CamRent_Application.DTOs;
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using static CamRent_Api.Models.AccessoryModel;
-using Swashbuckle.AspNetCore.Annotations;
+using static CamRent_Application.DTOs.AccessoryDTO;
 
 namespace CamRent_Api.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
+	
 	public class AccessoriesController : ControllerBase
 	{
 		private readonly IAccessoryService _accessoryService;
 		private readonly IMapper _mapper;
-		public AccessoriesController(IAccessoryService accessoryService, IMapper mapper)
+		private readonly IFileStorageService _fileStorageService;
+
+		public AccessoriesController(IAccessoryService accessoryService, IMapper mapper, IFileStorageService fileStorageService)
 		{
 			_accessoryService = accessoryService;
 			_mapper = mapper;
+			_fileStorageService = fileStorageService;
 		}
 
 		[HttpGet]
@@ -75,39 +84,110 @@ namespace CamRent_Api.Controllers
 			return Ok(accessories);
 		}
 
-		[Authorize]
+		[Authorize(Policy = "Owner")]
 		[HttpPost]
-		[SwaggerOperation(Summary = "Tạo phụ kiện", Description = "Tạo mới một phụ kiện. Chủ sở hữu lấy từ người dùng đang xác thực. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> CreateAccessory([FromBody] AccessoryRequest accessoryCreateModel)
+		[Consumes("multipart/form-data")]
+		[SwaggerOperation(Summary = "Tạo phụ kiện", Description = "Tạo mới một phụ kiện. Chấp nhận multipart/form-data kèm file media. Chủ sở hữu lấy từ người dùng đang xác thực. Quyền: Owner, Admin")]
+		public async Task<IActionResult> CreateAccessory([FromForm] AccessoryRequest accessoryRequest)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 				  ?? User.FindFirst("sub")?.Value
 				  ?? User.FindFirst("uid")?.Value;
 
 			if (string.IsNullOrEmpty(userId))
-				return Forbid();
-
-			var accessory = _mapper.Map<Accessory>(accessoryCreateModel);
+				return Unauthorized();
+			accessoryRequest.DepositPercent = accessoryRequest.DepositPercent / 100.0m;
+			var accessory = _mapper.Map<Accessory>(accessoryRequest);
 			accessory.OwnerUserId = Guid.Parse(userId);
 
 			var result = await _accessoryService.CreateAccessoryAsync(accessory);
-			return result > 0 ? Ok(new { Message = "Tạo phụ kiện thành công." }) : BadRequest(new { Message = "Tạo phụ kiện thất bại." });
+
+			accessory.Media ??= new List<FileAsset>();
+
+			if (accessoryRequest.MediaFiles != null)
+			{
+				foreach (var file in accessoryRequest.MediaFiles)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: accessory.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/accessories/{accessory.Id}",
+						label: $"{accessory.Brand} {accessory.Model}"
+					);
+					accessory.Media.Add(asset);
+				}
+			}
+
+			if (result <= 0)
+			{
+				return BadRequest("Tạo phụ kiện thất bại.");
+			}
+			return Ok(new { Message = "Tạo phụ kiện thành công." });
 		}
 
-		[HttpPut("{id}")]
+		[HttpPut]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Cập nhật phụ kiện", Description = "Cập nhật thông tin phụ kiện theo id. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> UpdateAccessory(Guid id, [FromBody] AccessoryRequest accessoryUpdateModel)
+		public async Task<IActionResult> UpdateAccessory([FromForm] UpdateAccessoryRequest updateAccessoryRequest)
 		{
-			var existingAccessory = await _accessoryService.GetAccessoryByIdAsync(id);
-			if (existingAccessory == null)
-			{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+			var result = await _accessoryService.UpdateAccessoryAsync(updateAccessoryRequest, Guid.Parse(userId));
+			// 1) Lấy entity thật từ DB
+			var existing = await _accessoryService.GetAccessoryByIdAsync(updateAccessoryRequest.Id);
+			if (existing == null)
 				return NotFound();
+
+			if (existing.OwnerUserId != Guid.Parse(userId))
+				return Forbid();
+
+			existing.Media ??= new List<FileAssetDTO>();
+
+			// 3) Handle remove old media
+			if (updateAccessoryRequest.RemoveMediaIds != null && updateAccessoryRequest.RemoveMediaIds.Any())
+			{
+				var toRemove = existing.Media
+					.Where(m => updateAccessoryRequest.RemoveMediaIds.Contains(m.Id))
+					.ToList();
+
+				foreach (var old in toRemove)
+				{
+					await _fileStorageService.DeleteByAssetIdAsync(old.Id);
+					existing.Media.Remove(old);
+				}
 			}
-			var accessoryToUpdate = _mapper.Map<Accessory>(accessoryUpdateModel);
-			accessoryToUpdate.Id = id;
-			var result = await _accessoryService.UpdateAccessoryAsync(accessoryToUpdate);
-			return result > 0 ? Ok(new { Message = "Cập nhật phụ kiện thành công." }) : BadRequest(new { Message = "Cập nhật phụ kiện thất bại." });
+
+			// 4) Upload new media files (giống hệt CreateAccessory)
+			if (updateAccessoryRequest.MediaFiles != null)
+			{
+				foreach (var file in updateAccessoryRequest.MediaFiles)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: existing.Id,
+						ownerType: FileOwnerType.Accessory,
+						folder: $"camrent/accessories/{existing.Id}",
+						label: $"{existing.Brand} {existing.Model}"
+					);
+				}
+			}
+			
+
+			if (result <= 0)
+				return BadRequest(new { Message = "Cập nhật phụ kiện thất bại." });
+
+			return Ok(new { Message = "Cập nhật phụ kiện thành công." });
 		}
+
 
 		[HttpDelete("{id}")]
 		[SwaggerOperation(Summary = "Xóa phụ kiện", Description = "Xóa phụ kiện theo id. Quyền: Người dùng đã đăng nhập")]
@@ -120,6 +200,16 @@ namespace CamRent_Api.Controllers
 			}
 			var result = await _accessoryService.DeleteAccessoryAsync(id);
 			return result > 0 ? Ok(new { Message = "Xóa phụ kiện thành công." }) : BadRequest(new { Message = "Xóa phụ kiện thất bại." });
+		}
+
+		// QR: Owner/Admin scan phụ kiện để xem thông tin + lịch sử
+		[HttpGet("{id:guid}/qr-history")]
+		[Authorize(Roles = "Owner,Admin")]
+		[SwaggerOperation(Summary = "Thông tin phụ kiện cho QR scan", Description = "Owner/Admin quét QR code trên phụ kiện để xem thông tin chi tiết + lịch sử booking/inspection của phụ kiện.")]
+		public async Task<IActionResult> GetAccessoryQrHistory(Guid id)
+		{
+			var history = await _accessoryService.GetHistoryForQrAsync(id);
+			return Ok(history);
 		}
 	}
 }

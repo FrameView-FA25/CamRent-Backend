@@ -4,11 +4,13 @@ namespace CamRent_Domain.Entities
 {
     public class VerificationRequest : BaseEntity
     {
-        public string? Name { get; set; }
+        public string? VerificationCode { get; set; }
+		public string? Name { get; set; }
         public string? PhoneNumber { get; set; }
 		public DateTime InspectionDate { get; set; }
-		public string Status { get; set; } = "pending"; // pending, approved, rejected
+		public VerificationStatus Status { get; set; }
 
+        public User? Owner { get; set; }
 		public Guid? StaffId { get; set; }
         public User? Staff { get; set; }
         
@@ -17,7 +19,20 @@ namespace CamRent_Domain.Entities
 
         public string? Notes { get; set; }
         
-        public ICollection<Inspection> Inspections { get; set; } = new List<Inspection>();
+        public ICollection<VerificationRequestItem>? Items { get; set; } 
+        public ICollection<Contract>? Contracts { get; set; }
+		public ICollection<Inspection>? Inspections { get; set; }
     }
+
+    public class VerificationRequestItem : BaseEntity
+	{
+        public Guid VerificationId { get; set; }
+        public VerificationRequest? VerificationRequest { get; set; }
+		public Guid? CameraId { get; set; }
+		public Camera? Camera { get; set; }
+
+		public Guid? AccessoryId { get; set; }
+		public Accessory? Accessory { get; set; }
+	}
 }
 

@@ -1,17 +1,22 @@
-﻿using CamRent_Application.IServices;
+﻿using CamRent_Application.DTOs;
+using CamRent_Application.IServices;
+using CamRent_Application.Services;
 using CamRent_Domain.Common;
+using CamRent_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using static CamRent_Api.Models.InspectionModel;
-using static CamRent_Application.DTOs.InspectionDTO;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
+using static CamRent_Api.Models.InspectionModel;
+using static CamRent_Application.DTOs.CameraDTO;
+using static CamRent_Application.DTOs.InspectionDTO;
 
 namespace CamRent_Api.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
-	[Consumes("multipart/form-data")]
+	
 	public class InspectionsController : ControllerBase
 	{
 		private readonly IInspectionService _inspectionService;
@@ -24,22 +29,27 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[Authorize(Roles = "Staff")]
+		[Consumes("multipart/form-data")]
 		[SwaggerOperation(Summary = "Tạo inspection", Description = "Tạo một inspection và tải lên các file liên quan. Các file tải lên sẽ được gắn với inspection vừa tạo. Quyền: Staff")]
-		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequestModel, List<IFormFile> files)
+		public async Task<IActionResult> CreateInspection([FromForm] InspectionRequest inspectionRequest)
 		{
+			// Lấy userId từ token
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
 			if (!ModelState.IsValid)
 				return BadRequest(ModelState);
 
 			// 1. Tạo inspection, lấy ra Id
-			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequestModel);
+			var inspectionId = await _inspectionService.CreateInspectionAsync(inspectionRequest, Guid.Parse(userId));
 			if(inspectionId == Guid.Empty)
 			{
 				return StatusCode(StatusCodes.Status500InternalServerError, "Tạo inspection thất bại.");
 			}
 			// 2. Nếu có file thì upload, ownerId = inspectionId
-			if (files != null && files.Count > 0)
+			if (inspectionRequest.Files != null && inspectionRequest.Files.Count > 0)
 			{
-				foreach (var file in files)
+				foreach (var file in inspectionRequest.Files)
 				{
 					if (file == null || file.Length == 0) continue;
 
@@ -48,7 +58,7 @@ namespace CamRent_Api.Controllers
 						ownerId: inspectionId,
 						ownerType: FileOwnerType.Inspection,
 						folder: $"camrent/inspections/{inspectionId}",
-						label: $"{inspectionRequestModel.Type}-{inspectionRequestModel.Section}-{inspectionRequestModel.Label}"
+						label: $"{inspectionRequest.Type}-{inspectionRequest.Section}-{inspectionRequest.Label}"
 					);
 				}
 			}
@@ -56,15 +66,105 @@ namespace CamRent_Api.Controllers
 			return Ok(new{Message = "Tạo inspection thành công."});
 		}
 
-		// Biên lai inspection cho một booking (nhận/trả máy)
-		[HttpGet("booking/{bookingId:guid}/receipts")]
-		[Authorize]
-		[SwaggerOperation(Summary = "Biên lai inspection của booking", Description = "Trả về danh sách inspection (nhận/trả máy) cho một booking. FE có thể dùng Label để hiển thị 'Nhận máy ảnh' / 'Đã trả máy ảnh'.")]
-		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetBookingReceipts(Guid bookingId)
+		[HttpGet("booking/{bookingId:guid}")]
+		[Authorize(Policy ="Staff")]
+		[SwaggerOperation(Summary = "Inspection của booking", Description = "Trả về danh sách inspection cho một booking.")]
+		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetByBookingId(Guid bookingId)
 		{
 			var inspections = await _inspectionService.GetByBookingAsync(bookingId);
 			return Ok(inspections);
 		}
 
+		// New: inspections attached to a verification request
+		[HttpGet("verification/{verificationId:guid}")]
+		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(Summary = "Inspections for a verification request", Description = "Trả về danh sách inspection gắn với một VerificationRequest.")]
+		public async Task<ActionResult<IEnumerable<InspectionResponseDTO>>> GetByVerificationId(Guid verificationId)
+		{
+			var inspections = await _inspectionService.GetByVerificationAsync(verificationId);
+			return Ok(inspections);
+		}
+
+		// New: get detail by id
+		[HttpGet("{id:guid}")]
+		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(Summary = "Lấy chi tiết inspection theo id", Description = "Trả về chi tiết của một inspection theo id.")]
+		public async Task<IActionResult> GetById(Guid id)
+		{
+			var inspection = await _inspectionService.GetByIdAsync(id);
+			if (inspection == null)
+				return NotFound(new { Message = "Không tìm thấy inspection." });
+
+			return Ok(inspection);
+		}
+
+		// New: update inspection
+		[HttpPut("{id:guid}")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[Consumes("multipart/form-data")]
+		[SwaggerOperation(Summary = "Cập nhật inspection", Description = "Cập nhật thông tin một inspection. Quyền: Staff.")]
+		public async Task<IActionResult> Update(Guid id, [FromForm] UpdateInspectionRequest updateInspectionRequest)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			if (!ModelState.IsValid)
+				return BadRequest(ModelState);
+
+			var result = await _inspectionService.UpdateInspectionAsync(id, updateInspectionRequest, Guid.Parse(userId));
+			var existing = await _inspectionService.GetByIdAsync(id);
+			if (existing == null)
+				return NotFound();
+
+			existing.Media ??= new List<FileAssetDTO>();
+
+			// 4) XÓA MEDIA CŨ
+			if (updateInspectionRequest.RemoveMediaIds != null && updateInspectionRequest.RemoveMediaIds.Any())
+			{
+				var toRemove = existing.Media
+					.Where(m => updateInspectionRequest.RemoveMediaIds.Contains(m.Id))
+					.ToList();
+
+				foreach (var file in toRemove)
+				{
+					await _fileStorageService.DeleteByAssetIdAsync(file.Id);
+				}
+			}
+
+			// 5) THÊM MEDIA MỚI (giống Create)
+			if (updateInspectionRequest.Files != null)
+			{
+				foreach (var file in updateInspectionRequest.Files)
+				{
+					if (file == null || file.Length <= 0) continue;
+
+					var asset = await _fileStorageService.UploadAsync(
+						file,
+						ownerId: existing.Id,
+						ownerType: FileOwnerType.Inspection,
+						folder: $"camrent/inspections/{id}",
+						label: $"{updateInspectionRequest.Type}-{updateInspectionRequest.Section}-{updateInspectionRequest.Label}"
+					);
+				}
+			}
+
+			if (result <= 0)
+				return BadRequest(new { Message = "Cập nhật camera thất bại." });
+
+			return Ok(new { Message = "Cập nhật camera thành công." });
+		}
+		// New: delete inspection
+		[HttpDelete("{id:guid}")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Xóa inspection", Description = "Xóa một inspection theo id. Quyền: Staff.")]
+		public async Task<IActionResult> Delete(Guid id)
+		{
+			var result = await _inspectionService.DeleteInspectionAsync(id);
+			if (result > 0)
+				return Ok(new { Message = "Xóa inspection thành công." });
+
+			return BadRequest(new { Message = "Xóa thất bại hoặc không tìm thấy inspection." });
+		}
 	}
 }

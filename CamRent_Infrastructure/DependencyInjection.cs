@@ -49,14 +49,10 @@ namespace CamRent_Infrastructure
 
 			// Email
 			services.Configure<EmailOptions>(config.GetSection("Email"));
-			services.AddScoped<IEmailService, SmtpEmailService>();
-
-			// PayOS
-			services.Configure<PayOsOptions>(config.GetSection("PayOS"));
-			services.AddHttpClient<IPayOsService, PayOsService>((sp, http) =>
+			// Dùng SendGrid HTTP API để tránh bị chặn SMTP trên môi trường cloud
+			services.AddHttpClient<IEmailService, SendGridEmailService>((sp, http) =>
 			{
-				var o = sp.GetRequiredService<IOptions<PayOsOptions>>().Value;
-				http.BaseAddress = new Uri(o.Endpoint.TrimEnd('/'));
+				http.BaseAddress = new Uri("https://api.sendgrid.com/");
 			});
 
 			// Embeddings (Gemini)

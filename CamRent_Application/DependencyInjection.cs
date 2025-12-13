@@ -11,8 +11,9 @@ namespace CamRent_Application
 	{
 		public static IServiceCollection AddApplicationDI(this IServiceCollection services)
 		{
+			services.AddScoped<IPayOsService, PayOsService>();
 			services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-
+			services.AddScoped<IWalletService, WalletService>();
 			services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();
 			services.AddScoped<IBranchService, BranchService>();
 			services.AddScoped<IAccessoryService, AccessoryService>();
@@ -20,12 +21,12 @@ namespace CamRent_Application
 			services.AddScoped<ICameraService, CameraService>();
 			services.AddScoped<IBookingService, BookingService>();
 			services.AddScoped<IPricingService, PricingService>();
-			services.AddScoped<IAvailabilityService, AvailabilityService>();
 			services.AddScoped<IPaymentService, PaymentService>();
 			services.AddScoped<IContractService, ContractService>();
 			services.AddScoped<IContractTemplateService, ContractTemplateService>();
 			services.AddScoped<IInspectionService, InspectionService>();
 			services.AddScoped<IDeliveryService, DeliveryService>();
+			services.AddScoped<IDashboardService, DashboardService>();
 			services.AddScoped<IVerificationService, VerificationService>();
 			services.AddScoped<IReviewService, ReviewService>();
 			services.AddScoped<ICategoryService, CategoryService>();
@@ -33,7 +34,6 @@ namespace CamRent_Application
 			services.AddScoped<IUserService, UserService>();
 			services.AddScoped<IAIRecommendationService, AIRecommendationService>();
 			services.AddScoped<IDisputeService, DisputeService>();
-			services.AddScoped<IContractSignatureProvider, MockSignatureProvider>();
 			services.AddScoped<IPasswordResetService, PasswordResetService>();
 			return services;
 		}

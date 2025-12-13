@@ -1,12 +1,14 @@
-﻿using CamRent_Application.IServices;
+using CamRent_Application.IServices;
+using CamRent_Application.Services;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
+using static CamRent_Api.Models.ContractModel;
 using static CamRent_Api.Models.VerificationModel;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api.Controllers
 {
@@ -15,9 +17,32 @@ namespace CamRent_Api.Controllers
 	public class VerificationsController : ControllerBase
 	{
 		private readonly IVerificationService _verificationService;
-		public VerificationsController(IVerificationService verificationService)
+		private readonly IContractService _contractService;
+		public VerificationsController(IVerificationService verificationService, IContractService contractService)
 		{
 			_verificationService = verificationService;
+			_contractService = contractService;
+		}
+
+		/// <summary>
+		/// Danh sách thiết bị (camera/phụ kiện) CHƯA xác minh thuộc sở hữu owner hiện tại.
+		/// Dùng cho màn tạo verification để chỉ hiển thị đúng thiết bị của owner và trạng thái IsConfirmed = false.
+		/// </summary>
+		[HttpGet("owner-devices")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(
+			Summary = "Thiết bị chưa xác minh của owner",
+			Description = "Trả về danh sách camera/phụ kiện có OwnerUserId = current user và IsConfirmed = false.")]
+		public async Task<IActionResult> GetOwnerUnverifiedDevices()
+		{
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			var devices = await _verificationService.GetUnverifiedDevicesForOwnerAsync(Guid.Parse(userIdStr));
+			return Ok(devices);
 		}
 		[HttpGet("get_by_user_id")]
 		[Authorize(Policy ="OwnerOrManagerOrStaff")]
@@ -56,11 +81,17 @@ namespace CamRent_Api.Controllers
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
 			var result = await _verificationService.CreateVerificationAsync(request, Guid.Parse(userId));
-			if (result > 0)
+			if (result == Guid.Empty)
 			{
-				return Ok(new { Message = "Tạo yêu cầu xác minh thành công." });
+				return Ok(new { Message = "Tạo yêu cầu xác minh thất bại." });
 			}
-			return BadRequest(new { Message = "Tạo yêu cầu xác minh thất bại." });
+			var contract = await _contractService.CreateVerificationContractAsync(result, Guid.Parse(userId));
+
+			var response = new CreateContractResponse
+			{
+				ContractId = contract.Id
+			};
+			return Ok(response);
 		}
 
 		[HttpPut("assign_staff")]
@@ -75,5 +106,65 @@ namespace CamRent_Api.Controllers
 			}
 			return BadRequest(new { Message = "Gán nhân viên thất bại." });
 		}
+
+		// New: get detail by id
+		[HttpGet("{id}")]
+		[Authorize(Policy = "OwnerOrManagerOrStaff")]
+		[SwaggerOperation(Summary = "Lấy chi tiết verification theo id", Description = "Trả về chi tiết của một verification theo id.")]
+		public async Task<IActionResult> GetById(Guid id)
+		{
+			var verification = await _verificationService.GetVerificationById(id);
+			if (verification == null)
+			{
+				return NotFound(new { Message = "Không tìm thấy yêu cầu xác minh." });
+			}
+			return Ok(verification);
+		}
+
+		// New: update verification
+		[HttpPut("{id}")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(Summary = "Cập nhật verification", Description = "Cập nhật thông tin một yêu cầu verification. Quyền: Owner.")]
+		public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVerificationRequestDTO request)
+		{
+			var result = await _verificationService.UpdateVerificationAsync(id, request);
+			if (result > 0)
+			{
+				return Ok(new { Message = "Cập nhật thành công." });
+			}
+			return BadRequest(new { Message = "Cập nhật thất bại hoặc không tìm thấy yêu cầu." });
+		}
+
+		[HttpPut("{id}/update-status")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(Summary = "Cập nhật trạng thái verification", Description = "Cập nhật trạng thái của một yêu cầu verification. Quyền: BranchManager.")]
+		public async Task<IActionResult> UpdateStatus(Guid id, string note, VerificationStatus status)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			var result = await _verificationService.UpdateVerificationStatusAsync(id, Guid.Parse(userId), note, status);
+			if (result > 0)
+			{
+				return Ok(new { Message = "Cập nhật trạng thái thành công." });
+			}
+			return BadRequest(new { Message = "Cập nhật trạng thái thất bại hoặc không tìm thấy yêu cầu." });
+		}
+
+		// New: delete verification
+		[HttpDelete("{id}")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(Summary = "Xóa verification", Description = "Xóa một yêu cầu verification theo id. Quyền: Owner")]
+		public async Task<IActionResult> Delete(Guid id)
+		{
+			var result = await _verificationService.DeleteVerificationAsync(id);
+			if (result > 0)
+			{
+				return Ok(new { Message = "Xóa thành công." });
+			}
+			return BadRequest(new { Message = "Xóa thất bại hoặc không tìm thấy yêu cầu." });
+		}
+
+		
 	}
 }

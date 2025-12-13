@@ -1,5 +1,7 @@
+using CamRent_Domain.Common;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
 
 namespace CamRent_Application.IServices
@@ -11,6 +13,12 @@ namespace CamRent_Application.IServices
 		Task<List<VerificationResponseDTO>> GetVerificationByOwnerId(Guid id);
 		Task<List<VerificationResponseDTO>> GetVerificationByManagerId(Guid id);
 		Task<int> AssignStaffToVerification(Guid staffId, Guid verificationRequest);
-		Task<int> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId);
+		Task<Guid> CreateVerificationAsync(CreateVerificationRequestDTO verificationRequestDTO, Guid ownerId);
+		Task<VerificationResponseDTO?> GetVerificationById(Guid id);
+		Task<int> UpdateVerificationAsync(Guid id, UpdateVerificationRequestDTO request);
+		Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string note, VerificationStatus status);
+		Task<int> DeleteVerificationAsync(Guid id);
+		// Danh sách thiết bị (camera/phụ kiện) chưa xác minh của owner hiện tại
+		Task<List<VerificationItemDTO>> GetUnverifiedDevicesForOwnerAsync(Guid ownerId);
 	}
 }

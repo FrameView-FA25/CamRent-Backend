@@ -1,4 +1,4 @@
-﻿using CamRent_Application.IServices;
+using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using static CamRent_Api.Models.AuthModel;
 using static CamRent_Application.DTOs.AuthDTO;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
 
 namespace CamRent_Api.Controllers
 {
@@ -34,9 +35,8 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Đăng ký người thuê (Renter)", Description = "Đăng ký tài khoản với vai trò Renter. Quyền: Công khai")]
 		public async Task<IActionResult> RegisterAsRenter([FromBody] RegisterRequest request)
 		{
-			request.Role = UserRole.Renter;
-			var result = await _authService.Register(request);
-			if (!result)
+			var result = await _authService.Register(request, null, UserRole.Renter);
+			if (result == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
 		}
@@ -45,30 +45,8 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Đăng ký chủ sở hữu (Owner)", Description = "Đăng ký tài khoản với vai trò Owner. Quyền: Công khai")]
 		public async Task<IActionResult> RegisterAsOwner([FromBody] RegisterRequest request)
 		{
-			request.Role = UserRole.Owner;
-			var result = await _authService.Register(request);
-			if (!result)
-				return BadRequest("Email đã được đăng kí.");
-			return Ok("Đăng ký thành công.");
-		}
-
-		[HttpPost("BranchManagerRegister")]
-		[SwaggerOperation(Summary = "Đăng ký BranchManager", Description = "Đăng ký tài khoản với vai trò BranchManager. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> RegisterAsManager([FromBody] RegisterRequest request)
-		{
-			request.Role = UserRole.BranchManager;
-			var result = await _authService.Register(request);
-			if (!result)
-				return BadRequest("Email đã được đăng kí.");
-			return Ok("Đăng ký thành công.");
-		}
-		[HttpPost("StaffRegister")]
-		[SwaggerOperation(Summary = "Đăng ký Staff", Description = "Đăng ký tài khoản với vai trò Staff. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> RegisterAsStaff([FromBody] RegisterRequest request)
-		{
-			request.Role = UserRole.Staff;
-			var result = await _authService.Register(request);
-			if (!result)
+			var result = await _authService.Register(request, null, UserRole.Owner);
+			if (result == Guid.Empty)
 				return BadRequest("Email đã được đăng kí.");
 			return Ok("Đăng ký thành công.");
 		}
@@ -89,6 +67,24 @@ namespace CamRent_Api.Controllers
 		{
 			var ok = await _passwordReset.ResetAsync(req.Email, req.Token, req.NewPassword, HttpContext.RequestAborted);
 			if (!ok) return BadRequest(new { ok = false });
+			return Ok(new { ok = true });
+		}
+
+		[Authorize]
+		[HttpPost("change-password")]
+		[SwaggerOperation(Summary = "Đổi mật khẩu sau khi đăng nhập", Description = "Người dùng đã đăng nhập cung cấp mật khẩu hiện tại và mật khẩu mới để thay đổi mật khẩu.")]
+		public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+		{
+			// Lấy userId từ JWT, xác thực mật khẩu hiện tại và nếu đúng thì thay bằng mật khẩu mới.
+			var userIdStr = User.FindFirst("sub")?.Value
+				?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+				?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			var ok = await _authService.ChangePasswordAsync(Guid.Parse(userIdStr), req.CurrentPassword, req.NewPassword);
+			if (!ok) return BadRequest("Mật khẩu hiện tại không đúng.");
+
 			return Ok(new { ok = true });
 		}
 	}

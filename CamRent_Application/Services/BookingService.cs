@@ -1,150 +1,87 @@
 ﻿using AutoMapper;
 using CamRent_Application.Common;
+using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using QRCoder;
 using System.Linq;
 using System.Linq.Expressions;
 using static CamRent_Application.DTOs.BookingDTO;
+using static CamRent_Application.DTOs.WalletDTO;
 
 namespace CamRent_Application.Services
 {
 	public class BookingService : IBookingService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		private readonly IAvailabilityService _availabilityService;
 		private readonly IPricingService _pricingService;
+		private readonly IWalletService _walletService;
 		private readonly IMapper _mapper;
-		public BookingService(IUnitOfWork unitOfWork, IAvailabilityService availabilityService, IPricingService pricingService, IMapper mapper)
+		public BookingService(IUnitOfWork unitOfWork,  IPricingService pricingService, IMapper mapper, IWalletService walletService)
 		{
 			_unitOfWork = unitOfWork;
-			_availabilityService = availabilityService;
 			_pricingService = pricingService;
 			_mapper = mapper;
+			_walletService = walletService;
 		}
 
-		public async Task<Booking?> GetByIdAsync(Guid bookingId)
+		public async Task<BookingResponseDTO?> GetByIdAsync(Guid? bookingId)
 		{
-			return await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
-		}
-
-		public async Task FinalizeAsync(Guid bookingId, decimal ownerShareRatio, Guid platformUserId)
-		{
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
-				?? throw new InvalidOperationException("Booking not found");
-			var quote = await _pricingService.QuoteBookingAsync(bookingId, null, ownerShareRatio);
-
-			// Determine owner from first item (MVP assumption: single-owner booking)
-			var firstItem = (await _unitOfWork.Repository<BookingItem>().ListAsync(bi => bi.BookingId == bookingId)).FirstOrDefault()
-				?? throw new InvalidOperationException("Booking has no items");
-			Guid? ownerUserId = null;
-			if (firstItem.CameraId.HasValue)
+			if (!bookingId.HasValue)
 			{
-				var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(firstItem.CameraId.Value);
-				ownerUserId = cam?.OwnerUserId;
+				return null;
 			}
-			else if (firstItem.AccessoryId.HasValue)
+			
+			var booking =  (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.Id == bookingId.Value, 
+				include: b => b.Include(b => b.Items)
+							.ThenInclude(i => i.Camera)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Accessory)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Combo)
+						.Include(b => b.Inspections)
+						.Include(b => b.Payments)
+						.Include(b => b.Renter))).FirstOrDefault();
+			var result = _mapper.Map<BookingResponseDTO>(booking);
+			if (result.Inspections != null)
 			{
-				var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(firstItem.AccessoryId.Value);
-				ownerUserId = acc?.OwnerUserId;
-			}
-			else if (firstItem.ComboId.HasValue)
-			{
-				var comboItems = await _unitOfWork.Repository<ComboItem>().ListAsync(ci => ci.ComboId == firstItem.ComboId.Value);
-				var firstCam = comboItems.FirstOrDefault(ci => ci.CameraId.HasValue);
-				if (firstCam != null)
+				foreach (var insp in result.Inspections)
 				{
-					var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(firstCam.CameraId!.Value);
-					ownerUserId = cam?.OwnerUserId;
-				}
-				else
-				{
-					var firstAcc = comboItems.FirstOrDefault(ci => ci.AccessoryId.HasValue);
-					if (firstAcc != null)
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+					if (inspFiles != null)
 					{
-						var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(firstAcc.AccessoryId!.Value);
-						ownerUserId = acc?.OwnerUserId;
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
 					}
 				}
 			}
-			if (!ownerUserId.HasValue) throw new InvalidOperationException("Cannot determine owner for payout");
-
-			// Ensure wallets
-			var ownerWallet = (await _unitOfWork.Repository<Wallet>().ListAsync(w => w.OwnerUserId == ownerUserId.Value)).FirstOrDefault();
-			if (ownerWallet == null)
-			{
-				ownerWallet = new Wallet { Id = Guid.NewGuid(), OwnerUserId = ownerUserId.Value, Balance = 0, CreatedAt = DateTime.UtcNow };
-				await _unitOfWork.Repository<Wallet>().AddAsync(ownerWallet);
-			}
-			Wallet? platformWallet = null;
-			if (platformUserId != Guid.Empty)
-			{
-				platformWallet = (await _unitOfWork.Repository<Wallet>().ListAsync(w => w.OwnerUserId == platformUserId)).FirstOrDefault();
-				if (platformWallet == null)
-				{
-					platformWallet = new Wallet { Id = Guid.NewGuid(), OwnerUserId = platformUserId, Balance = 0, CreatedAt = DateTime.UtcNow };
-					await _unitOfWork.Repository<Wallet>().AddAsync(platformWallet);
-				}
-			}
-
-			// Transactions
-			var ownerTx = new Transaction
-			{
-				Id = Guid.NewGuid(),
-				WalletId = ownerWallet.Id,
-				Type = "payout_owner",
-				Amount = quote.OwnerShare,
-				Currency = "VND",
-				Reference = $"Booking:{bookingId}",
-				CreatedAt = DateTime.UtcNow
-			};
-			await _unitOfWork.Repository<Transaction>().AddAsync(ownerTx);
-			ownerWallet.Balance += quote.OwnerShare;
-			await _unitOfWork.Repository<Wallet>().UpdateAsync(ownerWallet);
-
-			if (platformWallet != null && quote.PlatformNet > 0)
-			{
-				var platformTx = new Transaction
-				{
-					Id = Guid.NewGuid(),
-					WalletId = platformWallet.Id,
-					Type = "platform_net",
-					Amount = quote.PlatformNet,
-					Currency = "VND",
-					Reference = $"Booking:{bookingId}",
-					CreatedAt = DateTime.UtcNow
-				};
-				await _unitOfWork.Repository<Transaction>().AddAsync(platformTx);
-				platformWallet.Balance += quote.PlatformNet;
-				await _unitOfWork.Repository<Wallet>().UpdateAsync(platformWallet);
-			}
-
-			await _unitOfWork.Complete();
-		}
-
-		private async Task UpdateSnapshotTotalsAsync(Guid bookingId)
-		{
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
-				?? throw new InvalidOperationException("Booking not found");
-			var items = await _unitOfWork.Repository<BookingItem>().ListAsync(bi => bi.BookingId == bookingId);
-			int days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
-			decimal total = items.Sum(i => i.UnitPrice * i.Quantity * days);
-			decimal deposit = items.Sum(i => i.DepositAmount * i.Quantity);
-			booking.SnapshotRentalTotal = total;
-			booking.SnapshotDepositAmount = deposit;
-			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+			return result;
 		}
 
 		public async Task<List<BookingResponseDTO>> GetAllAsync()
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items));
-			foreach(var booking in bookings)
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(include: b => b.Include(b => b.Items))).ToList();
+			foreach (var booking in bookings)
 			{
 				booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
 			}
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			foreach (var ver in results)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
 			return results;
 		}
 
@@ -152,7 +89,7 @@ namespace CamRent_Application.Services
 		{
 			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId)
 				?? throw new InvalidOperationException("Booking not found");
-			if(booking == null)
+			if (booking == null)
 			{
 				return 0;
 			}
@@ -163,22 +100,122 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId)
 		{
-			var bookings = await  _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b.Include(b => b.Items));
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b.Include(b => b.Items)
+							.ThenInclude(i => i.Camera)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Accessory)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Combo)
+						.Include(b => b.Inspections)
+						.Include(b => b.Payments)
+						.Include(b => b.Contracts));
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			return results;
 		}
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId)
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.PendingApproval, include: b => b.Include(b => b.Items));
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.Draft && b.Status != BookingStatus.PendingApproval,
+				include: b => b.Include(b => b.Items)
+							.ThenInclude(i => i.Camera)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Accessory)
+						.Include(b => b.Items)
+							.ThenInclude(i => i.Combo)
+						.Include(b => b.Inspections)
+						.Include(b => b.Renter)
+						.Include(b => b.Payments)
+						.Include(b => b.Contracts))).ToList();
+
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			foreach (var ver in results)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
 			return results;
 		}
 
-		public async Task<int> AddToCart(Guid renterId, Guid id, ItemType type, int quantity)
+		public async Task<List<BookingResponseDTO>> GetBookingsByBranchManagerIdAsync(Guid managerId)
 		{
-			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
-				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
+			var branch = await _unitOfWork.Repository<Branch>().FirstOrDefaultAsync(b => b.ManagerId == managerId);
+			if (branch == null) return new List<BookingResponseDTO>();
+
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(
+				filter: b => b.BranchId == branch.Id && b.Status != BookingStatus.Draft,
+				include: b => b
+					.Include(b => b.Staff)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Camera)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Accessory)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Combo)
+					.Include(b => b.Inspections)
+					.Include(b => b.Renter)
+					.Include(b => b.Payments)
+					.Include(b => b.Contracts))).ToList();
+
+			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+			foreach (var ver in results)
+			{
+				foreach (var insp in ver.Inspections)
+				{
+					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
+
+					if (inspFiles != null)
+					{
+						var file = _mapper.Map<FileAssetDTO>(inspFiles);
+						insp.Media.Add(file);
+					}
+				}
+			}
+			return results;
+		}
+		private decimal CalculateDepositForCamera(Camera camera)
+		{
+			var raw = camera.EstimatedValueVnd * camera.DepositPercent;
+
+			if (camera.DepositCapMinVnd.HasValue)
+				raw = Math.Max(raw, camera.DepositCapMinVnd.Value);
+
+			if (camera.DepositCapMaxVnd.HasValue)
+				raw = Math.Min(raw, camera.DepositCapMaxVnd.Value);
+
+			return raw;
+		}
+
+		private decimal CalculateDepositForAccessory(Accessory acc)
+		{
+			var raw = acc.EstimatedValueVnd * acc.DepositPercent;
+
+			if (acc.DepositCapMinVnd.HasValue)
+				raw = Math.Max(raw, acc.DepositCapMinVnd.Value);
+
+			if (acc.DepositCapMaxVnd.HasValue)
+				raw = Math.Min(raw, acc.DepositCapMaxVnd.Value);
+
+			return raw;
+		}
+
+
+		public async Task<(bool Success, string? Message)> AddToCart(Guid renterId, Guid id, ItemType type)
+		{
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
+
+			// Lấy booking Draft + include Items để check trùng
+			var booking = (await bookingRepo.ListAsync(
+				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft,
+				include: q => q.Include(b => b.Items)
 			)).FirstOrDefault();
 
 			if (booking == null)
@@ -188,9 +225,11 @@ namespace CamRent_Application.Services
 					Id = Guid.NewGuid(),
 					RenterId = renterId,
 					Status = BookingStatus.Draft,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = DateTime.UtcNow,
+					Items = new List<BookingItem>()
 				};
-				await _unitOfWork.Repository<Booking>().AddAsync(booking);
+
+				await bookingRepo.AddAsync(booking);
 			}
 
 			BookingItem? bookingItem = null;
@@ -200,24 +239,36 @@ namespace CamRent_Application.Services
 				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Camera not found");
 
-				// Gắn chi nhánh cho booking nếu chưa có (book với sàn/owner qua chi nhánh camera)
 				if (booking.BranchId == null)
 				{
 					booking.BranchId = camera.BranchId;
-					await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 				}
 
-				bookingItem = new BookingItem
+				// Tìm item đã tồn tại
+				bookingItem = booking.Items
+					.FirstOrDefault(bi => bi.CameraId == camera.Id && bi.ComboId == null && bi.AccessoryId == null);
+
+				if (bookingItem != null)
 				{
-					Id = Guid.NewGuid(),
-					BookingId = booking.Id,
-					CameraId = camera.Id,
-					Quantity = quantity,
-					UnitPrice = camera.BaseDailyRate,
-					DepositAmount = camera.EstimatedValueVnd * camera.DepositPercent
-				};
+					// Nếu đã tồn tại, trả message theo yêu cầu
+					return (false, "Thiết bị đã có trong giỏ hàng rồi");
+				}
+				else
+				{
+					bookingItem = new BookingItem
+					{
+						Id = Guid.NewGuid(),
+						BookingId = booking.Id,
+						CameraId = camera.Id,
+						UnitPrice = camera.BaseDailyRate,
+						DepositAmount = CalculateDepositForCamera(camera)
+					};
+
+					booking.Items.Add(bookingItem);
+					await bookingItemRepo.AddAsync(bookingItem);
+				}
 			}
-			if (type == ItemType.Accessory)
+			else if (type == ItemType.Accessory)
 			{
 				var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Accessory not found");
@@ -225,37 +276,47 @@ namespace CamRent_Application.Services
 				if (booking.BranchId == null)
 				{
 					booking.BranchId = accessory.BranchId;
-					await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 				}
 
-				bookingItem = new BookingItem
+				bookingItem = booking.Items
+					.FirstOrDefault(bi => bi.AccessoryId == accessory.Id && bi.CameraId == null && bi.ComboId == null);
+
+				if (bookingItem != null)
 				{
-					Id = Guid.NewGuid(),
-					BookingId = booking.Id,
-					AccessoryId = accessory.Id,
-					Quantity = quantity,
-					UnitPrice = accessory.BaseDailyRate,
-					DepositAmount = accessory.EstimatedValueVnd * accessory.DepositPercent
-				};
+					return (false, "Thiết bị đã có trong giỏ hàng rồi");
+				}
+				else
+				{
+					bookingItem = new BookingItem
+					{
+						Id = Guid.NewGuid(),
+						BookingId = booking.Id,
+						AccessoryId = accessory.Id,
+						UnitPrice = accessory.BaseDailyRate,
+						DepositAmount = CalculateDepositForAccessory(accessory)
+					};
+
+					booking.Items.Add(bookingItem);
+					await bookingItemRepo.AddAsync(bookingItem);
+				}
 			}
-			if (type == ItemType.Combo)
+			else if (type == ItemType.Combo)
 			{
 				var combo = await _unitOfWork.Repository<Combo>().GetByIdAsync(id)
 					?? throw new InvalidOperationException("Combo not found");
 
-				// Với combo, có thể chọn chi nhánh từ item đầu tiên thuộc combo (nếu booking chưa có Branch)
 				if (booking.BranchId == null)
 				{
 					var comboItem = (await _unitOfWork.Repository<ComboItem>()
 						.ListAsync(ci => ci.ComboId == combo.Id))
 						.FirstOrDefault();
+
 					if (comboItem?.CameraId != null)
 					{
 						var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(comboItem.CameraId.Value);
 						if (cam != null)
 						{
 							booking.BranchId = cam.BranchId;
-							await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 						}
 					}
 					else if (comboItem?.AccessoryId != null)
@@ -264,66 +325,169 @@ namespace CamRent_Application.Services
 						if (acc != null)
 						{
 							booking.BranchId = acc.BranchId;
-							await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
 						}
 					}
 				}
 
-				bookingItem = new BookingItem
+				bookingItem = booking.Items
+					.FirstOrDefault(bi => bi.ComboId == combo.Id && bi.CameraId == null && bi.AccessoryId == null);
+
+				if (bookingItem != null)
 				{
-					Id = Guid.NewGuid(),
-					BookingId = booking.Id,
-					ComboId = combo.Id,
-					Quantity = quantity
-				};
+					return (false, "Thiết bị đã có trong giỏ hàng rồi");
+				}
+				else
+				{
+					bookingItem = new BookingItem
+					{
+						Id = Guid.NewGuid(),
+						BookingId = booking.Id,
+						ComboId = combo.Id,
+						UnitPrice = combo.PriceOverride ?? 0m,
+						DepositAmount = combo.DepositOverride ?? 0m
+					};
+
+					booking.Items.Add(bookingItem);
+					await bookingItemRepo.AddAsync(bookingItem);
+				}
 			}
 
-			// Phòng trường hợp enum có thêm value mới mà chưa xử lý
-			if (bookingItem != null)
+			var saved = await _unitOfWork.Complete();
+			if (saved > 0)
 			{
-				await _unitOfWork.Repository<BookingItem>().AddAsync(bookingItem);
+				return (true, null);
 			}
-			return await _unitOfWork.Complete();
+			return (false, "Thêm vào giỏ hàng thất bại");
 		}
-
 
 		public async Task<int> RemoveFromCart(Guid renterId, Guid id, ItemType type)
 		{
-			var booking = _unitOfWork.Repository<Booking>().ListAsync(
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
+
+			var booking = (await bookingRepo.ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
-				).Result.FirstOrDefault();
-			var items = _unitOfWork.Repository<BookingItem>().ListAsync(
-				filter: bi => bi.BookingId == booking!.Id &&
-				((type == ItemType.Camera && bi.CameraId == id) ||
-				(type == ItemType.Accessory && bi.AccessoryId == id) ||
-				(type == ItemType.Combo && bi.ComboId == id))
-				).Result.FirstOrDefault();
-			await _unitOfWork.Repository<BookingItem>().DeleteAsync(items.Id);
+			)).FirstOrDefault();
+
+			if (booking == null)
+			{
+				// Không có cart -> coi như không có gì để xóa
+				return 0;
+			}
+
+			var items = await bookingItemRepo.ListAsync(
+				filter: bi => bi.BookingId == booking.Id &&
+					((type == ItemType.Camera && bi.CameraId == id) ||
+					 (type == ItemType.Accessory && bi.AccessoryId == id) ||
+					 (type == ItemType.Combo && bi.ComboId == id))
+			);
+
+			var item = items.FirstOrDefault();
+			if (item == null)
+			{
+				return 0;
+			}
+
+			await bookingItemRepo.DeleteAsync(item.Id); // hoặc DeleteAsync(item) tùy repo
 			return await _unitOfWork.Complete();
 		}
 
+
 		public async Task<Cart?> GetCartByRenterIdAsync(Guid renterId)
 		{
-			var booking = (await _unitOfWork.Repository<Booking>().ListAsync(
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+
+			// ✅ Dùng 1 query Include/ThenInclude, KHÔNG đụng booking.Id trước khi check null
+			var booking = (await bookingRepo.ListAsync(
 				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft,
-				include: b => b.Include(b => b.Items)
+				include: q => q
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Camera)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Accessory)
+					.Include(b => b.Items)
+						.ThenInclude(i => i.Combo)
 			)).FirstOrDefault();
-			booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
-			if(booking == null)
+
+			if (booking == null)
 			{
 				booking = new Booking
 				{
 					Id = Guid.NewGuid(),
 					RenterId = renterId,
 					Status = BookingStatus.Draft,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = DateTime.UtcNow,
+					Items = new List<BookingItem>()
 				};
-				await _unitOfWork.Repository<Booking>().AddAsync(booking);
+
+				await bookingRepo.AddAsync(booking);
 				await _unitOfWork.Complete();
 			}
+
 			var cart = _mapper.Map<Cart>(booking);
-			cart.TotalPrice = (double)booking.Items.Sum(i => i.UnitPrice * i.Quantity);
+			foreach (var item in cart.Items)
+			{
+				if(item.ItemType == ItemType.Camera.ToString() )
+				{
+					var media = (await _unitOfWork.Repository<FileAsset>()
+						.ListAsync(f => f.OwnerType == FileOwnerType.Camera && f.OwnerId == item.ItemId)).ToList();
+					item.Media = _mapper.Map<List<FileAssetDTO>>(media);
+				}
+				else if(item.ItemType == ItemType.Accessory.ToString() )
+				{
+					var media = (await _unitOfWork.Repository<FileAsset>()
+						.ListAsync(f => f.OwnerType == FileOwnerType.Accessory && f.OwnerId == item.ItemId)).ToList();
+					item.Media = _mapper.Map<List<FileAssetDTO>>(media);
+				}
+			}
+			// fill UnavailableRanges cho từng item trong cart
+			foreach (var itemDto in cart.Items)
+			{
+				if (itemDto.ItemId == null) continue;
+
+				var type = Enum.Parse<ItemType>(itemDto.ItemType);
+				var ranges = await GetUnavailableRangesForItemAsync(itemDto.ItemId.Value, type);
+
+				itemDto.UnavailableRanges = ranges;
+			}
 			return cart;
+		}
+
+		public async Task<List<BookingItemUnavailableRangeDTO>> GetUnavailableRangesForItemAsync(
+			Guid itemId,
+			ItemType type,
+			CancellationToken cancellationToken = default)
+		{
+			var bookingItemRepo = _unitOfWork.Repository<BookingItem>();
+
+			// filter theo loại item
+			Expression<Func<BookingItem, bool>> filter = bi =>
+				bi.Booking != null &&
+				bi.Booking.Status != BookingStatus.Draft &&
+				bi.Booking.Status != BookingStatus.Cancelled &&
+				bi.Booking.Status != BookingStatus.Completed &&
+				(
+					(type == ItemType.Camera && bi.CameraId == itemId) ||
+					(type == ItemType.Accessory && bi.AccessoryId == itemId) ||
+					(type == ItemType.Combo && bi.ComboId == itemId)
+				);
+
+			var items = await bookingItemRepo.ListAsync(
+				filter: filter,
+				include: q => q.Include(bi => bi.Booking)
+			);
+
+			var result = items
+				.Select(bi => new BookingItemUnavailableRangeDTO
+				{
+					BookingId = bi.Booking!.Id,
+					StartUtc = bi.Booking.PickupAt,   // đang lưu UTC
+					EndUtc = bi.Booking.ReturnAt,
+					Status = bi.Booking.Status.ToString()
+				})
+				.ToList();
+
+			return result;
 		}
 
 		public Task<List<BookingStatusDTO>> GetBookingStatusesAsync()
@@ -337,6 +501,337 @@ namespace CamRent_Application.Services
 				})
 				.ToList();
 			return Task.FromResult(statuses);
+		}
+
+		public async Task<Guid> CreateBookingAsync(CreateBookingRequest createBookingRequest, Guid renterId)
+		{
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+
+			var cart = (await bookingRepo.ListAsync(
+				include: b => b
+					.Include(b => b.Items),
+				filter: b => b.RenterId == renterId && b.Status == BookingStatus.Draft
+			)).FirstOrDefault();
+
+			if (cart == null)
+				throw new InvalidOperationException("No draft booking found.");
+
+			await EnsureBookingItemsAvailableOrThrowAsync(cart, createBookingRequest.PickupAt, createBookingRequest.ReturnAt);
+
+			// Map thông tin pickup/return, location,... từ request vào cart
+			_mapper.Map(createBookingRequest, cart);
+
+			// ====== TÍNH SNAPSHOT ======
+			var days = Math.Max(1, (cart.ReturnAt.Date - cart.PickupAt.Date).Days);
+
+			// 1) Tổng base daily rate (cho 1 ngày)
+			var baseDailyTotal = cart.Items.Sum(i => i.UnitPrice);
+			cart.SnapshotBaseDailyRate = baseDailyTotal;
+
+			// 2) Tổng tiền thuê cho toàn bộ số ngày
+			var rentalTotal = baseDailyTotal * days;
+			cart.SnapshotRentalTotal = rentalTotal;
+
+			// 3) Tổng tiền cọc
+			var depositTotal = cart.Items.Sum(i => i.DepositAmount);
+			cart.SnapshotDepositAmount = depositTotal;
+
+			// 5) % phí nền tảng – thường lấy từ config
+			// Ví dụ bạn có IOptions<PlatformSettings> _platformSettings;
+			const decimal platformFeePercent = 0.10m; // 10%
+			cart.SnapshotPlatformFeePercent = platformFeePercent;
+
+			// ====== CHUYỂN TRẠNG THÁI ======
+			cart.CreatedAt = DateTime.UtcNow;
+
+			await bookingRepo.UpdateAsync(cart);
+			await _unitOfWork.Complete();
+			return cart.Id;
+		}
+
+		// Kiểm tra 1 BookingItem có conflict hay không (true = rảnh)
+		public async Task<bool> IsBookingItemAvailableAsync(
+			BookingItem item,
+			DateTime start,
+			DateTime end,
+			CancellationToken cancellationToken = default)
+		{
+			if (item == null) throw new ArgumentNullException(nameof(item));
+			if (start >= end) throw new ArgumentException("start must be earlier than end", nameof(start));
+
+			// Kiểm tra xem item có id hợp lệ hay không
+			var hasCamera = item.CameraId != Guid.Empty && item.CameraId != null;
+			var hasAccessory = item.AccessoryId != Guid.Empty && item.AccessoryId != null;
+			var hasCombo = item.ComboId != Guid.Empty && item.ComboId != null;
+
+			if (!hasCamera && !hasAccessory && !hasCombo)
+				throw new ArgumentException("BookingItem must reference CameraId, AccessoryId or ComboId.");
+
+			// Predicate: match item (camera OR accessory OR combo) && booking is active && time overlap
+			Expression<Func<BookingItem, bool>> predicate = bi =>
+				(
+					(hasCamera && bi.CameraId == item.CameraId) ||
+					(hasAccessory && bi.AccessoryId == item.AccessoryId) ||
+					(hasCombo && bi.ComboId == item.ComboId)
+				)
+				&& bi.Booking != null
+				&& bi.Booking.Status != BookingStatus.Cancelled
+				&& bi.Booking.Status != BookingStatus.Completed
+				&& bi.Booking.PickupAt < end
+				&& bi.Booking.ReturnAt > start;
+
+			// Nếu repository có overload AnyAsync với CancellationToken, truyền vào
+			var conflictExists = await _unitOfWork.Repository<BookingItem>()
+				.AnyAsync(predicate, cancellationToken);
+
+			return !conflictExists;
+		}
+
+		// Kiểm tra toàn bộ items trong cart, ném nếu có conflict
+		public async Task EnsureBookingItemsAvailableOrThrowAsync(
+			Booking cart,
+			DateTime start,
+			DateTime end,
+			CancellationToken cancellationToken = default)
+		{
+			if (cart == null) throw new ArgumentNullException(nameof(cart));
+			if (cart.Items == null || !cart.Items.Any()) return; // không có item thì ok
+			if (start >= end) throw new ArgumentException("start must be earlier than end", nameof(start));
+
+			foreach (var item in cart.Items)
+			{
+				var available = await IsBookingItemAvailableAsync(item, start, end, cancellationToken);
+				if (!available)
+				{
+					// Bạn có thể trả thông tin chi tiết hơn (ví dụ item name, type) tuỳ model
+					throw new InvalidOperationException($"Item (id: {item.Id}) is not available between {start:O} and {end:O}.");
+				}
+			}
+		}
+
+		// Added: update booking status implementation
+		public async Task<int> UpdateBookingStatusAsync(Guid bookingId, BookingStatus status)
+		{
+			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
+			if (booking == null)
+				return 0;
+			booking.Status = status;
+			// Nếu booking hoàn tất -> chia tiền thuê cho owner + commission cho branch manager/admin
+			if (status == BookingStatus.Completed && !booking.IsSettled)
+			{
+				// ============ 1. Chuẩn bị dữ liệu ============
+
+				if (!booking.RenterId.HasValue)
+					throw new InvalidOperationException("Booking missing renter.");
+
+				// Số ngày thuê (ít nhất 1 ngày)
+				var rentalDays = (booking.ReturnAt.Date - booking.PickupAt.Date).TotalDays;
+				if (rentalDays < 1) rentalDays = 1;
+
+				// Đảm bảo Items có dữ liệu; nếu không, load từ DB
+				var items = booking.Items;
+				if (items == null || !items.Any())
+				{
+					items = (await _unitOfWork.Repository<BookingItem>().ListAsync(i => i.BookingId == booking.Id)).ToList();
+				}
+
+				// ============ 2. Tính rental cho từng item + group theo Owner ============
+
+				// Mỗi phần tử: (ownerId, itemRental)
+				var ownerItemRentals = new List<(Guid ownerId, decimal itemRental)>();
+
+				foreach (var item in items)
+				{
+					Guid? ownerId = null;
+
+					if (item.Camera != null)
+					{
+						ownerId = item.Camera.OwnerUserId;
+					}
+					else if (item.Accessory != null)
+					{
+						ownerId = item.Accessory.OwnerUserId;
+					}
+					else
+					{
+						// Nếu navigation chưa load, thử lấy từ DB
+						if (item.CameraId.HasValue)
+						{
+							var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(item.CameraId.Value);
+							ownerId = cam?.OwnerUserId;
+						}
+						else if (item.AccessoryId.HasValue)
+						{
+							var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(item.AccessoryId.Value);
+							ownerId = acc?.OwnerUserId;
+						}
+					}
+
+					if (!ownerId.HasValue)
+						continue; // Item không xác định được owner -> bỏ qua hoặc log
+
+					var itemRental = item.UnitPrice * (decimal)rentalDays;
+					if (itemRental <= 0)
+						continue;
+
+					ownerItemRentals.Add((ownerId.Value, itemRental));
+				}
+
+				if (!ownerItemRentals.Any())
+					throw new InvalidOperationException("Cannot determine owner rentals for booking items.");
+
+				var itemsTotalRental = ownerItemRentals.Sum(x => x.itemRental);
+				if (itemsTotalRental <= 0)
+					throw new InvalidOperationException("Total item rental is zero.");
+
+				// ============ 3. Chia tiền thuê (SnapshotRentalTotal) theo owner ============
+
+				var rentalTotal = booking.SnapshotRentalTotal;               // A = tổng tiền thuê của booking
+				var feePercent = booking.SnapshotPlatformFeePercent;         // p = % hoa hồng
+
+				var platformFeeTotal = decimal.Round(rentalTotal * feePercent, 0);
+				if (platformFeeTotal < 0) platformFeeTotal = 0;
+
+				// Group theo owner
+				var groups = ownerItemRentals
+					.GroupBy(x => x.ownerId)
+					.ToList();
+
+				// Tính payout cho từng owner
+				var ownerPayouts = new Dictionary<Guid, decimal>();
+
+				foreach (var g in groups)
+				{
+					var ownerId = g.Key;
+					var ownerGroupRental = g.Sum(x => x.itemRental);
+
+					// Tỷ lệ rental của owner này trên tổng rental items
+					var ratio = ownerGroupRental / itemsTotalRental;
+
+					// Doanh thu (gross) của owner từ booking này
+					var ownerGrossShare = rentalTotal * ratio;
+
+					// Payout net sau khi trừ fee nền tảng
+					var ownerNetPayout = ownerGrossShare * (1 - feePercent);
+					if (ownerNetPayout <= 0) continue;
+
+					if (ownerPayouts.ContainsKey(ownerId))
+						ownerPayouts[ownerId] += ownerNetPayout;
+					else
+						ownerPayouts[ownerId] = ownerNetPayout;
+				}
+
+				// Credit ví cho từng owner
+				foreach (var kv in ownerPayouts)
+				{
+					var ownerId = kv.Key;
+					var amount = decimal.Round(kv.Value, 0); // làm tròn VND
+
+					if (amount <= 0) continue;
+
+					var txReq = new WalletTransactionRequest
+					{
+						Amount = amount,
+						Type = "booking_payout",
+						PaymentId = null,
+						BookingId = booking.Id,
+						Description = $"Payout tiền thuê booking {booking.BookingCode ?? booking.Id.ToString()}"
+					};
+
+					await _walletService.CreditAsync(ownerId, txReq);
+				}
+
+				// ============ 4. Hoa hồng branch manager / admin ============
+
+				// Mặc định trả hoa hồng = tổng fee nền tảng
+				if (platformFeeTotal > 0)
+				{
+					Guid? commissionReceiverId = null;
+
+					// 1) Ưu tiên Manager của Branch (nếu đã include)
+					if (booking.Branch != null && booking.Branch.ManagerId.HasValue)
+					{
+						commissionReceiverId = booking.Branch.ManagerId.Value;
+					}
+					// 2) Nếu Branch chưa include nhưng có BranchId -> load từ DB
+					else if (booking.BranchId.HasValue)
+					{
+						var branch = await _unitOfWork.Repository<Branch>().GetByIdAsync(booking.BranchId.Value);
+						if (branch != null && branch.ManagerId.HasValue)
+						{
+							commissionReceiverId = branch.ManagerId.Value;
+						}
+					}
+
+					// 3) Nếu vẫn chưa có -> tìm 1 user Admin
+					if (!commissionReceiverId.HasValue)
+					{
+						var users = await _unitOfWork.Repository<User>()
+							.ListAsync(include: u => u.Include(u => u.Roles));
+
+						var adminUser = users.FirstOrDefault(u => u.Roles.Any(r => r.Role == UserRole.Admin));
+						if (adminUser != null)
+						{
+							commissionReceiverId = adminUser.Id;
+						}
+					}
+
+					// 4) Nếu vẫn không tìm ra ai thì thôi, không ghi commission (hoặc bạn có thể throw exception tuỳ business)
+					if (!commissionReceiverId.HasValue)
+					{
+						// Option A: bỏ qua hoa hồng
+						// return await _unitOfWork.Complete();
+
+						// Option B: ném lỗi để biết là cấu hình sai
+						throw new InvalidOperationException("Cannot determine commission receiver (no branch manager or admin).");
+					}
+
+					var commissionReq = new WalletTransactionRequest
+					{
+						Amount = platformFeeTotal,
+						Type = "booking_commission",
+						PaymentId = null,
+						BookingId = booking.Id,
+						Description = $"Hoa hồng booking {booking.BookingCode ?? booking.Id.ToString()}"
+					};
+
+					await _walletService.CreditAsync(commissionReceiverId.Value, commissionReq);
+				}
+
+				// Đánh dấu đã settle để không chạy lại lần nữa
+				booking.IsSettled = true;
+				booking.SettledAt = DateTime.UtcNow;
+			}
+			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+			return await _unitOfWork.Complete();
+		}
+
+		public async Task<BookingQrDTO?> GenerateBookingQrForRenterAsync(Guid bookingId, Guid renterId, CancellationToken ct = default)
+		{
+			// Chỉ cho phép renter lấy QR của chính booking của mình
+			var booking = await _unitOfWork.Repository<Booking>()
+				.FirstOrDefaultAsync(b => b.Id == bookingId && b.RenterId == renterId);
+
+			if (booking == null)
+				return null;
+
+			var payload = $"booking:{bookingId:N}";
+			var png = GenerateQrPng(payload);
+
+			return new BookingQrDTO
+			{
+				BookingId = bookingId,
+				Payload = payload,
+				PngImage = png
+			};
+		}
+
+		private static byte[] GenerateQrPng(string text)
+		{
+			using var generator = new QRCodeGenerator();
+			using var data = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.M);
+			var pngCode = new PngByteQRCode(data);
+			return pngCode.GetGraphic(6);
 		}
 	}
 }

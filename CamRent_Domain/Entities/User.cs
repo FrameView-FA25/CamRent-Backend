@@ -12,22 +12,17 @@ namespace CamRent_Domain.Entities
 
         public string FullName { get; set; } = string.Empty;
         public Address? Address { get; set; }
-
         public UserStatus Status { get; set; } = UserStatus.Active;
 
-        // Merged profile fields
-        public string? NationalIdNumber { get; set; }
-        public string KycStatus { get; set; } = "pending";
         public string? BankAccountNumber { get; set; }
         public string? BankName { get; set; }
         public string? BankAccountName { get; set; }
+		public Guid? SignatureAssetId { get; set; }
+		public FileAsset? SignatureAsset { get; set; }
+        public Guid? AvatarId { get; set; }
+        public FileAsset? Avatar { get; set; }
 
-        public ICollection<UserRoleMapping> Roles { get; set; } = new List<UserRoleMapping>();
-        public ICollection<UserBranchMembership> BranchMemberships { get; set; } = new List<UserBranchMembership>();
-        public ICollection<Booking> RenterBookings { get; set; } = new List<Booking>();
-        public ICollection<Booking> StaffBookings { get; set; } = new List<Booking>();
-		[NotMapped]
-		public ICollection<FileAsset> Avatar { get; set; } = new List<FileAsset>();
+		public ICollection<UserRoleMapping> Roles { get; set; } = new List<UserRoleMapping>();
 	}
 
     public class ResetPasswordToken : BaseEntity

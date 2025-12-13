@@ -2,9 +2,16 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CamRent_Api.Models
 {
-	public class ContractModel
+	public static class ContractModel
 	{
-		public class CreateContractRequest { [Required] public Guid BookingId { get; set; } [Required] public Guid TemplateId { get; set; } }
-		public class SignContractRequest { [Url] public string? SignedFileUrl { get; set; } }
+		public class SignContractRequest
+		{
+			public string SignatureBase64 { get; set; } = default!;
+		}
+
+		public class CreateContractResponse
+		{
+			public Guid ContractId { get; set; }
+		}
 	}
 }

@@ -1,11 +1,13 @@
 ﻿using CamRent_Application.IServices;
+using CamRent_Application.Services;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using static CamRent_Application.DTOs.BranchDTO;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
+using static CamRent_Application.DTOs.AuthDTO;
+using static CamRent_Application.DTOs.BranchDTO;
 
 namespace CamRent_Api.Controllers
 {
@@ -15,9 +17,13 @@ namespace CamRent_Api.Controllers
 	public class BranchsController : ControllerBase
 	{
 		private readonly IBranchService _branchService;
-		public BranchsController(IBranchService branchService)
+		private readonly IAuthService _authService;
+		private readonly IUserService _userService;
+		public BranchsController(IBranchService branchService, IAuthService authService, IUserService userService)
 		{
 			_branchService = branchService;
+			_authService = authService;
+			_userService = userService;
 		}
 		[HttpGet]
 		[SwaggerOperation(Summary = "Lấy danh sách chi nhánh", Description = "Trả về danh sách chi nhánh. Quyền: Người dùng đã đăng nhập")]
@@ -26,7 +32,7 @@ namespace CamRent_Api.Controllers
 			var branches = await _branchService.GetAllBranchesAsync();
 			return Ok(branches);
 		}
-		[HttpGet("/memberships")]
+		[HttpGet("Memberships")]
 		[SwaggerOperation(Summary = "Lấy thành viên chi nhánh", Description = "Trả về danh sách membership của chi nhánh. Nếu người gọi là BranchManager sẽ trả kết quả theo manager. Quyền: Người dùng đã đăng nhập")]
 		public async Task<IActionResult> GetBranchMemberships(Guid? branchId)
 		{
@@ -57,7 +63,8 @@ namespace CamRent_Api.Controllers
 			return Ok(branch);
 		}
 		[HttpPost]
-		[SwaggerOperation(Summary = "Tạo chi nhánh", Description = "Tạo một chi nhánh mới. Quyền: Người dùng đã đăng nhập")]
+		[Authorize(Policy ="AdminOnly")]
+		[SwaggerOperation(Summary = "Tạo chi nhánh", Description = "Tạo một chi nhánh mới. Quyền: Admin")]
 		public async Task<IActionResult> CreateBranch([FromBody] BranchRequest branchRequest)
 		{
 			var result = await _branchService.CreateBranchAsync(branchRequest);
@@ -71,6 +78,55 @@ namespace CamRent_Api.Controllers
 			var result = await _branchService.AssignManagerToBranchAsync(branchId, managerId);
 			return result > 0 ? Ok(new { Message = "Gán quản lý thành công." }) : BadRequest(new { Message = "Gán quản lý thất bại." });
 		}
+		[HttpPut("{branchId:guid}/assign-staff/{staffId:guid}")]
+		[Authorize(Policy = "AdminOnly")]
+		[SwaggerOperation(Summary = "Gán nhân viên cho chi nhánh", Description = "Gán một Staff cho chi nhánh. Quyền: Admin")]
+		public async Task<IActionResult> AssignStaffToBranch(Guid branchId, Guid staffId)
+		{
+			var result = await _branchService.AssignStaffToBranchAsync(branchId, staffId);
+			return result > 0 ? Ok(new { Message = "Gán nhân viên thành công." }) : BadRequest(new { Message = "Gán nhân viên thất bại." });
+		}
 
+		[HttpPost("BranchManagerRegister")]
+		[Authorize(Policy = "AdminOnly")]
+		[SwaggerOperation(Summary = "Đăng ký BranchManager", Description = "Đăng ký tài khoản với vai trò BranchManager. Quyền: Admin")]
+		public async Task<IActionResult> CreateManager([FromBody] RegisterRequest request)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			
+			var verify = await _authService.Register(request, Guid.Parse(userId), UserRole.BranchManager);
+			if (verify == Guid.Empty)
+				return BadRequest("Email đã được đăng kí.");
+			return Ok("Đăng ký thành công.");
+		}
+
+		[HttpPost("StaffRegister")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(Summary = "Đăng ký Staff", Description = "Đăng ký tài khoản với vai trò Staff. Quyền: Manager, Admin")]
+		public async Task<IActionResult> CreateStaff([FromBody] RegisterRequest request)
+		{
+			var userId = string.Empty;
+			var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+			foreach (var role in roles)
+			{
+				if (role == UserRole.BranchManager.ToString())
+				{
+					userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+				}
+			}
+			var verify = await _authService.Register(request, Guid.Parse(userId), UserRole.Staff);
+			if (verify == Guid.Empty)
+				return BadRequest("Email đã được đăng kí.");
+			var branchId = await _branchService.GetBranchIdByManagerIdAsync(Guid.Parse(userId));
+			if (verify != Guid.Empty && branchId != null)
+			{
+				await _branchService.AssignStaffToBranchAsync(branchId, verify);
+			}
+			return Ok("Đăng ký thành công.");
+		}
 	}
 }

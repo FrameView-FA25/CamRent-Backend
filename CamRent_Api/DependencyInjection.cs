@@ -1,14 +1,16 @@
 ﻿using CamRent_Api.Commons;
+using CamRent_Api.Swagger;
 using CamRent_Application.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SignalRSwaggerGen;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using static CamRent_Application.DTOs.AuthDTO;
-using System.Reflection;
-using CamRent_Api.Swagger;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace CamRent_Api
 {
@@ -48,6 +50,7 @@ namespace CamRent_Api
 				options.AddPolicy("Owner", p => p.RequireRole("Owner", "Admin"));
 				options.AddPolicy("Renter", p => p.RequireRole("Renter", "Admin"));
 				options.AddPolicy("OwnerOrManagerOrStaff", p => p.RequireRole("Owner", "BranchManager", "Staff", "Admin"));
+				options.AddPolicy("ManagerOrStaff", p => p.RequireRole("BranchManager", "Staff", "Admin"));
 
 				// ⚠️ Bỏ FallbackPolicy để Swagger và các endpoint không có [Authorize] không bị ép đăng nhập
 				// Nếu muốn tất cả API (trừ [AllowAnonymous]) bắt buộc đăng nhập, cần dùng [Authorize] ở controller/action.
@@ -64,6 +67,9 @@ namespace CamRent_Api
 			services.AddSwaggerGen(options =>
 			{
 				options.SwaggerDoc("v1", new OpenApiInfo { Title = "CamRent_Api", Version = "v1" });
+
+				// Generate documentation for SignalR hubs (e.g., NotificationHub)
+				options.AddSignalRSwaggerGen();
 
 				options.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
 				{
@@ -126,11 +132,12 @@ namespace CamRent_Api
 
 		public static IServiceCollection AddApiDI(this IServiceCollection services, IConfiguration config)
 		{
-
+			
 			services.AddControllers()
 			.AddJsonOptions(o =>
 			{
 				o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+				o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 				// tuỳ chọn:
 				// o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 				// o.JsonSerializerOptions.MaxDepth = 64; // nếu dữ liệu sâu
@@ -141,6 +148,7 @@ namespace CamRent_Api
 			);
 			services.Configure<CloudinarySettings>(
 			config.GetSection("Cloudinary"));
+			services.Configure<PayOsOptions>(config.GetSection("PayOS"));
 			return services;
 		}
 

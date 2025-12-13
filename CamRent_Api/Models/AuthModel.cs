@@ -1,5 +1,6 @@
-﻿
 
+
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace CamRent_Api.Models
@@ -9,8 +10,10 @@ namespace CamRent_Api.Models
 		public class LoginRequest
 		{
 			[Required, EmailAddress]
+			[DefaultValue("user@gmail.com")]
 			public string Email { get; set; } = default!;
 			[Required]
+			[DefaultValue("12345")]
 			public string Password { get; set; } = default!;
 		}
 
@@ -29,6 +32,14 @@ namespace CamRent_Api.Models
 			public string Email { get; set; } = default!;
 			[Required]
 			public string Token { get; set; } = default!;
+			[Required, MinLength(6)]
+			public string NewPassword { get; set; } = default!;
+		}
+
+		public class ChangePasswordRequest
+		{
+			[Required]
+			public string CurrentPassword { get; set; } = default!;
 			[Required, MinLength(6)]
 			public string NewPassword { get; set; } = default!;
 		}

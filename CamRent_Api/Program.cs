@@ -5,18 +5,23 @@ using CamRent_Infrastructure.Persistence;
 using CamRent_Infrastructure.Persistence.SeedData;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using CamRent_Api.Hubs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+QuestPDF.Settings.License = LicenseType.Community;
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks();
+
+// Realtime
+builder.Services.AddSignalR();
 
 builder.Services.AddFluentValidationAutoValidation();
 
@@ -95,5 +100,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// SignalR hubs
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();

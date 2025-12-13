@@ -2,6 +2,7 @@ using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Application.Services
 {
@@ -12,13 +13,20 @@ namespace CamRent_Application.Services
 
 		public async Task<IEnumerable<DisputeDTO.DisputeResponse>> GetByBookingAsync(Guid bookingId)
 		{
-			var list = await _uow.Repository<Dispute>().ListAsync(d => d.BookingId == bookingId);
+			// Lấy toàn bộ dispute của một booking, kèm theo danh sách DisputeItem (Items) để FE hiển thị chi tiết.
+			var list = await _uow.Repository<Dispute>().ListAsync(
+				d => d.BookingId == bookingId,
+				include: q => q.Include(x => x.Items));
 			return list.Select(Map);
 		}
 
 		public async Task<DisputeDTO.DisputeResponse?> GetAsync(Guid disputeId)
 		{
-			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId);
+			// Lấy 1 dispute theo Id, include luôn các DisputeItem để không bị rỗng phần Items khi trả về cho FE.
+			var disputes = await _uow.Repository<Dispute>().ListAsync(
+				d => d.Id == disputeId,
+				include: q => q.Include(x => x.Items));
+			var d = disputes.FirstOrDefault();
 			if (d == null) return null;
 			return Map(d);
 		}
@@ -53,10 +61,11 @@ namespace CamRent_Application.Services
 				CreatedAt = DateTime.UtcNow
 			};
 			await _uow.Repository<DisputeItem>().AddAsync(item);
-			// Update total
+			// Sau khi thêm item, cập nhật lại TotalAmount = tổng Amount của tất cả DisputeItem.
 			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
 			var items = await _uow.Repository<DisputeItem>().ListAsync(i => i.DisputeId == disputeId);
 			d.TotalAmount = items.Sum(i => i.Amount);
+			d.Status = "under_review"; // Tự động chuyển trạng thái khi có item mới
 			await _uow.Repository<Dispute>().UpdateAsync(d);
 			await _uow.Complete();
 		}
@@ -67,7 +76,7 @@ namespace CamRent_Application.Services
 			return Task.CompletedTask;
 		}
 
-		public async Task UpdateStatusAsync(Guid disputeId, string status, string? resolutionNote)
+		public async Task UpdateStatusAsync(Guid disputeId, string status)
 		{
 			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
 			d.Status = status;
@@ -85,7 +94,10 @@ namespace CamRent_Application.Services
 				Description = d.Description,
 				Severity = d.Severity,
 				Status = d.Status,
-				TotalAmount = d.TotalAmount,
+				CreatedAt = d.CreatedAt,
+				UpdatedAt = d.UpdatedAt,
+				// Nếu vì lý do nào đó TotalAmount chưa được cập nhật, fallback tính từ Items.
+				TotalAmount = d.TotalAmount != 0 ? d.TotalAmount : d.Items.Sum(i => i.Amount),
 				Items = d.Items.Select(i => new DisputeDTO.DisputeItemResponse
 				{
 					Id = i.Id,

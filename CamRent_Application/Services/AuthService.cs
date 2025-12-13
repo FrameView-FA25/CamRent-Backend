@@ -1,4 +1,4 @@
-﻿using CamRent_Application.Interfaces;
+using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
@@ -16,7 +16,7 @@ using static CamRent_Application.DTOs.AuthDTO;
 
 namespace CamRent_Application.Services
 {
-	public class AuthService : IAuthService
+		public class AuthService : IAuthService
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IPasswordHasher<User> _hasher;
@@ -31,14 +31,14 @@ namespace CamRent_Application.Services
 			_jwt = jwt.Value;
 		}
 
-		public async Task<bool> Register(RegisterRequest request)
+		public async Task<Guid> Register(RegisterRequest request, Guid? userId, UserRole role)
 		{
 			var email = request.Email.Trim();
 
 			var userExists = await _unitOfWork.Repository<User>()
 				.ListAsync(u => u.Email == email);
 			if (userExists.Any())
-				return false;
+				return Guid.Empty;
 
 			var user = new User
 			{
@@ -48,21 +48,28 @@ namespace CamRent_Application.Services
 				Phone = request.Phone?.Trim() ?? string.Empty,
 				FullName = request.FullName?.Trim() ?? string.Empty,
 				Status = UserStatus.Active,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = DateTime.UtcNow,
 			};
-
+			if(userId != Guid.Empty)
+			{
+				user.CreatedByUserId = userId;
+			}
+			else
+			{
+				user.CreatedByUserId = user.Id;
+			}
 			user.PasswordHash = _hasher.HashPassword(user, request.Password);
 			await _unitOfWork.Repository<User>().AddAsync(user);
 
 			await _unitOfWork.Repository<UserRoleMapping>().AddAsync(new UserRoleMapping
 			{
 				User = user,
-				Role = request.Role,
+				Role = role,
 				CreatedAt = DateTime.UtcNow
 			});
 
 			await _unitOfWork.Complete();
-			return true;
+			return user.Id;
 		}
 
 		public async Task<AuthResponse> GetToken(string email, string password)
@@ -90,6 +97,22 @@ namespace CamRent_Application.Services
 				throw new Exception("Tài khoản chưa hoạt động hoặc bị khóa.");
 
 			return GenerateJwt(user);
+		}
+
+		public async Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+		{
+			var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+			if (user == null) return false;
+
+			// Verify current password
+			var verify = _hasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword);
+			if (verify == PasswordVerificationResult.Failed) return false;
+
+			// Update to new password
+			user.PasswordHash = _hasher.HashPassword(user, newPassword);
+			await _unitOfWork.Repository<User>().UpdateAsync(user);
+			await _unitOfWork.Complete();
+			return true;
 		}
 
 		private AuthResponse GenerateJwt(User user)
@@ -125,11 +148,7 @@ namespace CamRent_Application.Services
 
 			return new AuthResponse
 			{
-				Token = tokenStr,
-				ExpiresAtUtc = expires,
-				FullName = user.FullName,
-				Roles = user.Roles.Select(x => x.Role.ToString()).ToArray(),
-				Email = user.Email
+				Token = tokenStr
 			};
 		}
 	}

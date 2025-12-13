@@ -1,3 +1,4 @@
+using CamRent_Domain.Common;
 using System.ComponentModel.DataAnnotations;
 
 namespace CamRent_Api.Models
@@ -8,6 +9,10 @@ namespace CamRent_Api.Models
 		{
 			[Required]
 			public Guid BookingId { get; set; }
+			[Required]
+			public PaymentType Mode { get; set; }
+			[Required]
+			public PaymentMethod Method { get; set; }   // PayOs / Wallet
 		}
 
 		public class AddLineRequest
@@ -33,14 +38,27 @@ namespace CamRent_Api.Models
 
 		public class InitPayOsRequest
 		{
-			[Range(0.01, double.MaxValue)]
-			public decimal Amount { get; set; }
-			[StringLength(100)]
-			public string? Description { get; set; }
 			[Url]
 			public string ReturnUrl { get; set; } = string.Empty;
 			[Url]
 			public string CancelUrl { get; set; } = string.Empty;
+		}
+
+		public class PaymentStatusResponse
+		{
+			public Guid PaymentId { get; set; }
+
+			public string PaymentStatus { get; set; } = default!;
+
+			public Guid? BookingId { get; set; }
+
+			public string? BookingStatus { get; set; }
+
+			public decimal AuthorizedAmount { get; set; }
+
+			public decimal CapturedAmount { get; set; }
+
+			public bool IsPaid { get; set; }
 		}
 	}
 }
