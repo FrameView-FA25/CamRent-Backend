@@ -220,6 +220,42 @@ namespace CamRent_Api.Controllers
 			return Ok(bookings);
 		}
 
+		// Owner xem danh sách renter đã từng thuê thiết bị của mình
+		[HttpGet("owner/renters")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(
+			Summary = "Danh sách khách thuê thiết bị của owner",
+			Description = "Trả về danh sách renter đã từng thuê ít nhất một camera/phụ kiện thuộc owner hiện tại, kèm tổng số booking và lần thuê gần nhất.")]
+		public async Task<ActionResult<IEnumerable<OwnerRenterSummaryDTO>>> GetOwnerRenters()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var renters = await _bookingService.GetOwnerRentersAsync(Guid.Parse(userId));
+			return Ok(renters);
+		}
+
+		// Owner xem lịch sử booking với một renter cụ thể (chỉ các thiết bị thuộc owner)
+		[HttpGet("owner/renters/{renterId:guid}/bookings")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(
+			Summary = "Lịch sử booking của một khách đối với thiết bị owner",
+			Description = "Trả về danh sách booking giữa owner hiện tại và renter chỉ định, chỉ bao gồm các items thuộc owner.")]
+		public async Task<ActionResult<IEnumerable<OwnerRenterBookingDTO>>> GetOwnerRenterBookings(Guid renterId)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var result = await _bookingService.GetOwnerRenterBookingsAsync(Guid.Parse(userId), renterId);
+			return Ok(result);
+		}
+
 		/// <summary>
 		/// Lịch bận của một thiết bị (camera/phụ kiện/combo) để hiển thị calendar tránh trùng lịch.
 		/// </summary>

@@ -26,5 +26,9 @@ namespace CamRent_Application.IServices
 
 		// Lịch bận của một thiết bị (camera/phụ kiện/combo) để hiển thị calendar tránh trùng lịch
 		Task<List<BookingItemUnavailableRangeDTO>> GetUnavailableRangesForItemAsync(Guid itemId, ItemType type, CancellationToken cancellationToken = default);
+
+		// Chủ thiết bị (Owner) xem danh sách khách đã thuê thiết bị của mình và lịch sử booking theo từng khách
+		Task<List<OwnerRenterSummaryDTO>> GetOwnerRentersAsync(Guid ownerUserId);
+		Task<List<OwnerRenterBookingDTO>> GetOwnerRenterBookingsAsync(Guid ownerUserId, Guid renterId);
 	}
 }
