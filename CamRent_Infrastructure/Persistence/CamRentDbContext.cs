@@ -45,10 +45,8 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
         public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
         public DbSet<MoneyFlatformSetting> MoneyFlatformSettings => Set<MoneyFlatformSetting>();
+		public DbSet<WorkSlotDefinition> WorkSlotDefinitions => Set<WorkSlotDefinition>();
 		public DbSet<Review> Reviews => Set<Review>();
-		//public DbSet<DeliveryTask> DeliveryTasks => Set<DeliveryTask>();
-		//public DbSet<Category> Categories => Set<Category>();
-		//      public DbSet<DeviceCategoryLink> DeviceCategories => Set<DeviceCategoryLink>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

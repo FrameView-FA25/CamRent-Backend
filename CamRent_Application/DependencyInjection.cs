@@ -35,6 +35,7 @@ namespace CamRent_Application
 			services.AddScoped<IAIRecommendationService, AIRecommendationService>();
 			services.AddScoped<IDisputeService, DisputeService>();
 			services.AddScoped<IPasswordResetService, PasswordResetService>();
+			services.AddScoped<IWorkSlotService, WorkSlotService>();
 			return services;
 		}
 	}
