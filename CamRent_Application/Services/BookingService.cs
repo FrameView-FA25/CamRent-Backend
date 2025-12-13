@@ -491,6 +491,184 @@ namespace CamRent_Application.Services
 			return result;
 		}
 
+		/// <summary>
+		/// Danh sách renter đã từng thuê ít nhất một thiết bị của owner.
+		/// </summary>
+		public async Task<List<OwnerRenterSummaryDTO>> GetOwnerRentersAsync(Guid ownerUserId)
+		{
+			// Thiết bị của owner
+			var cameras = await _unitOfWork.Repository<Camera>().ListAsync(c => c.OwnerUserId == ownerUserId);
+			var accessories = await _unitOfWork.Repository<Accessory>().ListAsync(a => a.OwnerUserId == ownerUserId);
+
+			var cameraIds = cameras.Select(c => c.Id).ToHashSet();
+			var accessoryIds = accessories.Select(a => a.Id).ToHashSet();
+
+			if (!cameraIds.Any() && !accessoryIds.Any())
+				return new List<OwnerRenterSummaryDTO>();
+
+			var validStatuses = new[]
+			{
+				BookingStatus.Confirmed,
+				BookingStatus.PickedUp,
+				BookingStatus.Returned,
+				BookingStatus.Completed,
+				BookingStatus.Overdue
+			};
+
+			// BookingItems liên quan tới thiết bị của owner, kèm Booking + Renter
+			var bookingItems = await _unitOfWork.Repository<BookingItem>()
+				.ListAsync(
+					bi =>
+						bi.Booking != null &&
+						bi.Booking.RenterId != null &&
+						validStatuses.Contains(bi.Booking.Status) &&
+						(
+							(bi.CameraId.HasValue && cameraIds.Contains(bi.CameraId.Value)) ||
+							(bi.AccessoryId.HasValue && accessoryIds.Contains(bi.AccessoryId.Value))
+						),
+					include: q => q
+						.Include(bi => bi.Booking)!.ThenInclude(b => b.Renter)
+				);
+
+			var groups = bookingItems
+				.Where(bi => bi.Booking != null && bi.Booking.Renter != null && bi.Booking.RenterId != null)
+				.GroupBy(bi => new
+				{
+					RenterId = bi.Booking!.RenterId!.Value,
+					RenterName = bi.Booking!.Renter!.FullName,
+					RenterEmail = bi.Booking!.Renter!.Email
+				});
+
+			var result = groups
+				.Select(g =>
+				{
+					var distinctBookings = g
+						.Where(bi => bi.Booking != null)
+						.Select(bi => bi.Booking!.Id)
+						.Distinct()
+						.ToList();
+
+					var lastPickup = g
+						.Where(bi => bi.Booking != null)
+						.Max(bi => (DateTime?)bi.Booking!.PickupAt);
+
+					return new OwnerRenterSummaryDTO
+					{
+						RenterId = g.Key.RenterId,
+						RenterName = g.Key.RenterName ?? string.Empty,
+						Email = g.Key.RenterEmail,
+						TotalBookings = distinctBookings.Count,
+						LastPickupAt = lastPickup
+					};
+				})
+				.OrderByDescending(x => x.LastPickupAt)
+				.ToList();
+
+			return result;
+		}
+
+		/// <summary>
+		/// Lịch sử booking giữa một owner và một renter cụ thể
+		/// (chỉ bao gồm các item thuộc owner trong mỗi booking).
+		/// </summary>
+		public async Task<List<OwnerRenterBookingDTO>> GetOwnerRenterBookingsAsync(Guid ownerUserId, Guid renterId)
+		{
+			// Thiết bị của owner
+			var cameras = await _unitOfWork.Repository<Camera>().ListAsync(c => c.OwnerUserId == ownerUserId);
+			var accessories = await _unitOfWork.Repository<Accessory>().ListAsync(a => a.OwnerUserId == ownerUserId);
+
+			var cameraIds = cameras.Select(c => c.Id).ToHashSet();
+			var accessoryIds = accessories.Select(a => a.Id).ToHashSet();
+
+			if (!cameraIds.Any() && !accessoryIds.Any())
+				return new List<OwnerRenterBookingDTO>();
+
+			var validStatuses = new[]
+			{
+				BookingStatus.Confirmed,
+				BookingStatus.PickedUp,
+				BookingStatus.Returned,
+				BookingStatus.Completed,
+				BookingStatus.Overdue
+			};
+
+			// BookingItems liên quan tới thiết bị của owner + booking của renter này
+			var bookingItems = await _unitOfWork.Repository<BookingItem>()
+				.ListAsync(
+					bi =>
+						bi.Booking != null &&
+						bi.Booking.RenterId == renterId &&
+						validStatuses.Contains(bi.Booking.Status) &&
+						(
+							(bi.CameraId.HasValue && cameraIds.Contains(bi.CameraId.Value)) ||
+							(bi.AccessoryId.HasValue && accessoryIds.Contains(bi.AccessoryId.Value))
+						),
+					include: q => q
+						.Include(bi => bi.Booking)!
+						.ThenInclude(b => b.Renter)
+						.Include(bi => bi.Camera)
+						.Include(bi => bi.Accessory)
+				);
+
+			var groups = bookingItems
+				.Where(bi => bi.Booking != null)
+				.GroupBy(bi => bi.Booking!);
+
+			var result = new List<OwnerRenterBookingDTO>();
+
+			foreach (var g in groups)
+			{
+				var booking = g.Key;
+
+				var dto = new OwnerRenterBookingDTO
+				{
+					BookingId = booking.Id,
+					PickupAt = booking.PickupAt,
+					ReturnAt = booking.ReturnAt,
+					Status = booking.Status,
+					StatusText = booking.Status.GetDisplayName()
+				};
+
+				foreach (var item in g)
+				{
+					if (item.CameraId.HasValue && cameraIds.Contains(item.CameraId.Value))
+					{
+						var cam = item.Camera ?? cameras.FirstOrDefault(c => c.Id == item.CameraId.Value);
+						var name = cam != null ? $"{cam.Brand} {cam.Model}" : "Camera";
+
+						dto.Items.Add(new OwnerRenterBookingItemDTO
+						{
+							ItemId = item.CameraId.Value,
+							ItemName = name,
+							ItemType = "camera",
+							UnitPrice = item.UnitPrice
+						});
+					}
+					else if (item.AccessoryId.HasValue && accessoryIds.Contains(item.AccessoryId.Value))
+					{
+						var acc = item.Accessory ?? accessories.FirstOrDefault(a => a.Id == item.AccessoryId.Value);
+						var name = acc != null ? $"{acc.Brand} {acc.Model}" : "Accessory";
+
+						dto.Items.Add(new OwnerRenterBookingItemDTO
+						{
+							ItemId = item.AccessoryId.Value,
+							ItemName = name,
+							ItemType = "accessory",
+							UnitPrice = item.UnitPrice
+						});
+					}
+				}
+
+				// Chỉ add nếu còn ít nhất 1 item thuộc owner
+				if (dto.Items.Any())
+					result.Add(dto);
+			}
+
+			return result
+				.OrderByDescending(b => b.PickupAt)
+				.ToList();
+		}
+
 		public Task<List<BookingStatusDTO>> GetBookingStatusesAsync()
 		{
 			var statuses = Enum.GetValues(typeof(BookingStatus))

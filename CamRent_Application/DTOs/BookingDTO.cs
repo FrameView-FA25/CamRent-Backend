@@ -96,5 +96,42 @@ namespace CamRent_Application.DTOs
 			// Ảnh QR dưới dạng byte[] (PNG), khi serialize JSON sẽ thành base64
 			public byte[] PngImage { get; set; } = Array.Empty<byte>();
 		}
+
+		/// <summary>
+		/// Tóm tắt một renter (người thuê) đã từng thuê thiết bị của một owner.
+		/// Dùng cho màn Owner xem danh sách khách thuê thiết bị của mình.
+		/// </summary>
+		public class OwnerRenterSummaryDTO
+		{
+			public Guid RenterId { get; set; }
+			public string RenterName { get; set; } = string.Empty;
+			public string Email { get; set; } = string.Empty;
+			public int TotalBookings { get; set; }
+			public DateTime? LastPickupAt { get; set; }
+		}
+
+		/// <summary>
+		/// Thông tin một booking cụ thể giữa owner và renter, chỉ chứa các items thuộc owner đó.
+		/// </summary>
+		public class OwnerRenterBookingDTO
+		{
+			public Guid BookingId { get; set; }
+			public DateTime PickupAt { get; set; }
+			public DateTime ReturnAt { get; set; }
+			public BookingStatus Status { get; set; }
+			public string StatusText { get; set; } = string.Empty;
+			public List<OwnerRenterBookingItemDTO> Items { get; set; } = new();
+		}
+
+		/// <summary>
+		/// Item trong booking thuộc về owner (camera / accessory).
+		/// </summary>
+		public class OwnerRenterBookingItemDTO
+		{
+			public Guid ItemId { get; set; }
+			public string ItemName { get; set; } = string.Empty;
+			public string ItemType { get; set; } = string.Empty; // "camera" / "accessory"
+			public decimal UnitPrice { get; set; }
+		}
 	}
 }
