@@ -80,6 +80,7 @@ namespace CamRent_Application.Services
 		{
 			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
 			d.Status = status;
+			d.UpdatedAt = DateTime.UtcNow;
 			await _uow.Repository<Dispute>().UpdateAsync(d);
 			await _uow.Complete();
 		}

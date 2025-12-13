@@ -28,6 +28,7 @@ namespace CamRent_Application.DTOs
 			public string Type { get; set; } = string.Empty;
 			public decimal Amount { get; set; }
 			public string? Notes { get; set; }
+			public DateTime CreatedAt { get; set; }
 		}
 	}
 }

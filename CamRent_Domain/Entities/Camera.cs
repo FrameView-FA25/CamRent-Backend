@@ -31,6 +31,6 @@ namespace CamRent_Domain.Entities
 
 		[NotMapped]
 		public ICollection<FileAsset> Media { get; set; } = new List<FileAsset>();
-		public ICollection<DeviceCategoryLink>? Categories { get; set; } = new List<DeviceCategoryLink>();
+		//public ICollection<DeviceCategoryLink>? Categories { get; set; } = new List<DeviceCategoryLink>();
     }
 }
