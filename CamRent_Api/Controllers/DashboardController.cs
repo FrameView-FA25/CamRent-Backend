@@ -134,6 +134,35 @@ namespace CamRent_Api.Controllers
 			var data = await _dashboard.GetStaffWorkloadForManagerAsync(Guid.Parse(userIdStr), from, to, HttpContext.RequestAborted);
 			return Ok(data);
 		}
+
+		/// <summary>
+		/// Tìm staff trong chi nhánh của Branch Manager đang rảnh trong khoảng [start, end),
+		/// dựa trên booking (pickup/return) và verification đã được gán.
+		/// </summary>
+		[HttpGet("available-staff")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(
+			Summary = "Tìm staff rảnh để giao việc",
+			Description = "Trả về danh sách staff trong chi nhánh của manager và cờ IsAvailable trong khoảng start–end (xét booking + verification).")]
+		public async Task<IActionResult> GetAvailableStaff(
+			[FromQuery] DateTime start,
+			[FromQuery] DateTime end,
+			[FromQuery] string type = "both")
+		{
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			if (start >= end)
+				return BadRequest("start must be earlier than end");
+
+			var data = await _dashboard.GetAvailableStaffForManagerAsync(
+				Guid.Parse(userIdStr), start, end, type, HttpContext.RequestAborted);
+
+			return Ok(data);
+		}
 	}
 }
 
