@@ -141,4 +141,28 @@ namespace CamRent_Application.DTOs
 		public string BranchName { get; set; } = string.Empty;
 		public List<StaffWorkloadItemDTO> Staffs { get; set; } = new();
 	}
+
+	/// <summary>
+	/// Thông tin availability của staff trong một khoảng thời gian cụ thể,
+	/// phục vụ cho BranchManager chọn người để gán booking/verification mới.
+	/// </summary>
+	public class AvailableStaffItemDTO
+	{
+		public Guid StaffId { get; set; }
+		public string StaffName { get; set; } = string.Empty;
+		public bool IsAvailable { get; set; }
+		public int ConflictingBookings { get; set; }
+		public int ConflictingVerifications { get; set; }
+		public int TodayPickupBookings { get; set; }
+		public int TodayReturnBookings { get; set; }
+	}
+
+	public class AvailableStaffSummaryDTO
+	{
+		public Guid BranchId { get; set; }
+		public string BranchName { get; set; } = string.Empty;
+		public DateTime Start { get; set; }
+		public DateTime End { get; set; }
+		public List<AvailableStaffItemDTO> Staffs { get; set; } = new();
+	}
 }

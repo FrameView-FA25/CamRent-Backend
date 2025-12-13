@@ -568,6 +568,102 @@ namespace CamRent_Application.Services
 				Staffs = items
 			};
 		}
+
+		/// <summary>
+		/// Tìm staff trong chi nhánh của BranchManager đang rảnh trong khoảng [start, end),
+		/// dựa trên booking (pickup/return) và verification đã được gán.
+		/// </summary>
+		public async Task<AvailableStaffSummaryDTO> GetAvailableStaffForManagerAsync(Guid managerUserId, DateTime start, DateTime end, string type = "both", CancellationToken ct = default)
+		{
+			if (start >= end)
+				throw new ArgumentException("start must be earlier than end", nameof(start));
+
+			var branches = await _uow.Repository<Branch>().ListAsync(b => b.ManagerId == managerUserId);
+			var branch = branches.FirstOrDefault()
+				?? throw new InvalidOperationException("Branch not found for this manager");
+
+			var branchId = branch.Id;
+			var today = DateTime.UtcNow.Date;
+
+			// Lấy toàn bộ booking & verification trong chi nhánh có staffId
+			var bookings = await _uow.Repository<Booking>()
+				.ListAsync(b => b.BranchId == branchId && b.StaffId != null);
+			var verifs = await _uow.Repository<VerificationRequest>()
+				.ListAsync(v => v.BranchId == branchId && v.StaffId != null);
+
+			var staffIds = bookings.Select(b => b.StaffId!.Value)
+				.Concat(verifs.Select(v => v.StaffId!.Value))
+				.Distinct()
+				.ToList();
+
+			if (!staffIds.Any())
+			{
+				return new AvailableStaffSummaryDTO
+				{
+					BranchId = branchId,
+					BranchName = branch.Name,
+					Start = start,
+					End = end,
+					Staffs = new List<AvailableStaffItemDTO>()
+				};
+			}
+
+			var staffLookup = (await _uow.Repository<User>().ListAsync(u => staffIds.Contains(u.Id)))
+				.ToDictionary(u => u.Id, u => u.FullName);
+
+			var typeLower = (type ?? "both").ToLowerInvariant();
+			var checkBooking = typeLower is "both" or "booking";
+			var checkVerification = typeLower is "both" or "verification";
+
+			var items = new List<AvailableStaffItemDTO>();
+
+			foreach (var staffId in staffIds)
+			{
+				var staffBookings = bookings.Where(b => b.StaffId == staffId).ToList();
+				var staffVerifs = verifs.Where(v => v.StaffId == staffId).ToList();
+
+				// booking conflict: khoảng [PickupAt, ReturnAt) overlap với [start, end)
+				var conflictingBookings = checkBooking
+					? staffBookings.Count(b =>
+						b.PickupAt < end &&
+						b.ReturnAt > start &&
+						b.Status != BookingStatus.Draft &&
+						b.Status != BookingStatus.Cancelled &&
+						b.Status != BookingStatus.Completed)
+					: 0;
+
+				// verification conflict: InspectionDate nằm trong [start, end)
+				var conflictingVerifs = checkVerification
+					? staffVerifs.Count(v =>
+						v.InspectionDate >= start &&
+						v.InspectionDate < end &&
+						v.Status == VerificationStatus.Pending)
+					: 0;
+
+				var todayPickups = staffBookings.Count(b => b.PickupAt.Date == today);
+				var todayReturns = staffBookings.Count(b => b.ReturnAt.Date == today);
+
+				items.Add(new AvailableStaffItemDTO
+				{
+					StaffId = staffId,
+					StaffName = staffLookup.TryGetValue(staffId, out var name) ? name : string.Empty,
+					IsAvailable = (conflictingBookings == 0 && conflictingVerifs == 0),
+					ConflictingBookings = conflictingBookings,
+					ConflictingVerifications = conflictingVerifs,
+					TodayPickupBookings = todayPickups,
+					TodayReturnBookings = todayReturns
+				});
+			}
+
+			return new AvailableStaffSummaryDTO
+			{
+				BranchId = branchId,
+				BranchName = branch.Name,
+				Start = start,
+				End = end,
+				Staffs = items
+			};
+		}
 	}
 }
 
