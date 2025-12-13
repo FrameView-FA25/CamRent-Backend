@@ -65,14 +65,15 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BranchResponse>> GetAllBranchesAsync()
 		{
-			var branches = await _unitOfWork.Repository<Branch>().ListAsync(include: b => b.Include(b => b.Manager));
+			var branches = await _unitOfWork.Repository<Branch>().ListAsync(include: b => b.Include(b => b.Manager).Include(b => b.UserMemberships));
 			return _mapper.Map<List<BranchResponse>>(branches);
 
 		}
 
 		public async Task<BranchResponse?> GetBranchByIdAsync(Guid branchId)
 		{
-			var branch = (await _unitOfWork.Repository<Branch>().ListAsync(filter: b => b.Id == branchId, include: b => b.Include(b => b.Manager).Include(b => b.UserMemberships))).FirstOrDefault();
+			var branch = (await _unitOfWork.Repository<Branch>()
+				.ListAsync(filter: b => b.Id == branchId, include: b => b.Include(b => b.Manager).Include(b => b.UserMemberships))).FirstOrDefault();
 			var branchResponse = _mapper.Map<BranchResponse>(branch);
 			return branchResponse;
 		}
