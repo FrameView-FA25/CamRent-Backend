@@ -100,7 +100,8 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByRenterIdAsync(Guid renterId)
 		{
-			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b.Include(b => b.Items)
+			var bookings = await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.RenterId == renterId && b.Status != BookingStatus.Draft, include: b => b
+						.Include(b => b.Items)
 							.ThenInclude(i => i.Camera)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Accessory)
