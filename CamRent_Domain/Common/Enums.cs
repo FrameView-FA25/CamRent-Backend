@@ -164,7 +164,8 @@ namespace CamRent_Domain.Common
 	public enum PaymentMethod
 	{
 		PayOs = 1,
-		Wallet = 2
+		Wallet = 2,
+        Cash = 3
 	}
 }
 

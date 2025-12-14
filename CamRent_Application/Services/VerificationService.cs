@@ -53,6 +53,7 @@ namespace CamRent_Application.Services
 			}	
 			verification.CreatedByUserId = ownerId;
 			verification.CreatedAt = DateTime.UtcNow;
+			verification.Status = VerificationStatus.Pending;
 
 			// đảm bảo EF hiểu quan hệ cha–con (nếu bạn dùng navigation)
 			foreach (var item in verification.Items)
@@ -72,10 +73,27 @@ namespace CamRent_Application.Services
 		/// </summary>
 		public async Task<List<VerificationItemDTO>> GetUnverifiedDevicesForOwnerAsync(Guid ownerId)
 		{
-			var cameras = await _unitOfWork.Repository<Camera>()
-				.ListAsync(c => c.OwnerUserId == ownerId && !c.IsConfirmed);
-			var accessories = await _unitOfWork.Repository<Accessory>()
-				.ListAsync(a => a.OwnerUserId == ownerId && !a.IsConfirmed);
+			var cameras = (await _unitOfWork.Repository<Camera>()
+				.ListAsync(c => c.OwnerUserId == ownerId && !c.IsConfirmed)).ToList();
+			var accessories = (await _unitOfWork.Repository<Accessory>()
+				.ListAsync(a => a.OwnerUserId == ownerId && !a.IsConfirmed)).ToList();
+			var verifications = await _unitOfWork.Repository<VerificationRequest>()
+				.ListAsync(v => v.CreatedByUserId == ownerId && v.Status == VerificationStatus.Pending,
+					include: q => q.Include(v => v.Items));
+			foreach (var ver in verifications)
+			{
+				foreach (var item in ver.Items)
+				{
+					if (item.CameraId != null)
+					{
+						cameras.RemoveAll(c => c.Id == item.CameraId.Value);
+					}
+					else if (item.AccessoryId != null)
+					{
+						accessories.RemoveAll(a => a.Id == item.AccessoryId.Value);
+					}
+				}
+			}
 
 			var result = new List<VerificationItemDTO>();
 
