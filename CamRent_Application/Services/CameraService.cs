@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CamRent_Application.DTOs;
 using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
@@ -117,10 +117,13 @@ namespace CamRent_Application.Services
 				.Distinct()
 				.ToHashSet();
 
-			// 2) Lấy danh sách camera không nằm trong tập unavailable, chỉ lấy camera đã confirmed
+			// 2) Lấy danh sách camera không nằm trong tập unavailable
+			// Note: trước đây endpoint này chỉ trả camera IsConfirmed=true.
+			// Nếu muốn FE/test thấy "khả dụng theo lịch" независимо trạng thái xác minh,
+			// thì bỏ lọc IsConfirmed ở đây.
 			var cameras = await _unitOfWork.Repository<Camera>()
 				.ListAsync(
-					filter: c => c.IsConfirmed && !unavailableCameraIds.Contains(c.Id),
+					filter: c => !unavailableCameraIds.Contains(c.Id),
 					include: c => c.Include(c => c.Branch).Include(c => c.OwnerUser)
 				);
 
