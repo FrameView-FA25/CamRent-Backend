@@ -1,4 +1,4 @@
-﻿using CamRent_Application.Common;
+using CamRent_Application.Common;
 using CamRent_Application.IServices;
 using CamRent_Application.Services;
 using CamRent_Domain.Entities;
@@ -36,6 +36,7 @@ namespace CamRent_Application
 			services.AddScoped<IDisputeService, DisputeService>();
 			services.AddScoped<IPasswordResetService, PasswordResetService>();
 			services.AddScoped<IWorkSlotService, WorkSlotService>();
+			services.AddScoped<IHomePageService, HomePageService>();
 			return services;
 		}
 	}

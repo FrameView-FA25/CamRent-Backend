@@ -1,7 +1,8 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -119,6 +120,46 @@ namespace CamRent_Application.Services
 					include: ub => ub.Include(x => x.User));
 
 			return _mapper.Map<List<BranchMembership>>(memberships);
+		}
+
+		public Task<List<BranchMembership>> GetUnassignedStaffAsync()
+			=> GetUsersByRoleWithoutBranchAsync(UserRole.Staff);
+
+		public Task<List<BranchMembership>> GetUnassignedManagersAsync()
+			=> GetUsersByRoleWithoutBranchAsync(UserRole.BranchManager);
+
+		private async Task<List<BranchMembership>> GetUsersByRoleWithoutBranchAsync(UserRole role)
+		{
+			// 1) Users có role tương ứng
+			var roleMappings = await _unitOfWork.Repository<UserRoleMapping>()
+				.ListAsync(rm => rm.Role == role);
+			var roleUserIds = roleMappings.Select(x => x.UserId).Distinct().ToHashSet();
+
+			if (roleUserIds.Count == 0)
+				return new List<BranchMembership>();
+
+			// 2) Users đã thuộc ít nhất 1 chi nhánh
+			var memberships = await _unitOfWork.Repository<UserBranchMembership>().ListAsync();
+			var assignedUserIds = memberships.Select(m => m.UserId).Distinct().ToHashSet();
+
+			// 3) Lọc userId chưa có membership
+			var unassignedIds = roleUserIds.Except(assignedUserIds).ToList();
+			if (unassignedIds.Count == 0)
+				return new List<BranchMembership>();
+
+			var users = await _unitOfWork.Repository<User>()
+				.ListAsync(u => unassignedIds.Contains(u.Id));
+
+			return users
+				.OrderBy(u => u.FullName)
+				.Select(u => new BranchMembership
+				{
+					UserId = u.Id,
+					FullName = u.FullName,
+					Phone = u.Phone,
+					Email = u.Email
+				})
+				.ToList();
 		}
 	}
 }

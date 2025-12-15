@@ -1,4 +1,4 @@
-﻿using CamRent_Domain.Common;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using CamRent_Infrastructure.Persistence.SeedData;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +47,7 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<MoneyFlatformSetting> MoneyFlatformSettings => Set<MoneyFlatformSetting>();
 		public DbSet<WorkSlotDefinition> WorkSlotDefinitions => Set<WorkSlotDefinition>();
 		public DbSet<Review> Reviews => Set<Review>();
+		public DbSet<HomePageCarouselItem> HomePageCarouselItems => Set<HomePageCarouselItem>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -283,6 +284,12 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(i => i.Accessory)
                 .WithMany()
                 .HasForeignKey(i => i.AccessoryId);
+
+			modelBuilder.Entity<HomePageCarouselItem>()
+				.HasOne(x => x.ImageAsset)
+				.WithMany()
+				.HasForeignKey(x => x.ImageAssetId)
+				.OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<HandoverReceipt>()
                          .HasOne(hr => hr.Contract)
