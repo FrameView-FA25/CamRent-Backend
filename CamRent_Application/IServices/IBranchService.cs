@@ -1,4 +1,4 @@
-﻿using CamRent_Domain.Entities;
+using CamRent_Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +17,7 @@ namespace CamRent_Application.IServices
 		Task<BranchResponse?> GetBranchByIdAsync(Guid branchId);
 		Task<Guid> GetBranchIdByManagerIdAsync(Guid managerId);
 		Task<List<BranchMembership>> GetBranchMembershipsAsync(Guid? branchId, Guid? managerId);
+		Task<List<BranchMembership>> GetUnassignedStaffAsync();
+		Task<List<BranchMembership>> GetUnassignedManagersAsync();
 	}
 }
