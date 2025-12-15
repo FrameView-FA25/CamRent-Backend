@@ -142,6 +142,18 @@ namespace CamRent_Application.Services
 			var memberships = await _unitOfWork.Repository<UserBranchMembership>().ListAsync();
 			var assignedUserIds = memberships.Select(m => m.UserId).Distinct().ToHashSet();
 
+			// Với BranchManager: nếu đã được gán làm ManagerId của bất kỳ Branch nào thì coi như "đã thuộc chi nhánh"
+			// (tránh trường hợp dữ liệu thiếu UserBranchMembership nhưng Branch.ManagerId đã set).
+			if (role == UserRole.BranchManager)
+			{
+				var branches = await _unitOfWork.Repository<Branch>().ListAsync(b => b.ManagerId != null);
+				foreach (var b in branches)
+				{
+					if (b.ManagerId.HasValue)
+						assignedUserIds.Add(b.ManagerId.Value);
+				}
+			}
+
 			// 3) Lọc userId chưa có membership
 			var unassignedIds = roleUserIds.Except(assignedUserIds).ToList();
 			if (unassignedIds.Count == 0)
