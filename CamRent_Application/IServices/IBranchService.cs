@@ -19,5 +19,6 @@ namespace CamRent_Application.IServices
 		Task<List<BranchMembership>> GetBranchMembershipsAsync(Guid? branchId, Guid? managerId);
 		Task<List<BranchMembership>> GetUnassignedStaffAsync();
 		Task<List<BranchMembership>> GetUnassignedManagersAsync();
+		Task RemoveMemberFromBranchAsync(Guid branchId, Guid userId, CancellationToken ct = default);
 	}
 }

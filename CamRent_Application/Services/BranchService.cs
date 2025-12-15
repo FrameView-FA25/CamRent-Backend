@@ -1,5 +1,6 @@
 using AutoMapper;
 using CamRent_Application.DTOs;
+using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -127,6 +128,80 @@ namespace CamRent_Application.Services
 
 		public Task<List<BranchMembership>> GetUnassignedManagersAsync()
 			=> GetUsersByRoleWithoutBranchAsync(UserRole.BranchManager);
+
+		public async Task RemoveMemberFromBranchAsync(Guid branchId, Guid userId, CancellationToken ct = default)
+		{
+			// ====== RULES (theo checklist ảnh) ======
+			// 1) Booking active (PendingApproval/Confirmed/PickedUp/Returned/Overdue) -> không cho xoá
+			var activeBookingStatuses = new[]
+			{
+				BookingStatus.PendingApproval,
+				BookingStatus.Confirmed,
+				BookingStatus.PickedUp,
+				BookingStatus.Returned,
+				BookingStatus.Overdue
+			};
+
+			var activeBookings = await _unitOfWork.Repository<Booking>()
+				.ListAsync(b => b.StaffId == userId
+							 && b.BranchId == branchId
+							 && activeBookingStatuses.Contains(b.Status));
+			if (activeBookings.Any())
+				throw new AppException("Không thể xoá: staff đang xử lý booking active (Pending/Confirmed/PickedUp/Returned/Overdue). Vui lòng reassign booking trước.");
+
+			// 2) Contract đang quản lý (Draft/PendingSignatures) do staff tạo -> cần reassign trước khi xoá
+			var activeContractStatuses = new[] { ContractStatus.Draft, ContractStatus.PendingSignatures };
+			var activeContracts = await _unitOfWork.Repository<Contract>()
+				.ListAsync(c => c.BranchId == branchId
+							 && c.CreatedByUserId == userId
+							 && activeContractStatuses.Contains(c.Status));
+			if (activeContracts.Any())
+				throw new AppException("Không thể xoá: staff đang quản lý contract active (Draft/PendingSignatures). Vui lòng reassign contract trước.");
+
+			// 3) Verification đang được gán cho staff và còn Pending
+			var pendingVerifications = await _unitOfWork.Repository<VerificationRequest>()
+				.ListAsync(v => v.BranchId == branchId
+							 && v.StaffId == userId
+							 && v.Status == VerificationStatus.Pending);
+			if (pendingVerifications.Any())
+				throw new AppException("Không thể xoá: staff đang xử lý verification Pending. Vui lòng reassign/hoàn thành verification trước.");
+
+			// 4) Inspection đang thực hiện (Passed == null) do staff tạo
+			var pendingInspections = await _unitOfWork.Repository<Inspection>()
+				.ListAsync(i => i.BranchId == branchId
+							 && i.CreatedByUserId == userId
+							 && i.Passed == null);
+			if (pendingInspections.Any())
+				throw new AppException("Không thể xoá: staff đang thực hiện inspection (chưa có kết quả). Vui lòng hoàn thành inspection trước.");
+
+			// 5) Dispute đang xử lý: dispute open/under_review của booking trong chi nhánh mà staff phụ trách
+			// (model Dispute không có StaffId nên suy luận theo Booking.StaffId)
+			var disputeStatuses = new[] { "open", "under_review" };
+			var staffBookingIds = (await _unitOfWork.Repository<Booking>()
+					.ListAsync(b => b.BranchId == branchId && b.StaffId == userId))
+				.Select(b => b.Id)
+				.ToHashSet();
+
+			if (staffBookingIds.Count > 0)
+			{
+				var disputes = await _unitOfWork.Repository<Dispute>()
+					.ListAsync(d => staffBookingIds.Contains(d.BookingId)
+								 && disputeStatuses.Contains(d.Status));
+				if (disputes.Any())
+					throw new AppException("Không thể xoá: staff đang xử lý dispute (open/under_review). Vui lòng reassign/hoàn thành dispute trước.");
+			}
+
+			// ====== DELETE MEMBERSHIP ======
+			var membership = (await _unitOfWork.Repository<UserBranchMembership>()
+				.ListAsync(m => m.BranchId == branchId && m.UserId == userId))
+				.FirstOrDefault();
+
+			if (membership == null)
+				throw new AppException("Không tìm thấy thành viên trong chi nhánh này.");
+
+			await _unitOfWork.Repository<UserBranchMembership>().DeleteAsync(membership.Id);
+			await _unitOfWork.Complete();
+		}
 
 		private async Task<List<BranchMembership>> GetUsersByRoleWithoutBranchAsync(UserRole role)
 		{
