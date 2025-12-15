@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
+using CamRent_Application.Common;
 using static CamRent_Application.DTOs.AuthDTO;
 using static CamRent_Application.DTOs.BranchDTO;
 
@@ -82,6 +83,42 @@ namespace CamRent_Api.Controllers
 		{
 			var users = await _branchService.GetUnassignedManagersAsync();
 			return Ok(users);
+		}
+
+		[HttpDelete("{branchId:guid}/members/{userId:guid}")]
+		[Authorize(Policy = "BranchManager")] // BranchManager OR Admin
+		[SwaggerOperation(
+			Summary = "Xoá thành viên khỏi chi nhánh",
+			Description = "Xoá UserBranchMembership của user trong branch. Có kiểm tra điều kiện: booking/contract/verification/inspection/dispute trước khi xoá. Quyền: BranchManager, Admin")]
+		public async Task<IActionResult> RemoveMember(Guid branchId, Guid userId, CancellationToken ct)
+		{
+			var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+			var isAdmin = roles.Contains(UserRole.Admin.ToString());
+			var isManager = roles.Contains(UserRole.BranchManager.ToString());
+
+			// Nếu là BranchManager (không phải admin) thì chỉ được xoá trong chi nhánh mình quản lý
+			if (isManager && !isAdmin)
+			{
+				var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+								  ?? User.FindFirst("sub")?.Value
+								  ?? User.FindFirst("uid")?.Value;
+				if (string.IsNullOrEmpty(currentUserIdStr))
+					return Unauthorized();
+
+				var myBranchId = await _branchService.GetBranchIdByManagerIdAsync(Guid.Parse(currentUserIdStr));
+				if (myBranchId != branchId)
+					return Forbid();
+			}
+
+			try
+			{
+				await _branchService.RemoveMemberFromBranchAsync(branchId, userId, ct);
+				return NoContent();
+			}
+			catch (AppException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 		[HttpGet("{id:guid}")]
 		[SwaggerOperation(Summary = "Lấy chi nhánh theo id", Description = "Trả về thông tin chi nhánh theo id. Quyền: Người dùng đã đăng nhập")]
