@@ -1,5 +1,6 @@
 using CamRent_Application.IServices;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
@@ -92,6 +93,32 @@ namespace CamRent_Api.Controllers
 				return BadRequest("Cập nhật chữ ký thất bại.");
 			}
 			return Ok("Cập nhật chữ ký thành công");
+		}
+
+		public sealed class UpdateAvatarRequest
+		{
+			public IFormFile Avatar { get; set; } = default!;
+		}
+
+		[HttpPut("me/avatar")]
+		[Authorize] // mọi user đăng nhập
+		[Consumes("multipart/form-data")]
+		[SwaggerOperation(
+			Summary = "Cập nhật avatar của chính user",
+			Description = "Upload avatar mới (sẽ xóa avatar cũ nếu có) và cập nhật AvatarId của user hiện tại.")]
+		public async Task<IActionResult> UpdateMyAvatar([FromForm] UpdateAvatarRequest req, CancellationToken ct)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			if (req.Avatar == null || req.Avatar.Length == 0)
+				return BadRequest("Avatar file is required");
+
+			var (assetId, url) = await _userService.UpdateAvatarAsync(Guid.Parse(userId), req.Avatar, ct);
+			return Ok(new { assetId, url });
 		}
 	}
 }

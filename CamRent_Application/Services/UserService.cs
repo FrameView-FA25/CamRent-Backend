@@ -2,6 +2,7 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -190,6 +191,37 @@ namespace CamRent_Application.Services
 			}
 
 			return result;
+		}
+
+		public async Task<(Guid assetId, string url)> UpdateAvatarAsync(Guid userId, IFormFile avatarFile, CancellationToken ct = default)
+		{
+			if (avatarFile == null || avatarFile.Length <= 0)
+				throw new InvalidOperationException("Avatar file is required");
+
+			var userRepo = _unitOfWork.Repository<User>();
+			var user = (await userRepo.ListAsync(p => p.Id == userId, include: q => q.Include(u => u.Avatar))).FirstOrDefault()
+				?? throw new InvalidOperationException("User not found");
+
+			// xoá avatar cũ (nếu có)
+			if (user.AvatarId.HasValue)
+			{
+				await _fileStorage.DeleteByAssetIdAsync(user.AvatarId.Value);
+				user.AvatarId = null;
+			}
+
+			// upload avatar mới
+			var asset = await _fileStorage.UploadAsync(
+				avatarFile,
+				ownerId: userId,
+				ownerType: FileOwnerType.UserAvatar,
+				folder: "camrent/users/avatars",
+				label: "UserAvatar");
+
+			user.AvatarId = asset.Id;
+			await userRepo.UpdateAsync(user);
+			await _unitOfWork.Complete();
+
+			return (asset.Id, asset.Url);
 		}
 	}
 }
