@@ -42,11 +42,12 @@ namespace CamRent_Application.Services
 		}
 
 		// THANH TOÁN BẰNG VÍ (ĐÃ CAPTURE LUÔN) - DÙNG CHO 10% HOẶC 90%+CỌC TUỲ CÁCH GỌI
-		public async Task<Guid> CreateWalletPaymentAsync(
+		public async Task<Guid> CreatePaymentAsync(
 			Guid bookingId,
 			decimal rentalAmount,     // phần tiền thuê trong lần này (10% hoặc 90%)
 			decimal depositAmount,    // cọc thiết bị (nếu có, thường chỉ ở lần 2)
 			PaymentType mode,
+			PaymentMethod method,
 			decimal capturedAmount)
 		{
 			var payment = new Payment
@@ -54,7 +55,7 @@ namespace CamRent_Application.Services
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				Status = PaymentStatus.Captured,
-				Provider = "Wallet",
+				Provider = method.ToString(),
 				Purpose = "booking",
 				AuthorizedAmount = capturedAmount,
 				CapturedAmount = capturedAmount,
