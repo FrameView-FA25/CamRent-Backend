@@ -247,7 +247,7 @@ namespace CamRent_Api.Controllers
 
 		// Init PayOS payment link
 		[HttpPost("{id:guid}/payos")]
-		[Authorize(Policy = "Renter")]
+		[Authorize(Roles = "Renter,Staff")]
 		[SwaggerOperation(
 			Summary = "Tạo link thanh toán PayOS cho payment",
 			Description = "Sinh checkoutUrl PayOS cho paymentId, dùng số tiền và description truyền vào; trả về redirectUrl để FE mở trang thanh toán.")]
