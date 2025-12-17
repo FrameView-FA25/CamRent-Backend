@@ -80,12 +80,14 @@ namespace CamRent_Application.Services
 			if (booking.Branch.ManagerId == null || booking.Branch.Manager == null)
 				throw new AppException("Branch does not have a manager configured");
 
-			var hasPending = await contractRepo.AnyAsync(c =>
+			var hasPending = await contractRepo.FirstOrDefaultAsync(c =>
 				c.BookingId == bookingId &&
 				c.Status == ContractStatus.PendingSignatures);
 
-			if (hasPending)
-				throw new AppException("A pending contract already exists for this booking");
+			if (hasPending != null)
+			{
+				return hasPending;
+			}
 
 			var contract = new Contract
 			{
