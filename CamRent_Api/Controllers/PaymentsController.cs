@@ -43,7 +43,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPost("authorize")]
-		[Authorize(Policy = "Renter")]
+		[Authorize(Roles = "Renter,Staff")]
 		public async Task<ActionResult<Guid>> Authorize([FromBody] CreateAuthorizationRequest request)
 		{
 			// Tính số tiền phải thanh toán cho booking theo từng đợt:
@@ -103,14 +103,31 @@ namespace CamRent_Api.Controllers
 				if (!ok)
 					return BadRequest("Wallet balance not enough");
 
-				var paymentId = await _paymentService.CreateWalletPaymentAsync(
+				var paymentId = await _paymentService.CreatePaymentAsync(
 					booking.Id,
 					rentalAmount: rentalPart,
 					depositAmount: depositPart,
 					mode: request.Mode,
+					method: PaymentMethod.Wallet,
 					capturedAmount: totalThisTime
 				);
 				return Ok("Thanh toán bằng ví thành công");
+			}
+			else if (request.Method == PaymentMethod.Cash)
+			{
+				var paymentId = await _paymentService.CreatePaymentAsync(
+					booking.Id,
+					rentalAmount: rentalPart,
+					depositAmount: depositPart,
+					mode: request.Mode,
+					method: PaymentMethod.Cash,
+					capturedAmount: totalThisTime
+				);
+				if(paymentId == Guid.Empty)
+				{
+					return StatusCode(StatusCodes.Status400BadRequest, "Tạo payment thất bại.");
+				}
+				return Ok("Thanh toán bằng tiền mặt thành công");
 			}
 			else
 			{
@@ -122,7 +139,6 @@ namespace CamRent_Api.Controllers
 					mode: request.Mode,
 					authorizedAmountOverride: totalThisTime
 				);
-
 				return Ok(paymentId);
 			}
 		}
