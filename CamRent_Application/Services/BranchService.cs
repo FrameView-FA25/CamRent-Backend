@@ -135,7 +135,6 @@ namespace CamRent_Application.Services
 			// 1) Booking active (PendingApproval/Confirmed/PickedUp/Returned/Overdue) -> không cho xoá
 			var activeBookingStatuses = new[]
 			{
-				BookingStatus.PendingApproval,
 				BookingStatus.Confirmed,
 				BookingStatus.PickedUp,
 				BookingStatus.Returned,
