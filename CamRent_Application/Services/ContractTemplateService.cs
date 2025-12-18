@@ -42,7 +42,7 @@ namespace CamRent_Application.Services
 				col.Item().AlignCenter().Text("(Ký và ghi rõ họ tên)");
 
 				col.Item()
-					.MinHeight(120)         // chỗ trống để ký
+					.MinHeight(200)         // chỗ trống để ký
 					.Border(0.5f)
 					.Padding(5)
 					.AlignCenter()
