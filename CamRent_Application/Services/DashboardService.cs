@@ -572,7 +572,7 @@ namespace CamRent_Application.Services
 		/// <summary>
 		/// Tìm staff trong chi nhánh của BranchManager đang rảnh trong khoảng [start, end),
 		/// dựa trên booking (pickup/return) và verification đã được gán.
-		/// </summary>
+		/// </summary>;
 		public async Task<AvailableStaffSummaryDTO> GetAvailableStaffForManagerAsync(Guid managerUserId, DateTime start, DateTime end, string type = "both", CancellationToken ct = default)
 		{
 			if (start >= end)
@@ -625,8 +625,8 @@ namespace CamRent_Application.Services
 				// booking conflict: khoảng [PickupAt, ReturnAt) overlap với [start, end)
 				var conflictingBookings = checkBooking
 					? staffBookings.Count(b =>
-						b.PickupAt < end &&
-						b.ReturnAt > start &&
+						b.PickupAt <= end &&
+						b.ReturnAt >= start &&
 						b.Status != BookingStatus.Draft &&
 						b.Status != BookingStatus.Cancelled &&
 						b.Status != BookingStatus.Completed)

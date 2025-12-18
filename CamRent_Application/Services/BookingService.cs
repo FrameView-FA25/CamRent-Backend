@@ -46,14 +46,12 @@ namespace CamRent_Application.Services
 						.Include(b => b.Payments).ThenInclude(p => p.Lines)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);
-			if(result.Payments != null)
+			if (result.Payments != null)
 			{
-				foreach (var pay in result.Payments)
+				foreach (var pay in result.Payments.ToList())
 				{
-					if(pay.Status != PaymentStatus.Captured)
-					{
+					if (pay.Status != PaymentStatus.Captured)
 						result.Payments.Remove(pay);
-					}
 				}
 			}
 			if (result.Inspections != null)
