@@ -43,9 +43,19 @@ namespace CamRent_Application.Services
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
 						.Include(b => b.Inspections)
-						.Include(b => b.Payments)
+						.Include(b => b.Payments).ThenInclude(p => p.Lines)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);
+			if(result.Payments != null)
+			{
+				foreach (var pay in result.Payments)
+				{
+					if(pay.Status != PaymentStatus.Captured)
+					{
+						result.Payments.Remove(pay);
+					}
+				}
+			}
 			if (result.Inspections != null)
 			{
 				foreach (var insp in result.Inspections)
@@ -116,7 +126,7 @@ namespace CamRent_Application.Services
 
 		public async Task<List<BookingResponseDTO>> GetBookingsByStaffIdAsync(Guid staffId)
 		{
-			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.Draft && b.Status != BookingStatus.PendingApproval,
+			var bookings = (await _unitOfWork.Repository<Booking>().ListAsync(filter: b => b.StaffId == staffId && b.Status != BookingStatus.Draft,
 				include: b => b.Include(b => b.Items)
 							.ThenInclude(i => i.Camera)
 						.Include(b => b.Items)
