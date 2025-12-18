@@ -3,6 +3,7 @@ using System;
 using CamRent_Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    partial class CamRentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251218160050_AddCancelTimeToMoneyFlatformSettings")]
+    partial class AddCancelTimeToMoneyFlatformSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -875,66 +878,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("handover_receipts");
-                });
-
-            modelBuilder.Entity("CamRent_Domain.Entities.HomePageBlock", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<Guid?>("ImageAssetId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("image_asset_id");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("key");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer")
-                        .HasColumnName("sort_order");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("title");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ImageAssetId");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("home_page_blocks");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.HomePageCarouselItem", b =>
@@ -2196,16 +2139,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Staff");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CamRent_Domain.Entities.HomePageBlock", b =>
-                {
-                    b.HasOne("CamRent_Domain.Entities.FileAsset", "ImageAsset")
-                        .WithMany()
-                        .HasForeignKey("ImageAssetId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("ImageAsset");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.HomePageCarouselItem", b =>

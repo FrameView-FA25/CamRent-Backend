@@ -48,6 +48,7 @@ namespace CamRent_Infrastructure.Persistence
 		public DbSet<WorkSlotDefinition> WorkSlotDefinitions => Set<WorkSlotDefinition>();
 		public DbSet<Review> Reviews => Set<Review>();
 		public DbSet<HomePageCarouselItem> HomePageCarouselItems => Set<HomePageCarouselItem>();
+		public DbSet<HomePageBlock> HomePageBlocks => Set<HomePageBlock>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -290,6 +291,16 @@ namespace CamRent_Infrastructure.Persistence
 				.WithMany()
 				.HasForeignKey(x => x.ImageAssetId)
 				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<HomePageBlock>()
+				.HasOne(x => x.ImageAsset)
+				.WithMany()
+				.HasForeignKey(x => x.ImageAssetId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<HomePageBlock>()
+				.HasIndex(x => x.Key)
+				.IsUnique();
 
             modelBuilder.Entity<HandoverReceipt>()
                          .HasOne(hr => hr.Contract)

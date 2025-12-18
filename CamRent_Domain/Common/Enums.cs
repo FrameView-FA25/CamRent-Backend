@@ -27,7 +27,8 @@ namespace CamRent_Domain.Common
         ContractDocument = 6,
 		ContractSignature = 7,
 		UserSignature = 8,
-		HomePageCarousel = 9
+		HomePageCarousel = 9,
+		HomePageBlock = 10
 	}
     public enum DeviceCategory
     {

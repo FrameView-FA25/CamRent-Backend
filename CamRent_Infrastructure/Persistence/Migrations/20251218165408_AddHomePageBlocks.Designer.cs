@@ -3,6 +3,7 @@ using System;
 using CamRent_Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    partial class CamRentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251218165408_AddHomePageBlocks")]
+    partial class AddHomePageBlocks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -930,9 +933,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ImageAssetId");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
 
                     b.ToTable("home_page_blocks");
                 });
