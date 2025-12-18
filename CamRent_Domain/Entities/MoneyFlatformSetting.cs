@@ -27,6 +27,9 @@ namespace CamRent_Domain.Entities
 		// 5️⃣ Downtime fee:
 		public decimal DowntimeFactor { get; set; }      // ví dụ 0.5 × giá/ngày
 
+		// Thời gian được hủy booking
+		public TimeSpan CancelTime { get; set; } = TimeSpan.Zero;
+
 		// Chỉ có 1 record duy nhất trong bảng
 		public bool IsActive { get; set; } = true;
 	}
