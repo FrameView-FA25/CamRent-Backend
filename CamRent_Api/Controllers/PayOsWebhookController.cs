@@ -33,7 +33,7 @@ namespace CamRent_Api.Controllers
 
 			// Nếu verify fail hoặc payment không tồn tại, vẫn trả 200 cho PayOS nhưng không làm gì
 			if (result == null)
-				return Ok();
+				return BadRequest("Đơn hàng không tồn tại");
 
 			// TOPUP VÍ: Payment không gắn Booking, có UserId, Purpose = wallet_topup
 			if (result.Success

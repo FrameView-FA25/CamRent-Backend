@@ -142,7 +142,7 @@ public sealed class PayOsService : IPayOsService
 			{
 				var bookingRepo = _uow.Repository<Booking>();
 				var booking = await bookingRepo.GetByIdAsync(payment.BookingId.Value);
-				if (booking != null && booking.Status == BookingStatus.PendingApproval)
+				if (booking != null)
 				{
 					booking.Status = BookingStatus.Confirmed;
 					await bookingRepo.UpdateAsync(booking);

@@ -104,14 +104,18 @@ namespace CamRent_Application.Services
 		{
 			// Số tiền thu lần này = phần thuê + cọc thiết bị (nếu có)
 			decimal authorizedAmount = authorizedAmountOverride ?? (rentalAmount + depositAmount);
-
+			string purpose = "booking";
+			if(depositAmount == 0)
+			{
+				purpose = "reserve";
+			}
 			var payment = new Payment
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				Status = PaymentStatus.Authorized,
 				Provider = "PayOS",
-				Purpose = "booking",
+				Purpose = purpose,
 				AuthorizedAmount = authorizedAmount,
 				CapturedAmount = 0,
 				RefundedAmount = 0,
@@ -119,8 +123,6 @@ namespace CamRent_Application.Services
 			};
 
 			await _unitOfWork.Repository<Payment>().AddAsync(payment);
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
-			booking.Status = BookingStatus.PendingApproval;
 			// ---------- LINE CHI TIẾT ----------
 			if (rentalAmount > 0)
 			{
