@@ -268,35 +268,33 @@ namespace CamRent_Api.Controllers
 			var ranges = await _bookingService.GetUnavailableRangesForItemAsync(itemId, type, HttpContext.RequestAborted);
 			return Ok(ranges);
 		}
+
 		[HttpPut("{id:guid}/update-status")]
 		[Authorize(Roles = "Staff,Renter,BranchManager")]
-		public async Task<IActionResult> UpdateBookingStatus(Guid id, BookingStatus status)
+		public async Task<IActionResult> UpdateBookingStatus(Guid id, [FromQuery] BookingStatus status)
 		{
 			var result = await _bookingService.UpdateBookingStatusAsync(id, status);
-			if (result > 0)
-			{
-				// Bắn signalr cho renter, staff, manager, owner liên quan biết booking đổi trạng thái
-				var booking = await _bookingService.GetByIdAsync(id);
-				if (booking != null)
-				{
-					var renterId = booking.RenterId?.ToString();
-					if (!string.IsNullOrEmpty(renterId))
-					{
-						await _hub.Clients.User(renterId)
-							.SendAsync("BookingUpdated", new { booking.Id, booking.Status, booking.StatusText });
-					}
+			if (result <= 0) return BadRequest();
 
-					// Broadcast theo role để dashboard Staff/Manager/Admin có thể reload
-					await _hub.Clients.Group("role:Staff")
-						.SendAsync("BookingUpdatedForStaff", new { booking.Id, booking.Status, booking.StatusText });
-					await _hub.Clients.Group("role:BranchManager")
-						.SendAsync("BookingUpdatedForManager", new { booking.Id, booking.Status, booking.StatusText });
-					await _hub.Clients.Group("role:Admin")
-						.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
+			var booking = await _bookingService.GetByIdAsync(id);
+			if (booking != null)
+			{
+				var renterId = booking.RenterId?.ToString();
+				if (!string.IsNullOrEmpty(renterId))
+				{
+					await _hub.Clients.User(renterId)
+						.SendAsync("BookingUpdated", new { booking.Id, booking.Status, booking.StatusText });
 				}
-				return Ok("Cập nhật trạng thái " + booking.Status.GetDisplayName());
+
+				await _hub.Clients.Group("role:Staff")
+					.SendAsync("BookingUpdatedForStaff", new { booking.Id, booking.Status, booking.StatusText });
+				await _hub.Clients.Group("role:BranchManager")
+					.SendAsync("BookingUpdatedForManager", new { booking.Id, booking.Status, booking.StatusText });
+				await _hub.Clients.Group("role:Admin")
+					.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
 			}
-			return BadRequest();
+
+			return Ok(new { message = "Cập nhật trạng thái " + status.GetDisplayName() });
 		}
 	}
 }

@@ -796,201 +796,304 @@ namespace CamRent_Application.Services
 				}
 			}
 		}
-
-		// Added: update booking status implementation
-		public async Task<int> UpdateBookingStatusAsync(Guid bookingId, BookingStatus status)
+		private async Task SettleBooking(Booking booking)
 		{
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
-			if (booking == null)
-				return 0;
-			booking.Status = status;
-			// Nếu booking hoàn tất -> chia tiền thuê cho owner + commission cho branch manager/admin
-			if (status == BookingStatus.Completed && !booking.IsSettled)
+			// ============ 1. Chuẩn bị dữ liệu ============
+
+			if (!booking.RenterId.HasValue)
+				throw new InvalidOperationException("Booking missing renter.");
+
+			// Số ngày thuê (ít nhất 1 ngày)
+			var rentalDays = (booking.ReturnAt.Date - booking.PickupAt.Date).TotalDays;
+			if (rentalDays < 1) rentalDays = 1;
+
+			// Đảm bảo Items có dữ liệu; nếu không, load từ DB
+			var items = booking.Items;
+			if (items == null || !items.Any())
 			{
-				// ============ 1. Chuẩn bị dữ liệu ============
-
-				if (!booking.RenterId.HasValue)
-					throw new InvalidOperationException("Booking missing renter.");
-
-				// Số ngày thuê (ít nhất 1 ngày)
-				var rentalDays = (booking.ReturnAt.Date - booking.PickupAt.Date).TotalDays;
-				if (rentalDays < 1) rentalDays = 1;
-
-				// Đảm bảo Items có dữ liệu; nếu không, load từ DB
-				var items = booking.Items;
-				if (items == null || !items.Any())
-				{
-					items = (await _unitOfWork.Repository<BookingItem>().ListAsync(i => i.BookingId == booking.Id)).ToList();
-				}
-
-				// ============ 2. Tính rental cho từng item + group theo Owner ============
-
-				// Mỗi phần tử: (ownerId, itemRental)
-				var ownerItemRentals = new List<(Guid ownerId, decimal itemRental)>();
-
-				foreach (var item in items)
-				{
-					Guid? ownerId = null;
-
-					if (item.Camera != null)
-					{
-						ownerId = item.Camera.OwnerUserId;
-					}
-					else if (item.Accessory != null)
-					{
-						ownerId = item.Accessory.OwnerUserId;
-					}
-					else
-					{
-						// Nếu navigation chưa load, thử lấy từ DB
-						if (item.CameraId.HasValue)
-						{
-							var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(item.CameraId.Value);
-							ownerId = cam?.OwnerUserId;
-						}
-						else if (item.AccessoryId.HasValue)
-						{
-							var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(item.AccessoryId.Value);
-							ownerId = acc?.OwnerUserId;
-						}
-					}
-
-					if (!ownerId.HasValue)
-						continue; // Item không xác định được owner -> bỏ qua hoặc log
-
-					var itemRental = item.UnitPrice * (decimal)rentalDays;
-					if (itemRental <= 0)
-						continue;
-
-					ownerItemRentals.Add((ownerId.Value, itemRental));
-				}
-
-				if (!ownerItemRentals.Any())
-					throw new InvalidOperationException("Cannot determine owner rentals for booking items.");
-
-				var itemsTotalRental = ownerItemRentals.Sum(x => x.itemRental);
-				if (itemsTotalRental <= 0)
-					throw new InvalidOperationException("Total item rental is zero.");
-
-				// ============ 3. Chia tiền thuê (SnapshotRentalTotal) theo owner ============
-
-				var rentalTotal = booking.SnapshotRentalTotal;               // A = tổng tiền thuê của booking
-				var feePercent = booking.SnapshotPlatformFeePercent;         // p = % hoa hồng
-
-				var platformFeeTotal = decimal.Round(rentalTotal * feePercent, 0);
-				if (platformFeeTotal < 0) platformFeeTotal = 0;
-
-				// Group theo owner
-				var groups = ownerItemRentals
-					.GroupBy(x => x.ownerId)
-					.ToList();
-
-				// Tính payout cho từng owner
-				var ownerPayouts = new Dictionary<Guid, decimal>();
-
-				foreach (var g in groups)
-				{
-					var ownerId = g.Key;
-					var ownerGroupRental = g.Sum(x => x.itemRental);
-
-					// Tỷ lệ rental của owner này trên tổng rental items
-					var ratio = ownerGroupRental / itemsTotalRental;
-
-					// Doanh thu (gross) của owner từ booking này
-					var ownerGrossShare = rentalTotal * ratio;
-
-					// Payout net sau khi trừ fee nền tảng
-					var ownerNetPayout = ownerGrossShare * (1 - feePercent);
-					if (ownerNetPayout <= 0) continue;
-
-					if (ownerPayouts.ContainsKey(ownerId))
-						ownerPayouts[ownerId] += ownerNetPayout;
-					else
-						ownerPayouts[ownerId] = ownerNetPayout;
-				}
-
-				// Credit ví cho từng owner
-				foreach (var kv in ownerPayouts)
-				{
-					var ownerId = kv.Key;
-					var amount = decimal.Round(kv.Value, 0); // làm tròn VND
-
-					if (amount <= 0) continue;
-
-					var txReq = new WalletTransactionRequest
-					{
-						Amount = amount,
-						Type = "booking_payout",
-						PaymentId = null,
-						BookingId = booking.Id,
-						Description = $"Payout tiền thuê booking {booking.BookingCode ?? booking.Id.ToString()}"
-					};
-
-					await _walletService.CreditAsync(ownerId, txReq);
-				}
-
-				// ============ 4. Hoa hồng branch manager / admin ============
-
-				// Mặc định trả hoa hồng = tổng fee nền tảng
-				if (platformFeeTotal > 0)
-				{
-					Guid? commissionReceiverId = null;
-
-					// 1) Ưu tiên Manager của Branch (nếu đã include)
-					if (booking.Branch != null && booking.Branch.ManagerId.HasValue)
-					{
-						commissionReceiverId = booking.Branch.ManagerId.Value;
-					}
-					// 2) Nếu Branch chưa include nhưng có BranchId -> load từ DB
-					else if (booking.BranchId.HasValue)
-					{
-						var branch = await _unitOfWork.Repository<Branch>().GetByIdAsync(booking.BranchId.Value);
-						if (branch != null && branch.ManagerId.HasValue)
-						{
-							commissionReceiverId = branch.ManagerId.Value;
-						}
-					}
-
-					// 3) Nếu vẫn chưa có -> tìm 1 user Admin
-					if (!commissionReceiverId.HasValue)
-					{
-						var users = await _unitOfWork.Repository<User>()
-							.ListAsync(include: u => u.Include(u => u.Roles));
-
-						var adminUser = users.FirstOrDefault(u => u.Roles.Any(r => r.Role == UserRole.Admin));
-						if (adminUser != null)
-						{
-							commissionReceiverId = adminUser.Id;
-						}
-					}
-
-					// 4) Nếu vẫn không tìm ra ai thì thôi, không ghi commission (hoặc bạn có thể throw exception tuỳ business)
-					if (!commissionReceiverId.HasValue)
-					{
-						// Option A: bỏ qua hoa hồng
-						// return await _unitOfWork.Complete();
-
-						// Option B: ném lỗi để biết là cấu hình sai
-						throw new InvalidOperationException("Cannot determine commission receiver (no branch manager or admin).");
-					}
-
-					var commissionReq = new WalletTransactionRequest
-					{
-						Amount = platformFeeTotal,
-						Type = "booking_commission",
-						PaymentId = null,
-						BookingId = booking.Id,
-						Description = $"Hoa hồng booking {booking.BookingCode ?? booking.Id.ToString()}"
-					};
-
-					await _walletService.CreditAsync(commissionReceiverId.Value, commissionReq);
-				}
-
-				// Đánh dấu đã settle để không chạy lại lần nữa
-				booking.IsSettled = true;
-				booking.SettledAt = DateTime.UtcNow;
+				items = (await _unitOfWork.Repository<BookingItem>().ListAsync(i => i.BookingId == booking.Id)).ToList();
 			}
-			await _unitOfWork.Repository<Booking>().UpdateAsync(booking);
+
+			// ============ 2. Tính rental cho từng item + group theo Owner ============
+
+			// Mỗi phần tử: (ownerId, itemRental)
+			var ownerItemRentals = new List<(Guid ownerId, decimal itemRental)>();
+
+			foreach (var item in items)
+			{
+				Guid? ownerId = null;
+
+				if (item.Camera != null)
+				{
+					ownerId = item.Camera.OwnerUserId;
+				}
+				else if (item.Accessory != null)
+				{
+					ownerId = item.Accessory.OwnerUserId;
+				}
+				else
+				{
+					// Nếu navigation chưa load, thử lấy từ DB
+					if (item.CameraId.HasValue)
+					{
+						var cam = await _unitOfWork.Repository<Camera>().GetByIdAsync(item.CameraId.Value);
+						ownerId = cam?.OwnerUserId;
+					}
+					else if (item.AccessoryId.HasValue)
+					{
+						var acc = await _unitOfWork.Repository<Accessory>().GetByIdAsync(item.AccessoryId.Value);
+						ownerId = acc?.OwnerUserId;
+					}
+				}
+
+				if (!ownerId.HasValue)
+					continue; // Item không xác định được owner -> bỏ qua hoặc log
+
+				var itemRental = item.UnitPrice * (decimal)rentalDays;
+				if (itemRental <= 0)
+					continue;
+
+				ownerItemRentals.Add((ownerId.Value, itemRental));
+			}
+
+			if (!ownerItemRentals.Any())
+				throw new InvalidOperationException("Cannot determine owner rentals for booking items.");
+
+			var itemsTotalRental = ownerItemRentals.Sum(x => x.itemRental);
+			if (itemsTotalRental <= 0)
+				throw new InvalidOperationException("Total item rental is zero.");
+
+			// ============ 3. Chia tiền thuê (SnapshotRentalTotal) theo owner ============
+
+			var rentalTotal = booking.SnapshotRentalTotal;               // A = tổng tiền thuê của booking
+			var feePercent = booking.SnapshotPlatformFeePercent;         // p = % hoa hồng
+
+			var platformFeeTotal = decimal.Round(rentalTotal * feePercent, 0);
+			if (platformFeeTotal < 0) platformFeeTotal = 0;
+
+			// Group theo owner
+			var groups = ownerItemRentals
+				.GroupBy(x => x.ownerId)
+				.ToList();
+
+			// Tính payout cho từng owner
+			var ownerPayouts = new Dictionary<Guid, decimal>();
+
+			foreach (var g in groups)
+			{
+				var ownerId = g.Key;
+				var ownerGroupRental = g.Sum(x => x.itemRental);
+
+				// Tỷ lệ rental của owner này trên tổng rental items
+				var ratio = ownerGroupRental / itemsTotalRental;
+
+				// Doanh thu (gross) của owner từ booking này
+				var ownerGrossShare = rentalTotal * ratio;
+
+				// Payout net sau khi trừ fee nền tảng
+				var ownerNetPayout = ownerGrossShare * (1 - feePercent);
+				if (ownerNetPayout <= 0) continue;
+
+				if (ownerPayouts.ContainsKey(ownerId))
+					ownerPayouts[ownerId] += ownerNetPayout;
+				else
+					ownerPayouts[ownerId] = ownerNetPayout;
+			}
+
+			// Credit ví cho từng owner
+			foreach (var kv in ownerPayouts)
+			{
+				var ownerId = kv.Key;
+				var amount = decimal.Round(kv.Value, 0); // làm tròn VND
+
+				if (amount <= 0) continue;
+
+				var txReq = new WalletTransactionRequest
+				{
+					Amount = amount,
+					Type = "booking_payout",
+					PaymentId = null,
+					BookingId = booking.Id,
+					Description = $"Payout tiền thuê booking {booking.BookingCode ?? booking.Id.ToString()}"
+				};
+
+				await _walletService.CreditAsync(ownerId, txReq);
+			}
+
+			// ============ 4. Hoa hồng branch manager / admin ============
+
+			// Mặc định trả hoa hồng = tổng fee nền tảng
+			if (platformFeeTotal > 0)
+			{
+				Guid? commissionReceiverId = null;
+
+				// 1) Ưu tiên Manager của Branch (nếu đã include)
+				if (booking.Branch != null && booking.Branch.ManagerId.HasValue)
+				{
+					commissionReceiverId = booking.Branch.ManagerId.Value;
+				}
+				// 2) Nếu Branch chưa include nhưng có BranchId -> load từ DB
+				else if (booking.BranchId.HasValue)
+				{
+					var branch = await _unitOfWork.Repository<Branch>().GetByIdAsync(booking.BranchId.Value);
+					if (branch != null && branch.ManagerId.HasValue)
+					{
+						commissionReceiverId = branch.ManagerId.Value;
+					}
+				}
+
+				// 3) Nếu vẫn chưa có -> tìm 1 user Admin
+				if (!commissionReceiverId.HasValue)
+				{
+					var users = await _unitOfWork.Repository<User>()
+						.ListAsync(include: u => u.Include(u => u.Roles));
+
+					var adminUser = users.FirstOrDefault(u => u.Roles.Any(r => r.Role == UserRole.Admin));
+					if (adminUser != null)
+					{
+						commissionReceiverId = adminUser.Id;
+					}
+				}
+
+				// 4) Nếu vẫn không tìm ra ai thì thôi, không ghi commission (hoặc bạn có thể throw exception tuỳ business)
+				if (!commissionReceiverId.HasValue)
+				{
+					// Option A: bỏ qua hoa hồng
+					// return await _unitOfWork.Complete();
+
+					// Option B: ném lỗi để biết là cấu hình sai
+					throw new InvalidOperationException("Cannot determine commission receiver (no branch manager or admin).");
+				}
+
+				var commissionReq = new WalletTransactionRequest
+				{
+					Amount = platformFeeTotal,
+					Type = "booking_commission",
+					PaymentId = null,
+					BookingId = booking.Id,
+					Description = $"Hoa hồng booking {booking.BookingCode ?? booking.Id.ToString()}"
+				};
+
+				await _walletService.CreditAsync(commissionReceiverId.Value, commissionReq);
+			}
+
+			// Đánh dấu đã settle để không chạy lại lần nữa
+			booking.IsSettled = true;
+			booking.SettledAt = DateTime.UtcNow;
+		}
+		// Added: update booking status implementation
+		private async Task OnCancelled(Booking booking)
+		{
+			var setting = await _unitOfWork.Repository<MoneyFlatformSetting>()
+				.FirstOrDefaultAsync(m => m.IsActive);
+
+			var cancelTime = setting?.CancelTime ?? TimeSpan.Zero;
+
+			// booking.PickupAt nên là UTC (nếu đang local thì ToUniversalTime)
+			var nowUtc = DateTime.UtcNow;
+			var pickupUtc = booking.PickupAt.Kind == DateTimeKind.Utc
+				? booking.PickupAt
+				: booking.PickupAt.ToUniversalTime();
+
+			var latestCancelUtc = pickupUtc - cancelTime;
+
+			if (nowUtc > latestCancelUtc)
+				throw new InvalidOperationException($"Chỉ được hủy trước {cancelTime.TotalHours:0} giờ so với thời điểm nhận hàng.");
+
+			// Lấy tất cả payment đã captured của booking
+			var payments = await _unitOfWork.Repository<Payment>()
+				.ListAsync(p => p.BookingId == booking.Id && p.Status == PaymentStatus.Captured);
+
+			var refundAmount = payments.Sum(p => p.CapturedAmount);
+			if (refundAmount <= 0) return;
+
+			// Credit ví renter
+			if (!booking.RenterId.HasValue)
+				throw new InvalidOperationException("Booking missing renter.");
+
+			await _walletService.CreditAsync(booking.RenterId.Value, new WalletTransactionRequest
+			{
+				Amount = refundAmount,
+				Type = "booking_refund",
+				BookingId = booking.Id,
+				PaymentId = null,
+				Description = $"Hoàn tiền {booking.BookingCode ?? booking.Id.ToString()}"
+			});
+
+			// Update payment status để audit (tuỳ enum bạn có)
+			foreach (var p in payments.ToList())
+			{
+				p.Status = PaymentStatus.Refunded;          // nếu có
+				p.RefundedAmount = p.CapturedAmount;       // nếu có
+				await _unitOfWork.Repository<Payment>().UpdateAsync(p);
+			}
+		}
+		private async Task OnCompleted(Booking booking)
+		{
+			if (!booking.IsSettled)
+				await SettleBooking(booking);
+		}
+		private static void ValidateTransition(BookingStatus from, BookingStatus to)
+		{
+			// Draft -> Confirmed/Cancelled
+			// Confirmed -> PickedUp/Cancelled
+			// PickedUp -> Returned/Overdue
+			// Returned -> Completed
+			// Completed: terminal
+			// Cancelled: terminal
+
+			var ok = (from, to) switch
+			{
+				(BookingStatus.Draft, BookingStatus.Confirmed) => true,
+				(BookingStatus.Draft, BookingStatus.Cancelled) => true,
+
+				(BookingStatus.Confirmed, BookingStatus.PickedUp) => true,
+				(BookingStatus.Confirmed, BookingStatus.Cancelled) => true,
+
+				(BookingStatus.PickedUp, BookingStatus.Returned) => true,
+				(BookingStatus.PickedUp, BookingStatus.Overdue) => true,
+
+				(BookingStatus.Returned, BookingStatus.Completed) => true,
+
+				// cho phép set Overdue -> Returned (nếu trả muộn)
+				(BookingStatus.Overdue, BookingStatus.Returned) => true,
+
+				_ => false
+			};
+
+			if (!ok)
+				throw new InvalidOperationException($"Invalid status transition: {from} -> {to}");
+		}
+		public async Task<int> UpdateBookingStatusAsync(Guid bookingId, BookingStatus newStatus)
+		{
+			var bookingRepo = _unitOfWork.Repository<Booking>();
+
+			// ✅ Nên load đủ data cần cho các handler (Items/Branch/Payments...)
+			var booking = await bookingRepo.FirstOrDefaultAsync(b => b.Id == bookingId);
+			if (booking == null) return 0;
+
+			var oldStatus = booking.Status;
+
+			// (optional) validate chuyển trạng thái hợp lệ
+			ValidateTransition(oldStatus, newStatus);
+
+			// Apply status
+			booking.Status = newStatus;
+
+			// Dispatch theo status
+			switch (newStatus)
+			{
+
+				case BookingStatus.Completed:
+					await OnCompleted(booking); // settle booking
+					break;
+
+				case BookingStatus.Cancelled:
+					await OnCancelled(booking); // refund về ví theo CancelTime
+					break;
+
+			}
+			await bookingRepo.UpdateAsync(booking);
 			return await _unitOfWork.Complete();
 		}
 
