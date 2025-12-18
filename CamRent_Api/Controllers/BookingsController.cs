@@ -269,7 +269,7 @@ namespace CamRent_Api.Controllers
 			return Ok(ranges);
 		}
 		[HttpPut("{id:guid}/update-status")]
-		[Authorize(Policy = "ManagerOrStaff")]
+		[Authorize(Roles = "Staff,Renter,BranchManager")]
 		public async Task<IActionResult> UpdateBookingStatus(Guid id, BookingStatus status)
 		{
 			var result = await _bookingService.UpdateBookingStatusAsync(id, status);
@@ -294,7 +294,7 @@ namespace CamRent_Api.Controllers
 					await _hub.Clients.Group("role:Admin")
 						.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
 				}
-				return NoContent();
+				return Ok("Cập nhật trạng thái" + booking.Status.ToString());
 			}
 			return BadRequest();
 		}

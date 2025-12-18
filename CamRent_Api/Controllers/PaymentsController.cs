@@ -195,56 +195,6 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
-		[HttpPost("{id:guid}/refund")]
-		[Authorize(Policy = "BranchManager")]
-		[SwaggerOperation(
-			Summary = "Refund một phần/toàn bộ payment",
-			Description = "Thực hiện hoàn tiền thủ công cho renter, cập nhật số tiền đã refund trong payment và cộng tiền về ví của renter.")]
-		public async Task<IActionResult> Refund(Guid id, [FromBody] RefundRequest request)
-		{
-			// Cập nhật số tiền đã refund trong Payment,
-			// đồng thời cộng số tiền đó vào ví của renter và phát sự kiện realtime cho FE.
-			await _paymentService.RefundAsync(id, request.Amount);
-			var payment = await _paymentService.GetByIdAsync(id);
-			if (payment != null)
-			{
-				var booking = await _bookingService.GetByIdAsync(payment.BookingId);
-				var renterId = booking?.RenterId?.ToString();
-				if (!string.IsNullOrEmpty(renterId))
-				{
-					// Refund về ví của renter
-					var walletRefundReq = new WalletTransactionRequest
-					{
-						Amount = request.Amount,
-						Type = "refund",
-						PaymentId = payment.Id,
-						BookingId = payment.BookingId,
-						Description = $"Hoàn tiền về ví cho payment {payment.Id}"
-					};
-
-					await _walletService.CreditAsync(Guid.Parse(renterId), walletRefundReq);
-
-					await _hub.Clients.User(renterId)
-						.SendAsync("PaymentUpdated", new
-						{
-							payment.Id,
-							Status = payment.Status.ToString(),
-							payment.CapturedAmount,
-							payment.RefundedAmount
-						});
-				}
-
-				await _hub.Clients.Group("role:Staff")
-					.SendAsync("PaymentUpdatedForStaff", new { payment.Id, Status = payment.Status.ToString() });
-				await _hub.Clients.Group("role:BranchManager")
-					.SendAsync("PaymentUpdatedForManager", new { payment.Id, Status = payment.Status.ToString() });
-				await _hub.Clients.Group("role:Admin")
-					.SendAsync("PaymentUpdatedForAdmin", new { payment.Id, Status = payment.Status.ToString() });
-			}
-
-			return NoContent();
-		}
-
 		// Init PayOS payment link
 		[HttpPost("{id:guid}/payos")]
 		[Authorize(Roles = "Renter,Staff")]
@@ -302,34 +252,6 @@ namespace CamRent_Api.Controllers
 			};
 
 			return Ok(response);
-		}
-
-		// Test-only: confirm capture after manual transfer verification
-		[HttpPost("{id:guid}/confirm-test")]
-		[Authorize(Policy = "BranchManager")]
-		[SwaggerOperation(
-			Summary = "[Test] Xác nhận payment đã receive tiền",
-			Description = "Endpoint test/manual cho phép capture payment mà không cần đi qua PayOS.")]
-		public async Task<IActionResult> ConfirmTest(Guid id, [FromBody] CaptureRequest request)
-		{
-			await _paymentService.CaptureAsync(id, request.Amount);
-			return NoContent();
-		}
-
-		// Áp dụng tổng dispute vào payment như một line "dispute"
-		[HttpPost("{id:guid}/apply-dispute/{disputeId:guid}")]
-		[Authorize(Policy = "BranchManager")]
-		[SwaggerOperation(
-			Summary = "Cộng tổng dispute vào payment",
-			Description = "Tính tổng tiền tranh chấp của disputeId và thêm thành 1 payment line 'dispute' vào paymentId tương ứng.")]
-		public async Task<IActionResult> ApplyDispute(Guid id, Guid disputeId, [FromServices] IUnitOfWork unitOfWork)
-		{
-			var dispute = await unitOfWork.Repository<Dispute>().GetByIdAsync(disputeId);
-			if (dispute == null) return NotFound();
-			var items = await unitOfWork.Repository<DisputeItem>().ListAsync(di => di.DisputeId == disputeId);
-			var total = items.Sum(i => i.Amount);
-			await _paymentService.AddLineAsync(id, "dispute", total);
-			return NoContent();
 		}
 	}
 }
