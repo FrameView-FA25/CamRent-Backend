@@ -765,6 +765,7 @@ namespace CamRent_Application.Services
 				)
 				&& bi.Booking != null
 				&& bi.Booking.Status != BookingStatus.Cancelled
+				&& bi.Booking.Status != BookingStatus.Draft
 				&& bi.Booking.Status != BookingStatus.Completed
 				&& bi.Booking.PickupAt < end
 				&& bi.Booking.ReturnAt > start;
