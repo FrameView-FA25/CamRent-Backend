@@ -67,6 +67,22 @@ namespace CamRent_Application.DTOs
 		public int TotalBookings { get; set; }
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
 		public decimal TotalCapturedRevenue { get; set; }
+		/// <summary>
+		/// Doanh thu gộp ước tính của chi nhánh (dựa trên BookingItem.UnitPrice * số ngày).
+		/// </summary>
+		public decimal TotalGrossRevenue { get; set; }
+		/// <summary>
+		/// Top thiết bị được thuê nhiều nhất trong chi nhánh.
+		/// </summary>
+		public List<OwnerAssetStat> TopRentedAssets { get; set; } = new();
+		/// <summary>
+		/// Biểu đồ theo ngày (30 ngày gần nhất) dựa trên PickupAt.
+		/// </summary>
+		public List<DashboardTimePoint> DailyStats { get; set; } = new();
+		/// <summary>
+		/// Biểu đồ theo tháng (12 tháng gần nhất) dựa trên PickupAt.
+		/// </summary>
+		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 		public int OpenDisputes { get; set; }
 	}
 
