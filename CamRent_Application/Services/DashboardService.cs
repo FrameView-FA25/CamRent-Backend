@@ -26,6 +26,29 @@ namespace CamRent_Application.Services
 			_uow = uow;
 		}
 
+		private async Task<List<User>> GetStaffUsersInBranchAsync(Guid branchId, CancellationToken ct = default)
+		{
+			// Staff trong chi nhánh = user có membership vào branch + có role Staff
+			var memberships = await _uow.Repository<UserBranchMembership>()
+				.ListAsync(m => m.BranchId == branchId);
+
+			var memberUserIds = memberships
+				.Select(m => m.UserId)
+				.Distinct()
+				.ToList();
+
+			if (!memberUserIds.Any())
+				return new List<User>();
+
+			var users = await _uow.Repository<User>().ListAsync(
+				filter: u => memberUserIds.Contains(u.Id),
+				include: q => q.Include(u => u.Roles));
+
+			return users
+				.Where(u => u.Roles.Any(r => r.Role == UserRole.Staff))
+				.ToList();
+		}
+
 		/// <summary>
 		/// Dashboard tổng quan cho Admin toàn hệ thống:
 		/// - Thống kê số lượng user theo từng role
@@ -194,6 +217,147 @@ namespace CamRent_Application.Services
 			var disputes = await _uow.Repository<Dispute>().ListAsync(d => bookingIds.Contains(d.BookingId));
 			var openDisputes = disputes.Count(d => d.Status == "open" || d.Status == "under_review");
 
+			// ====== BIỂU ĐỒ + TOP THIẾT BỊ (giống Owner) ======
+			// Chỉ tính các booking hợp lệ (không Draft/Cancelled)
+			var validStatuses = new[]
+			{
+				BookingStatus.Confirmed,
+				BookingStatus.PickedUp,
+				BookingStatus.Returned,
+				BookingStatus.Completed,
+				BookingStatus.Overdue
+			};
+
+			decimal totalGrossRevenue = 0;
+			var assetStats = new Dictionary<(Guid id, string type, string name), OwnerAssetStat>();
+			var bookingGross = new Dictionary<Guid, decimal>();
+
+			// Lấy booking items trong chi nhánh (kèm booking + asset để đặt tên)
+			var bookingItems = await _uow.Repository<BookingItem>()
+				.ListAsync(
+					filter: bi => bookingIds.Contains(bi.BookingId),
+					include: q => q
+						.Include(bi => bi.Booking)
+						.Include(bi => bi.Camera)
+						.Include(bi => bi.Accessory)
+						.Include(bi => bi.Combo)
+				);
+
+			var validItems = bookingItems
+				.Where(bi => bi.Booking != null && validStatuses.Contains(bi.Booking.Status))
+				.ToList();
+
+			foreach (var item in validItems)
+			{
+				var booking = item.Booking!;
+				var days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
+				var gross = item.UnitPrice * days;
+
+				totalGrossRevenue += gross;
+
+				// Dồn doanh thu theo booking để vẽ biểu đồ theo thời gian
+				if (!bookingGross.TryGetValue(booking.Id, out var cur))
+					cur = 0;
+				bookingGross[booking.Id] = cur + gross;
+
+				string type;
+				string name;
+				Guid assetId;
+
+				if (item.CameraId.HasValue)
+				{
+					type = "camera";
+					assetId = item.CameraId.Value;
+					var cam = item.Camera;
+					name = cam != null ? $"{cam.Brand} {cam.Model}" : "Camera";
+				}
+				else if (item.AccessoryId.HasValue)
+				{
+					type = "accessory";
+					assetId = item.AccessoryId.Value;
+					var acc = item.Accessory;
+					name = acc != null ? $"{acc.Brand} {acc.Model}" : "Accessory";
+				}
+				else if (item.ComboId.HasValue)
+				{
+					type = "combo";
+					assetId = item.ComboId.Value;
+					var combo = item.Combo;
+					name = combo != null ? combo.Name : "Combo";
+				}
+				else
+				{
+					continue;
+				}
+
+				var key = (assetId, type, name);
+				if (!assetStats.TryGetValue(key, out var stat))
+				{
+					stat = new OwnerAssetStat
+					{
+						ItemId = assetId,
+						ItemType = type,
+						Name = name,
+						RentalCount = 0,
+						GrossRevenue = 0
+					};
+					assetStats[key] = stat;
+				}
+
+				stat.RentalCount += 1;
+				stat.GrossRevenue += gross;
+			}
+
+			var bookingInfo = validItems
+				.Where(bi => bi.Booking != null)
+				.GroupBy(bi => bi.Booking!.Id)
+				.Select(g => new
+				{
+					Booking = g.First().Booking!,
+					Gross = bookingGross.TryGetValue(g.Key, out var gr) ? gr : 0
+				})
+				.ToList();
+
+			var today = DateTime.UtcNow.Date;
+			var fromDay = today.AddDays(-29);
+
+			var dailyStats = bookingInfo
+				.Where(x => x.Booking.PickupAt.Date >= fromDay && x.Booking.PickupAt.Date <= today)
+				.GroupBy(x => x.Booking.PickupAt.Date)
+				.Select(g => new DashboardTimePoint
+				{
+					Date = g.Key,
+					BookingCount = g.Count(),
+					CapturedRevenue = g.Sum(x => x.Gross)
+				})
+				.OrderBy(x => x.Date)
+				.ToList();
+
+			var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+			var fromMonthStart = thisMonthStart.AddMonths(-11);
+
+			var monthlyStats = bookingInfo
+				.Where(x => x.Booking.PickupAt >= fromMonthStart)
+				.GroupBy(x => new { x.Booking.PickupAt.Year, x.Booking.PickupAt.Month })
+				.Select(g =>
+				{
+					var monthStart = new DateTime(g.Key.Year, g.Key.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+					return new DashboardTimePoint
+					{
+						Date = monthStart,
+						BookingCount = g.Count(),
+						CapturedRevenue = g.Sum(x => x.Gross)
+					};
+				})
+				.OrderBy(x => x.Date)
+				.ToList();
+
+			var topAssets = assetStats.Values
+				.OrderByDescending(a => a.RentalCount)
+				.ThenByDescending(a => a.GrossRevenue)
+				.Take(10)
+				.ToList();
+
 			return new ManagerDashboardDTO
 			{
 				BranchId = branch.Id,
@@ -203,6 +367,10 @@ namespace CamRent_Application.Services
 				TotalBookings = totalBookings,
 				BookingsByStatus = bookingsByStatus,
 				TotalCapturedRevenue = totalCaptured,
+				TotalGrossRevenue = totalGrossRevenue,
+				TopRentedAssets = topAssets,
+				DailyStats = dailyStats,
+				MonthlyStats = monthlyStats,
 				OpenDisputes = openDisputes
 			};
 		}
@@ -520,19 +688,16 @@ namespace CamRent_Application.Services
 			var fromDate = from?.Date ?? today.AddDays(-7);
 			var toDate = to?.Date ?? today.AddDays(21);
 
-			// Staff trong chi nhánh này = những user có booking hoặc verification thuộc branch
+			// Staff trong chi nhánh này = membership + role Staff (không phụ thuộc đã từng được gán việc hay chưa)
+			var staffUsers = await GetStaffUsersInBranchAsync(branchId, ct);
+			var staffIds = staffUsers.Select(u => u.Id).Distinct().ToList();
+			var staffLookup = staffUsers.ToDictionary(u => u.Id, u => u.FullName);
+
+			// Lấy booking & verification trong chi nhánh (có staffId) để tính workload
 			var bookings = await _uow.Repository<Booking>()
 				.ListAsync(b => b.BranchId == branchId && b.StaffId != null);
 			var verifs = await _uow.Repository<VerificationRequest>()
 				.ListAsync(v => v.BranchId == branchId && v.StaffId != null);
-
-			var staffIds = bookings.Select(b => b.StaffId!.Value)
-				.Concat(verifs.Select(v => v.StaffId!.Value))
-				.Distinct()
-				.ToList();
-
-			var staffLookup = (await _uow.Repository<User>().ListAsync(u => staffIds.Contains(u.Id)))
-				.ToDictionary(u => u.Id, u => u.FullName);
 
 			var items = new List<StaffWorkloadItemDTO>();
 
@@ -585,16 +750,15 @@ namespace CamRent_Application.Services
 			var branchId = branch.Id;
 			var today = DateTime.UtcNow.Date;
 
-			// Lấy toàn bộ booking & verification trong chi nhánh có staffId
+			// Staff trong chi nhánh = membership + role Staff (không phụ thuộc đã từng được gán việc hay chưa)
+			var staffUsers = await GetStaffUsersInBranchAsync(branchId, ct);
+			var staffIds = staffUsers.Select(u => u.Id).Distinct().ToList();
+
+			// Lấy toàn bộ booking & verification trong chi nhánh có staffId (để tính conflict)
 			var bookings = await _uow.Repository<Booking>()
 				.ListAsync(b => b.BranchId == branchId && b.StaffId != null);
 			var verifs = await _uow.Repository<VerificationRequest>()
 				.ListAsync(v => v.BranchId == branchId && v.StaffId != null);
-
-			var staffIds = bookings.Select(b => b.StaffId!.Value)
-				.Concat(verifs.Select(v => v.StaffId!.Value))
-				.Distinct()
-				.ToList();
 
 			if (!staffIds.Any())
 			{
@@ -608,8 +772,7 @@ namespace CamRent_Application.Services
 				};
 			}
 
-			var staffLookup = (await _uow.Repository<User>().ListAsync(u => staffIds.Contains(u.Id)))
-				.ToDictionary(u => u.Id, u => u.FullName);
+			var staffLookup = staffUsers.ToDictionary(u => u.Id, u => u.FullName);
 
 			var typeLower = (type ?? "both").ToLowerInvariant();
 			var checkBooking = typeLower is "both" or "booking";
