@@ -11,6 +11,13 @@ namespace CamRent_Application.IServices
 		Task<bool> UpdateCarouselItemAsync(Guid id, string? title, string? content, string? linkUrl, int? sortOrder, bool? isActive, IFormFile? image, Guid updatedByUserId, CancellationToken ct = default);
 		Task<bool> ReorderCarouselAsync(IReadOnlyList<ReorderCarouselItemRequest> items, Guid updatedByUserId, CancellationToken ct = default);
 		Task<bool> DeleteCarouselItemAsync(Guid id, CancellationToken ct = default);
+
+		Task<IReadOnlyList<BlockResponse>> GetBlocksAsync(bool includeInactive, CancellationToken ct = default);
+		Task<BlockResponse?> GetBlockByKeyAsync(string key, bool includeInactive, CancellationToken ct = default);
+		Task<Guid> UpsertBlockAsync(string key, string title, string content, int sortOrder, bool isActive, IFormFile? image, Guid updatedByUserId, CancellationToken ct = default);
+		Task<bool> DeleteBlockAsync(string key, CancellationToken ct = default);
+
+		Task<IReadOnlyList<HomePageFeedbackResponse>> GetFeedbackAsync(int limit, CancellationToken ct = default);
 	}
 }
 

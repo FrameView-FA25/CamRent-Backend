@@ -46,10 +46,10 @@ namespace CamRent_Api.Controllers
 
 			Guid? managerId = null;
 			if (isManager && !branchId.HasValue)
-			{
+				{
 				var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
-							  ?? User.FindFirst("sub")?.Value
-							  ?? User.FindFirst("uid")?.Value;
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
 				if (string.IsNullOrEmpty(userIdStr))
 					return Unauthorized();
 				managerId = Guid.Parse(userIdStr);
