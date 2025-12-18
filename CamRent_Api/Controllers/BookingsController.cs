@@ -294,11 +294,9 @@ namespace CamRent_Api.Controllers
 					await _hub.Clients.Group("role:Admin")
 						.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
 				}
-				return Ok("Cập nhật trạng thái" + booking.Status.ToString());
+				return Ok("Cập nhật trạng thái " + booking.Status.GetDisplayName());
 			}
 			return BadRequest();
 		}
-
-		
 	}
 }
