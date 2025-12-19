@@ -94,7 +94,6 @@ namespace CamRent_Application.Services
 				.OrderBy(s => s.SortOrder)
 				.Select(s => new InspectionChecklistSection
 				{
-					Name = s.Name.Trim(),
 					SortOrder = s.SortOrder,
 					CreatedAt = DateTime.UtcNow,
 					CreatedByUserId = adminId,
@@ -166,7 +165,6 @@ namespace CamRent_Application.Services
 				.Select(s => new InspectionChecklistSection
 				{
 					TemplateId = template.Id,
-					Name = s.Name.Trim(),
 					SortOrder = s.SortOrder,
 					CreatedAt = DateTime.UtcNow,
 					CreatedByUserId = adminId,
@@ -279,7 +277,6 @@ namespace CamRent_Application.Services
 					.Select(s => new ChecklistSectionResponse
 					{
 						Id = s.Id,
-						Name = s.Name,
 						SortOrder = s.SortOrder,
 						Items = s.Items
 							.OrderBy(i => i.SortOrder)

@@ -18,7 +18,6 @@ namespace CamRent_Application.DTOs
 		public class ChecklistSectionResponse
 		{
 			public Guid Id { get; set; }
-			public string Name { get; set; } = string.Empty;
 			public int SortOrder { get; set; }
 			public List<ChecklistItemResponse> Items { get; set; } = new();
 		}
@@ -64,8 +63,6 @@ namespace CamRent_Application.DTOs
 
 		public class UpsertChecklistSectionRequest
 		{
-			[Required]
-			public string Name { get; set; } = string.Empty;
 			public int SortOrder { get; set; }
 			public List<UpsertChecklistItemRequest> Items { get; set; } = new();
 		}
@@ -94,9 +91,7 @@ namespace CamRent_Application.DTOs
 		public class SubmitChecklistRowRequest
 		{
 			[Required]
-			public string Section { get; set; } = string.Empty;
-			[Required]
-			public string Label { get; set; } = string.Empty;
+			public Guid ItemId { get; set; }
 
 			// Which methods user ticked for this row (optional)
 			public List<Guid> MethodIds { get; set; } = new();
