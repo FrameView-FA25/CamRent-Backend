@@ -37,28 +37,20 @@ namespace CamRent_Application.Services
 			var template = await _checklistService.GetActiveTemplateAsync(request.ItemType, request.Type);
 			if (template == null) throw new InvalidOperationException("No active checklist template found for this item type.");
 
-			static string Key(string section, string label)
-				=> $"{(section ?? string.Empty).Trim().ToLowerInvariant()}|{(label ?? string.Empty).Trim().ToLowerInvariant()}";
-
-			var allowed = template.Sections
-				.SelectMany(s => s.Items.Select(i => new
-				{
-					Key = Key(s.Name, i.Label),
-					AllowedMethodIds = i.AllowedMethods.Select(m => m.Id).ToHashSet()
-				}))
-				.ToDictionary(x => x.Key, x => x.AllowedMethodIds);
+			var itemsById = template.Sections
+				.SelectMany(s => s.Items)
+				.ToDictionary(i => i.Id, i => i);
 
 			foreach (var row in request.Rows)
 			{
-				var rowKey = Key(row.Section, row.Label);
-				if (!allowed.ContainsKey(rowKey))
-					throw new InvalidOperationException($"Checklist row is not part of the active template: [{row.Section}] {row.Label}");
+				if (!itemsById.TryGetValue(row.ItemId, out var item))
+					throw new InvalidOperationException("Checklist row is not part of the active template.");
 
-				var allowedMethodIds = allowed[rowKey];
+				var allowedMethodIds = item.AllowedMethods.Select(m => m.Id).ToHashSet();
 				foreach (var methodId in row.MethodIds.Distinct())
 				{
 					if (!allowedMethodIds.Contains(methodId))
-						throw new InvalidOperationException($"Method is not allowed for checklist row: [{row.Section}] {row.Label}");
+						throw new InvalidOperationException($"Method is not allowed for checklist row: {item.Label}");
 				}
 			}
 
@@ -90,14 +82,16 @@ namespace CamRent_Application.Services
 			var methodSelections = new List<InspectionMethodSelection>();
 			foreach (var row in request.Rows)
 			{
+				var item = itemsById[row.ItemId];
 				var inspection = new Inspection
 				{
 					Id = Guid.NewGuid(),
 					FormId = form.Id,
+					ChecklistItemId = item.Id,
 					CreatedAt = DateTime.UtcNow,
 					CreatedByUserId = staffId,
-					Section = row.Section.Trim(),
-					Label = row.Label.Trim(),
+					Section = string.Empty,
+					Label = item.Label.Trim(),
 					Value = null,
 					Passed = row.Passed,
 					Notes = row.Notes ?? string.Empty
@@ -189,11 +183,10 @@ namespace CamRent_Application.Services
 				OverallPassed = form.OverallPassed,
 				CreatedAt = form.CreatedAt,
 				Rows = inspections
-					.OrderBy(i => i.Section).ThenBy(i => i.Label)
+					.OrderBy(i => i.Label)
 					.Select(i => new InspectionFormRowResponse
 					{
 						InspectionId = i.Id,
-						Section = i.Section,
 						Label = i.Label,
 						Passed = i.Passed,
 						Notes = i.Notes,
@@ -279,29 +272,44 @@ namespace CamRent_Application.Services
 			var template = await _checklistService.GetTemplateByIdAsync(form.TemplateId);
 			if (template == null) throw new InvalidOperationException("Checklist template not found.");
 
-			static string Key(string section, string label)
-				=> $"{(section ?? string.Empty).Trim().ToLowerInvariant()}|{(label ?? string.Empty).Trim().ToLowerInvariant()}";
+			static string LabelKey(string label)
+				=> (label ?? string.Empty).Trim().ToLowerInvariant();
 
-			var allowedByRow = template.Sections
-				.SelectMany(s => s.Items.Select(i => new
-				{
-					Key = Key(s.Name, i.Label),
-					AllowedMethodIds = i.AllowedMethods.Select(m => m.Id).ToHashSet()
-				}))
-				.ToDictionary(x => x.Key, x => x.AllowedMethodIds);
+			var itemsById = template.Sections
+				.SelectMany(s => s.Items)
+				.ToDictionary(i => i.Id, i => i);
+
+			var allowedByLabel = template.Sections
+				.SelectMany(s => s.Items)
+				.GroupBy(i => LabelKey(i.Label))
+				.ToDictionary(
+					g => g.Key,
+					g => g.SelectMany(i => i.AllowedMethods.Select(m => m.Id)).ToHashSet()
+				);
 
 			foreach (var row in request.Rows)
 			{
 				var inspection = inspectionById[row.InspectionId];
-				var rowKey = Key(inspection.Section, inspection.Label);
+				HashSet<Guid>? allowedMethodIds = null;
 
-				if (!allowedByRow.TryGetValue(rowKey, out var allowedMethodIds))
+				if (inspection.ChecklistItemId.HasValue &&
+					itemsById.TryGetValue(inspection.ChecklistItemId.Value, out var item))
+				{
+					allowedMethodIds = item.AllowedMethods.Select(m => m.Id).ToHashSet();
+				}
+				else
+				{
+					var labelKey = LabelKey(inspection.Label);
+					allowedByLabel.TryGetValue(labelKey, out allowedMethodIds);
+				}
+
+				if (allowedMethodIds == null)
 					throw new InvalidOperationException("One or more inspection rows are not part of the template.");
 
 				foreach (var methodId in row.MethodIds.Distinct())
 				{
 					if (!allowedMethodIds.Contains(methodId))
-						throw new InvalidOperationException($"Method is not allowed for checklist row: [{inspection.Section}] {inspection.Label}");
+						throw new InvalidOperationException($"Method is not allowed for checklist row: {inspection.Label}");
 				}
 			}
 
@@ -340,8 +348,7 @@ namespace CamRent_Application.Services
 			// update overall + IsConfirmed
 			var overallPassed = request.Passed ?? DeriveOverallPassed(inspections.Select(i => new SubmitChecklistRowRequest
 			{
-				Section = i.Section,
-				Label = i.Label,
+				ItemId = i.ChecklistItemId ?? Guid.Empty,
 				MethodIds = new List<Guid>(),
 				Passed = i.Passed,
 				Notes = i.Notes

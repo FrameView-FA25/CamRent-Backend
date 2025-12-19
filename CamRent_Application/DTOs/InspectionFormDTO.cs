@@ -80,7 +80,6 @@ namespace CamRent_Application.DTOs
 		public class InspectionFormRowResponse
 		{
 			public Guid InspectionId { get; set; }
-			public string Section { get; set; } = string.Empty;
 			public string Label { get; set; } = string.Empty;
 			public bool? Passed { get; set; }
 			public string Notes { get; set; } = string.Empty;
