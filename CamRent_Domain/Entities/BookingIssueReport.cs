@@ -19,9 +19,9 @@ namespace CamRent_Domain.Entities
 		public string Severity { get; set; } = "minor";
 
 		/// <summary>
-		/// open | under_review | resolved | rejected
+		/// pending | under_review | resolved | rejected
 		/// </summary>
-		public string Status { get; set; } = "open";
+		public string Status { get; set; } = "pending";
 
 		public Guid? HandledByStaffId { get; set; }
 		public User? HandledByStaff { get; set; }
