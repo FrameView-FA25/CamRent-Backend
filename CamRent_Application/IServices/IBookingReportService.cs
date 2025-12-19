@@ -24,6 +24,13 @@ namespace CamRent_Application.IServices
 			Guid staffUserId,
 			Guid reportId,
 			CancellationToken ct = default);
+
+		Task<bool> UpdateStatusForManagerAsync(
+			Guid managerUserId,
+			Guid reportId,
+			string status,
+			string? handlerNote,
+			CancellationToken ct = default);
 	}
 }
 

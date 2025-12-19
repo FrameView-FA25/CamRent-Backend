@@ -65,6 +65,40 @@ namespace CamRent_Api.Controllers
 				return BadRequest(new { message = ex.Message });
 			}
 		}
+
+		public sealed class UpdateReportStatusRequest
+		{
+			/// <summary>
+			/// pending | under_review | resolved | rejected
+			/// </summary>
+			public string Status { get; set; } = "resolved";
+			public string? HandlerNote { get; set; }
+		}
+
+		[HttpPut("{id:guid}/status")]
+		[Authorize(Policy = "BranchManager")]
+		[SwaggerOperation(
+			Summary = "Manager cập nhật trạng thái report",
+			Description = "BranchManager cập nhật trạng thái xử lý report (pending/under_review/resolved/rejected).")]
+		public async Task<IActionResult> UpdateStatus([FromRoute] Guid id, [FromBody] UpdateReportStatusRequest req, CancellationToken ct = default)
+		{
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+						  ?? User.FindFirst("sub")?.Value
+						  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			try
+			{
+				var ok = await _reports.UpdateStatusForManagerAsync(Guid.Parse(userIdStr), id, req.Status, req.HandlerNote, ct);
+				if (!ok) return NotFound();
+				return NoContent();
+			}
+			catch (AppException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
+		}
 	}
 }
 

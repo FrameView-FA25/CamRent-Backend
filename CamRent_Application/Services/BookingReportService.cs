@@ -56,7 +56,7 @@ namespace CamRent_Application.Services
 				Title = title.Trim(),
 				Description = description.Trim(),
 				Severity = sev,
-				Status = "open",
+				Status = "pending",
 				CreatedByUserId = renterUserId
 			};
 
@@ -103,7 +103,7 @@ namespace CamRent_Application.Services
 		{
 			var branchId = await GetBranchIdForActorAsync(staffUserId, ct);
 			var take = limit <= 0 ? 20 : Math.Min(limit, 200);
-			var normalizedStatus = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToLowerInvariant();
+			var normalizedStatus = NormalizeStatus(status);
 
 			var reports = await _uow.Repository<BookingIssueReport>().ListAsync(
 				filter: r =>
@@ -134,6 +134,7 @@ namespace CamRent_Application.Services
 					Title = r.Title,
 					Severity = r.Severity,
 					Status = r.Status,
+					StatusText = StatusText(r.Status),
 					ReporterName = r.ReporterUser?.FullName ?? string.Empty,
 					Devices = BuildDevicesFromBooking(r.Booking).ToList()
 				})
@@ -179,11 +180,47 @@ namespace CamRent_Application.Services
 				Description = r.Description,
 				Severity = r.Severity,
 				Status = r.Status,
+				StatusText = StatusText(r.Status),
 				ReporterUserId = r.ReporterUserId,
 				ReporterName = r.ReporterUser?.FullName ?? string.Empty,
 				Devices = BuildDevicesFromBooking(r.Booking).ToList(),
 				ImageUrls = imageUrls
 			};
+		}
+
+		public async Task<bool> UpdateStatusForManagerAsync(
+			Guid managerUserId,
+			Guid reportId,
+			string status,
+			string? handlerNote,
+			CancellationToken ct = default)
+		{
+			var branchId = await GetBranchIdForActorAsync(managerUserId, ct);
+			var newStatus = NormalizeStatus(status);
+			if (newStatus == null)
+				throw new AppException("Status không hợp lệ");
+
+			// Chỉ cho phép set các trạng thái xử lý cơ bản từ phía manager
+			if (newStatus is not ("under_review" or "resolved" or "rejected" or "pending"))
+				throw new AppException("Status chỉ nhận: pending | under_review | resolved | rejected");
+
+			var list = await _uow.Repository<BookingIssueReport>().ListAsync(
+				filter: r => r.Id == reportId && r.Booking.BranchId == branchId,
+				include: q => q.Include(r => r.Booking));
+
+			var report = list.FirstOrDefault();
+			if (report == null) return false;
+
+			report.Status = newStatus;
+			report.HandledByStaffId = managerUserId;
+			report.HandledAt = DateTime.UtcNow;
+			report.HandlerNote = string.IsNullOrWhiteSpace(handlerNote) ? null : handlerNote.Trim();
+			report.UpdatedByUserId = managerUserId;
+			report.UpdatedAt = DateTime.UtcNow;
+
+			await _uow.Repository<BookingIssueReport>().UpdateAsync(report);
+			await _uow.Complete();
+			return true;
 		}
 
 		private async Task<Guid> GetBranchIdForActorAsync(Guid userId, CancellationToken ct = default)
@@ -200,6 +237,28 @@ namespace CamRent_Application.Services
 			if (branchId == Guid.Empty)
 				throw new AppException("Người dùng chưa được gán vào chi nhánh");
 			return branchId;
+		}
+
+		private static string? NormalizeStatus(string? status)
+		{
+			if (string.IsNullOrWhiteSpace(status)) return null;
+			var s = status.Trim().ToLowerInvariant();
+			// Backward-compat: trước đây dùng "open" -> nay chuẩn là "pending"
+			if (s == "open") s = "pending";
+			return s;
+		}
+
+		private static string StatusText(string? status)
+		{
+			var s = (status ?? string.Empty).Trim().ToLowerInvariant();
+			return s switch
+			{
+				"pending" => "Chờ xử lý",
+				"under_review" => "Đang xử lý",
+				"resolved" => "Đã xử lý",
+				"rejected" => "Từ chối",
+				_ => s
+			};
 		}
 
 		private static IEnumerable<BookingReportDeviceBrief> BuildDevicesFromBooking(Booking? booking)

@@ -32,6 +32,7 @@ namespace CamRent_Application.DTOs
 			public string Title { get; set; } = string.Empty;
 			public string Severity { get; set; } = "minor";
 			public string Status { get; set; } = "open";
+			public string StatusText { get; set; } = string.Empty;
 			public string ReporterName { get; set; } = string.Empty;
 			public List<BookingReportDeviceBrief> Devices { get; set; } = new();
 		}
@@ -47,6 +48,7 @@ namespace CamRent_Application.DTOs
 			public string Description { get; set; } = string.Empty;
 			public string Severity { get; set; } = "minor";
 			public string Status { get; set; } = "open";
+			public string StatusText { get; set; } = string.Empty;
 
 			public Guid ReporterUserId { get; set; }
 			public string ReporterName { get; set; } = string.Empty;
