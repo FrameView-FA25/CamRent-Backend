@@ -13,6 +13,17 @@ namespace CamRent_Application.IServices
 			string severity,
 			IReadOnlyList<IFormFile>? images,
 			CancellationToken ct = default);
+
+		Task<IReadOnlyList<BookingIssueReportStaffListItem>> GetReportsForStaffAsync(
+			Guid staffUserId,
+			string? status,
+			int limit,
+			CancellationToken ct = default);
+
+		Task<BookingIssueReportStaffDetail?> GetReportDetailForStaffAsync(
+			Guid staffUserId,
+			Guid reportId,
+			CancellationToken ct = default);
 	}
 }
 
