@@ -158,6 +158,48 @@ namespace CamRent_Api.Controllers
 			return Ok(item);
 		}
 
+		public sealed class CreateBlockRequest
+		{
+			public string Key { get; set; } = string.Empty;
+			public string Title { get; set; } = string.Empty;
+			public string Content { get; set; } = string.Empty;
+			public int SortOrder { get; set; } = 0;
+			public bool IsActive { get; set; } = true;
+			public IFormFile? Image { get; set; }
+		}
+
+		[HttpPost("blocks")]
+		[Authorize(Policy = "AdminOnly")]
+		[Consumes("multipart/form-data")]
+		[SwaggerOperation(Summary = "Tạo block", Description = "Admin tạo block mới theo key (title/content/image). Key phải unique.")]
+		public async Task<IActionResult> CreateBlock([FromForm] CreateBlockRequest req, CancellationToken ct)
+		{
+			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+						  ?? User.FindFirst("sub")?.Value
+						  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+				return Unauthorized();
+
+			try
+			{
+				var id = await _home.CreateBlockAsync(
+					req.Key,
+					req.Title,
+					req.Content,
+					req.SortOrder,
+					req.IsActive,
+					req.Image,
+					Guid.Parse(userIdStr),
+					ct);
+
+				return Ok(new { id });
+			}
+			catch (CamRent_Application.Common.AppException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
+		}
+
 		public sealed class UpsertBlockRequest
 		{
 			public string Title { get; set; } = string.Empty;

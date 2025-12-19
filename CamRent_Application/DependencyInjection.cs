@@ -38,6 +38,7 @@ namespace CamRent_Application
 			services.AddScoped<IWorkSlotService, WorkSlotService>();
 			services.AddScoped<IHomePageService, HomePageService>();
 			services.AddScoped<IMoneyPlatformSettingsService, MoneyPlatformSettingsService>();
+			services.AddScoped<IBookingReportService, BookingReportService>();
 			return services;
 		}
 	}

@@ -192,6 +192,30 @@ namespace CamRent_Application.Services
 			return block == null ? null : MapBlock(block);
 		}
 
+		public async Task<Guid> CreateBlockAsync(
+			string key,
+			string title,
+			string content,
+			int sortOrder,
+			bool isActive,
+			Microsoft.AspNetCore.Http.IFormFile? image,
+			Guid createdByUserId,
+			CancellationToken ct = default)
+		{
+			if (string.IsNullOrWhiteSpace(key))
+				throw new AppException("Key is required");
+
+			var normalizedKey = key.Trim().ToLowerInvariant();
+			var repo = _uow.Repository<HomePageBlock>();
+
+			var exists = (await repo.ListAsync(x => x.Key.ToLower() == normalizedKey)).Any();
+			if (exists)
+				throw new AppException("Block key đã tồn tại");
+
+			// Tạo mới (gọi lại Upsert để dùng chung flow upload ảnh)
+			return await UpsertBlockAsync(normalizedKey, title, content, sortOrder, isActive, image, createdByUserId, ct);
+		}
+
 		public async Task<Guid> UpsertBlockAsync(
 			string key,
 			string title,
