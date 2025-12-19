@@ -6,6 +6,7 @@ namespace CamRent_Domain.Entities
     public class Inspection : BaseEntity
     {
         public InspectionType? Type { get; set; }
+		public HandoverType? HandoverType { get; set; }
 		public string Section { get; set; } = string.Empty;
 		public string Label { get; set; } = string.Empty;
 		public string? Value { get; set; }
@@ -23,6 +24,6 @@ namespace CamRent_Domain.Entities
 		public Guid? VerificationId { get; set; }
 		public VerificationRequest? Verification { get; set; }
 
+		public ICollection<InspectionMethodSelection> MethodSelections { get; set; } = new List<InspectionMethodSelection>();
     }
 }
-

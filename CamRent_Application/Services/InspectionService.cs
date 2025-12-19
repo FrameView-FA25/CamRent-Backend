@@ -115,11 +115,40 @@ namespace CamRent_Application.Services
 
 			var dtos = _mapper.Map<List<InspectionResponseDTO>>(inspections);
 
+			// Populate Methods for all inspections (batch)
+			var inspectionIds = inspections.Select(i => i.Id).ToList();
+			var selections = (await _unitOfWork.Repository<InspectionMethodSelection>()
+				.ListAsync(
+					filter: s => inspectionIds.Contains(s.InspectionId),
+					include: q => q.Include(x => x.Method)
+				)).ToList();
+			var methodsByInspection = selections
+				.GroupBy(s => s.InspectionId)
+				.ToDictionary(
+					g => g.Key,
+					g => g.Select(s => s.Method)
+						  .Where(m => m != null)
+						  .OrderBy(m => m.SortOrder)
+						  .Select(m => new InspectionChecklistDTO.InspectionMethodResponse
+						  {
+							  Id = m.Id,
+							  Code = m.Code,
+							  Name = m.Name,
+							  SortOrder = m.SortOrder,
+							  IsActive = m.IsActive
+						  }).ToList()
+				);
+
 			// Populate Media for each inspection (mapping profile ignores Media)
 			for (int idx = 0; idx < inspections.Count; idx++)
 			{
 				var inspection = inspections[idx];
 				var dto = dtos[idx];
+
+				if (methodsByInspection.TryGetValue(inspection.Id, out var methods))
+				{
+					dto.Methods = methods;
+				}
 
 				var assets = (await _unitOfWork.Repository<FileAsset>()
 					.ListAsync(f => f.OwnerId == inspection.Id && f.OwnerType == FileOwnerType.Inspection)).ToList();
@@ -138,11 +167,39 @@ namespace CamRent_Application.Services
 
 			var dtos = _mapper.Map<List<InspectionResponseDTO>>(inspections);
 
+			var inspectionIds = inspections.Select(i => i.Id).ToList();
+			var selections = (await _unitOfWork.Repository<InspectionMethodSelection>()
+				.ListAsync(
+					filter: s => inspectionIds.Contains(s.InspectionId),
+					include: q => q.Include(x => x.Method)
+				)).ToList();
+			var methodsByInspection = selections
+				.GroupBy(s => s.InspectionId)
+				.ToDictionary(
+					g => g.Key,
+					g => g.Select(s => s.Method)
+						  .Where(m => m != null)
+						  .OrderBy(m => m.SortOrder)
+						  .Select(m => new InspectionChecklistDTO.InspectionMethodResponse
+						  {
+							  Id = m.Id,
+							  Code = m.Code,
+							  Name = m.Name,
+							  SortOrder = m.SortOrder,
+							  IsActive = m.IsActive
+						  }).ToList()
+				);
+
 			// Populate Media for each inspection (mapping profile ignores Media)
 			for (int idx = 0; idx < inspections.Count; idx++)
 			{
 				var inspection = inspections[idx];
 				var dto = dtos[idx];
+
+				if (methodsByInspection.TryGetValue(inspection.Id, out var methods))
+				{
+					dto.Methods = methods;
+				}
 
 				var assets = (await _unitOfWork.Repository<FileAsset>()
 					.ListAsync(f => f.OwnerId == inspection.Id && f.OwnerType == FileOwnerType.Inspection)).ToList();
@@ -160,6 +217,24 @@ namespace CamRent_Application.Services
 			if (inspection == null) return null;
 
 			var dto = _mapper.Map<InspectionResponseDTO>(inspection);
+
+			var selections = (await _unitOfWork.Repository<InspectionMethodSelection>()
+				.ListAsync(
+					filter: s => s.InspectionId == id,
+					include: q => q.Include(x => x.Method)
+				)).ToList();
+			dto.Methods = selections
+				.Select(s => s.Method)
+				.Where(m => m != null)
+				.OrderBy(m => m.SortOrder)
+				.Select(m => new InspectionChecklistDTO.InspectionMethodResponse
+				{
+					Id = m.Id,
+					Code = m.Code,
+					Name = m.Name,
+					SortOrder = m.SortOrder,
+					IsActive = m.IsActive
+				}).ToList();
 
 			var assets = (await _unitOfWork.Repository<FileAsset>()
 				.ListAsync(f => f.OwnerId == inspection.Id && f.OwnerType == FileOwnerType.Inspection)).ToList();

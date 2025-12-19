@@ -27,6 +27,12 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
+		public DbSet<InspectionMethod> InspectionMethods => Set<InspectionMethod>();
+		public DbSet<InspectionMethodSelection> InspectionMethodSelections => Set<InspectionMethodSelection>();
+		public DbSet<InspectionChecklistTemplate> InspectionChecklistTemplates => Set<InspectionChecklistTemplate>();
+		public DbSet<InspectionChecklistSection> InspectionChecklistSections => Set<InspectionChecklistSection>();
+		public DbSet<InspectionChecklistItem> InspectionChecklistItems => Set<InspectionChecklistItem>();
+		public DbSet<InspectionChecklistItemAllowedMethod> InspectionChecklistItemAllowedMethods => Set<InspectionChecklistItemAllowedMethod>();
         public DbSet<Contract> Contracts => Set<Contract>();
         public DbSet<ContractSignature> ContractSignatures => Set<ContractSignature>();
         public DbSet<Payment> Payments => Set<Payment>();
@@ -224,7 +230,7 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(ci => ci.AccessoryId);
 
-            modelBuilder.Entity<BookingItem>()
+			modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Booking)
                 .WithMany(b => b.Items)
                 .HasForeignKey(bi => bi.BookingId);
@@ -238,6 +244,49 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(bi => bi.Accessory)
                 .WithMany()
                 .HasForeignKey(bi => bi.AccessoryId);
+
+			// Inspection checklist template relationships
+			modelBuilder.Entity<InspectionChecklistTemplate>()
+				.HasOne(t => t.Branch)
+				.WithMany()
+				.HasForeignKey(t => t.BranchId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<InspectionChecklistSection>()
+				.HasOne(s => s.Template)
+				.WithMany(t => t.Sections)
+				.HasForeignKey(s => s.TemplateId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionChecklistItem>()
+				.HasOne(i => i.Section)
+				.WithMany(s => s.Items)
+				.HasForeignKey(i => i.SectionId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionChecklistItemAllowedMethod>()
+				.HasOne(x => x.ChecklistItem)
+				.WithMany(i => i.AllowedMethods)
+				.HasForeignKey(x => x.ChecklistItemId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionChecklistItemAllowedMethod>()
+				.HasOne(x => x.Method)
+				.WithMany()
+				.HasForeignKey(x => x.MethodId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<InspectionMethodSelection>()
+				.HasOne(x => x.Inspection)
+				.WithMany(i => i.MethodSelections)
+				.HasForeignKey(x => x.InspectionId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionMethodSelection>()
+				.HasOne(x => x.Method)
+				.WithMany()
+				.HasForeignKey(x => x.MethodId)
+				.OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Combo)
@@ -431,4 +480,3 @@ namespace CamRent_Infrastructure.Persistence
 		}
 	}
 }
-

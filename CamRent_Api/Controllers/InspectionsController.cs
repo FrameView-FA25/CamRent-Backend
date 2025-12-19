@@ -20,10 +20,12 @@ namespace CamRent_Api.Controllers
 	public class InspectionsController : ControllerBase
 	{
 		private readonly IInspectionService _inspectionService;
+		private readonly IInspectionChecklistService _inspectionChecklistService;
 		private readonly IFileStorageService _fileStorageService;
-		public InspectionsController(IInspectionService inspectionService, IFileStorageService fileStorageService)
+		public InspectionsController(IInspectionService inspectionService, IInspectionChecklistService inspectionChecklistService, IFileStorageService fileStorageService)
 		{
 			_inspectionService = inspectionService;
+			_inspectionChecklistService = inspectionChecklistService;
 			_fileStorageService = fileStorageService;
 		}
 
@@ -165,6 +167,23 @@ namespace CamRent_Api.Controllers
 				return Ok(new { Message = "Xóa inspection thành công." });
 
 			return BadRequest(new { Message = "Xóa thất bại hoặc không tìm thấy inspection." });
+		}
+
+		// Staff: submit checklist result (no files; upload photos per-row using PUT /api/inspections/{id})
+		[HttpPost("checklist")]
+		[Authorize(Policy = "Staff")]
+		[SwaggerOperation(Summary = "Lưu kết quả checklist inspection", Description = "Tạo nhiều Inspection rows theo checklist template đang active.")]
+		public async Task<IActionResult> SubmitChecklist([FromBody] InspectionChecklistDTO.SubmitChecklistResultRequest request)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+
+			if (!ModelState.IsValid)
+				return BadRequest(ModelState);
+
+			var result = await _inspectionChecklistService.SubmitChecklistResultAsync(request, Guid.Parse(userId!));
+			return Ok(result);
 		}
 	}
 }
