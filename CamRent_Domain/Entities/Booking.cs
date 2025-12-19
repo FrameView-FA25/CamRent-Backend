@@ -28,7 +28,6 @@ namespace CamRent_Domain.Entities
 		public ICollection<BookingItem>? Items { get; set; } 
         public ICollection<Payment>? Payments { get; set; } 
         public ICollection<Contract>? Contracts { get; set; } 
-		public ICollection<Inspection>? Inspections { get; set; } 
+		// Inspection rows are grouped by InspectionForm (phiếu); see InspectionForm APIs.
 	}
 }
-

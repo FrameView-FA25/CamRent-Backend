@@ -127,26 +127,13 @@ namespace CamRent_Application.Services
 					include: q => q
 						.Include(v => v.Branch)
 						.Include(v => v.Staff)
-						.Include(v => v.Inspections)
+
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -162,26 +149,13 @@ namespace CamRent_Application.Services
 					include: q => q
 						.Include(v => v.Branch)
 						.Include(v => v.Staff)
-						.Include(v => v.Inspections)
+
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -198,25 +172,12 @@ namespace CamRent_Application.Services
 					include: q => q
 						.Include(v => v.Branch)
 						.Include(v => v.Staff)
-						.Include(v => v.Inspections)
+
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -234,24 +195,11 @@ namespace CamRent_Application.Services
 						.Include(v => v.Staff)
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
-						.Include(v => v.Inspections)
+
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -270,23 +218,12 @@ namespace CamRent_Application.Services
 						.Include(v => v.Staff)
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
-						.Include(v => v.Inspections)
+
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				)).FirstOrDefault();
 			if (verification == null) return null;
 			var response = _mapper.Map<VerificationResponseDTO>(verification);
-			if(response.Inspections != null)
-			{
-				foreach (var insp in response.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
+
 
 			return response;
 		}

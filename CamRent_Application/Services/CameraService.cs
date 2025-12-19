@@ -174,15 +174,37 @@ namespace CamRent_Application.Services
 				.ToList();
 
 			// Inspections liên quan tới camera
-			var inspections = await _unitOfWork.Repository<Inspection>()
-				.ListAsync(i => i.CameraId == cameraId);
-			var inspectionDtos = _mapper.Map<List<InspectionDTO.InspectionResponseDTO>>(inspections);
+			var forms = await _unitOfWork.Repository<InspectionForm>()
+				.ListAsync(f => f.ItemType == ItemType.Camera && f.ItemId == cameraId,
+					include: q => q
+						.Include(f => f.Template)
+						.Include(f => f.Staff));
+
+			var inspectionForms = forms
+				.OrderByDescending(f => f.CreatedAt)
+				.Select(f => new InspectionFormDTO.InspectionFormSummaryResponse
+				{
+					Id = f.Id,
+					TemplateId = f.TemplateId,
+					TemplateName = f.Template.Name,
+					StaffId = f.CreatedByUserId,
+					StaffName = f.Staff != null ? f.Staff.FullName : null,
+					ItemType = f.ItemType,
+					ItemId = f.ItemId,
+					Type = f.Type,
+					HandoverType = f.HandoverType,
+					InspectionTypeId = f.InspectionTypeId,
+					BranchId = f.BranchId,
+					OverallPassed = f.OverallPassed,
+					CreatedAt = f.CreatedAt
+				})
+				.ToList();
 
 			return new CameraHistoryDTO
 			{
 				Camera = cameraDto,
 				Bookings = bookingHistory,
-				Inspections = inspectionDtos
+				InspectionForms = inspectionForms
 			};
 		}
 

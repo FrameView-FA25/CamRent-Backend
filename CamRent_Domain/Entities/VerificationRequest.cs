@@ -21,7 +21,7 @@ namespace CamRent_Domain.Entities
         
         public ICollection<VerificationRequestItem>? Items { get; set; } 
         public ICollection<Contract>? Contracts { get; set; }
-		public ICollection<Inspection>? Inspections { get; set; }
+		// Inspection rows are grouped by InspectionForm (phiếu); see InspectionForm APIs.
     }
 
     public class VerificationRequestItem : BaseEntity
@@ -35,4 +35,3 @@ namespace CamRent_Domain.Entities
 		public Accessory? Accessory { get; set; }
 	}
 }
-

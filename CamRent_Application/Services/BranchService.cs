@@ -166,10 +166,10 @@ namespace CamRent_Application.Services
 				throw new AppException("Không thể xoá: staff đang xử lý verification Pending. Vui lòng reassign/hoàn thành verification trước.");
 
 			// 4) Inspection đang thực hiện (Passed == null) do staff tạo
-			var pendingInspections = await _unitOfWork.Repository<Inspection>()
-				.ListAsync(i => i.BranchId == branchId
-							 && i.CreatedByUserId == userId
-							 && i.Passed == null);
+			var pendingInspections = await _unitOfWork.Repository<InspectionForm>()
+				.ListAsync(f => f.BranchId == branchId
+							 && f.CreatedByUserId == userId
+							 && f.OverallPassed == null);
 			if (pendingInspections.Any())
 				throw new AppException("Không thể xoá: staff đang thực hiện inspection (chưa có kết quả). Vui lòng hoàn thành inspection trước.");
 

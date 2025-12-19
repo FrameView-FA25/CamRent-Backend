@@ -42,7 +42,7 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
-						.Include(b => b.Inspections)
+
 						.Include(b => b.Payments).ThenInclude(p => p.Lines)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);
@@ -54,18 +54,7 @@ namespace CamRent_Application.Services
 						result.Payments.Remove(pay);
 				}
 			}
-			if (result.Inspections != null)
-			{
-				foreach (var insp in result.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
+
 			return result;
 		}
 
@@ -77,19 +66,6 @@ namespace CamRent_Application.Services
 				booking.Items = (await _unitOfWork.Repository<BookingItem>().ListAsync(filter: b => b.BookingId == booking.Id, include: b => b.Include(b => b.Camera).Include(b => b.Accessory).Include(b => b.Combo))).ToList();
 			}
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
-			foreach (var ver in results)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return results;
 		}
 
@@ -115,7 +91,7 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
-						.Include(b => b.Inspections)
+
 						.Include(b => b.Payments)
 						.Include(b => b.Contracts));
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
@@ -150,25 +126,12 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
-						.Include(b => b.Inspections)
+
 						.Include(b => b.Renter)
 						.Include(b => b.Payments)
 						.Include(b => b.Contracts))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
-			foreach (var ver in results)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return results;
 		}
 
@@ -187,25 +150,12 @@ namespace CamRent_Application.Services
 						.ThenInclude(i => i.Accessory)
 					.Include(b => b.Items)
 						.ThenInclude(i => i.Combo)
-					.Include(b => b.Inspections)
+
 					.Include(b => b.Renter)
 					.Include(b => b.Payments)
 					.Include(b => b.Contracts))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
-			foreach (var ver in results)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return results;
 		}
 		private decimal CalculateDepositForCamera(Camera camera)

@@ -16,7 +16,5 @@ namespace CamRent_Application.IServices
 		Task<int> UpdateTemplateAsync(Guid id, UpsertChecklistTemplateRequest request, Guid adminId);
 		Task<int> DeleteTemplateAsync(Guid id);
 		Task<int> SetActiveAsync(Guid id, bool isActive, Guid adminId);
-
-		Task<SubmitChecklistResultResponse> SubmitChecklistResultAsync(SubmitChecklistResultRequest request, Guid staffId);
 	}
 }
