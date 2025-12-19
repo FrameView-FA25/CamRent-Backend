@@ -19,7 +19,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet]
-		[Authorize(Policy = "AdminOnly")]
+		[Authorize(Policy = "Staff")]
 		[SwaggerOperation(Summary = "Danh sách methods", Description = "Admin lấy danh sách methods để cấu hình checklist template.")]
 		public async Task<IActionResult> List([FromQuery] bool includeInactive = false)
 		{
@@ -28,7 +28,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("{id:guid}")]
-		[Authorize(Policy = "AdminOnly")]
+		[Authorize(Policy = "Staff")]
 		public async Task<IActionResult> GetById(Guid id)
 		{
 			var method = await _service.GetByIdAsync(id);
