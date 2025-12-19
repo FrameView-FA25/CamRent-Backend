@@ -101,14 +101,14 @@ namespace CamRent_Application.Services
 			int limit,
 			CancellationToken ct = default)
 		{
-			var branchId = await GetBranchIdForStaffAsync(staffUserId, ct);
+			var branchId = await GetBranchIdForActorAsync(staffUserId, ct);
 			var take = limit <= 0 ? 20 : Math.Min(limit, 200);
 			var normalizedStatus = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToLowerInvariant();
 
 			var reports = await _uow.Repository<BookingIssueReport>().ListAsync(
 				filter: r =>
 					r.Booking.BranchId == branchId &&
-					(normalizedStatus == null || r.Status.ToLower() == normalizedStatus),
+					(normalizedStatus == null || r.Status == normalizedStatus),
 				include: q => q
 					.Include(r => r.Booking)
 						.ThenInclude(b => b.Items!)
@@ -145,7 +145,7 @@ namespace CamRent_Application.Services
 			Guid reportId,
 			CancellationToken ct = default)
 		{
-			var branchId = await GetBranchIdForStaffAsync(staffUserId, ct);
+			var branchId = await GetBranchIdForActorAsync(staffUserId, ct);
 
 			var list = await _uow.Repository<BookingIssueReport>().ListAsync(
 				filter: r => r.Id == reportId && r.Booking.BranchId == branchId,
@@ -186,13 +186,19 @@ namespace CamRent_Application.Services
 			};
 		}
 
-		private async Task<Guid> GetBranchIdForStaffAsync(Guid staffUserId, CancellationToken ct = default)
+		private async Task<Guid> GetBranchIdForActorAsync(Guid userId, CancellationToken ct = default)
 		{
+			// 1) Nếu user là BranchManager (hoặc dữ liệu không có membership) => lấy theo Branch.ManagerId
+			var managedBranch = (await _uow.Repository<Branch>().ListAsync(b => b.ManagerId == userId)).FirstOrDefault();
+			if (managedBranch != null)
+				return managedBranch.Id;
+
+			// 2) Staff => lấy theo membership
 			var memberships = await _uow.Repository<UserBranchMembership>()
-				.ListAsync(m => m.UserId == staffUserId);
+				.ListAsync(m => m.UserId == userId);
 			var branchId = memberships.Select(m => m.BranchId).FirstOrDefault();
 			if (branchId == Guid.Empty)
-				throw new AppException("Staff chưa được gán vào chi nhánh");
+				throw new AppException("Người dùng chưa được gán vào chi nhánh");
 			return branchId;
 		}
 
