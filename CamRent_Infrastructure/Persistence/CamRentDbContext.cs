@@ -49,6 +49,7 @@ namespace CamRent_Infrastructure.Persistence
 		public DbSet<Review> Reviews => Set<Review>();
 		public DbSet<HomePageCarouselItem> HomePageCarouselItems => Set<HomePageCarouselItem>();
 		public DbSet<HomePageBlock> HomePageBlocks => Set<HomePageBlock>();
+		public DbSet<BookingIssueReport> BookingIssueReports => Set<BookingIssueReport>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -150,6 +151,20 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(b => b.Branch)
                 .WithMany()
                 .HasForeignKey(b => b.BranchId);
+
+			modelBuilder.Entity<BookingIssueReport>()
+				.HasOne(r => r.Booking)
+				.WithMany()
+				.HasForeignKey(r => r.BookingId);
+			modelBuilder.Entity<BookingIssueReport>()
+				.HasOne(r => r.ReporterUser)
+				.WithMany()
+				.HasForeignKey(r => r.ReporterUserId);
+			modelBuilder.Entity<BookingIssueReport>()
+				.HasOne(r => r.HandledByStaff)
+				.WithMany()
+				.HasForeignKey(r => r.HandledByStaffId)
+				.OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Booking)

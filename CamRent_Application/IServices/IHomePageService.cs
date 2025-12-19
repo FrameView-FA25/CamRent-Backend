@@ -14,6 +14,7 @@ namespace CamRent_Application.IServices
 
 		Task<IReadOnlyList<BlockResponse>> GetBlocksAsync(bool includeInactive, CancellationToken ct = default);
 		Task<BlockResponse?> GetBlockByKeyAsync(string key, bool includeInactive, CancellationToken ct = default);
+		Task<Guid> CreateBlockAsync(string key, string title, string content, int sortOrder, bool isActive, IFormFile? image, Guid createdByUserId, CancellationToken ct = default);
 		Task<Guid> UpsertBlockAsync(string key, string title, string content, int sortOrder, bool isActive, IFormFile? image, Guid updatedByUserId, CancellationToken ct = default);
 		Task<bool> DeleteBlockAsync(string key, CancellationToken ct = default);
 
