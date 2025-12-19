@@ -3,7 +3,7 @@
 ## What’s added
 
 - DB entities for configurable checklist templates:
-  - `InspectionChecklistTemplate` (per `ItemType`, optional `InspectionType`, optional `BranchId`)
+  - `InspectionChecklistTemplate` (per `ItemType`, optional `InspectionType` — global across system)
   - `InspectionChecklistSection`
   - `InspectionChecklistItem` (allowed methods via join table)
   - `InspectionMethod` (admin-defined “phương pháp thực hiện”)

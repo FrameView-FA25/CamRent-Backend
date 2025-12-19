@@ -11,7 +11,6 @@ namespace CamRent_Application.DTOs
 			public string Name { get; set; } = string.Empty;
 			public ItemType ItemType { get; set; }
 			public InspectionType? InspectionType { get; set; }
-			public Guid? BranchId { get; set; }
 			public bool IsActive { get; set; }
 			public List<ChecklistSectionResponse> Sections { get; set; } = new();
 		}
@@ -47,7 +46,6 @@ namespace CamRent_Application.DTOs
 			public string Name { get; set; } = string.Empty;
 			public ItemType ItemType { get; set; }
 			public InspectionType? InspectionType { get; set; }
-			public Guid? BranchId { get; set; }
 			public bool IsActive { get; set; }
 			public DateTime CreatedAt { get; set; }
 			public DateTime? UpdatedAt { get; set; }
@@ -60,7 +58,6 @@ namespace CamRent_Application.DTOs
 			[Required]
 			public ItemType ItemType { get; set; }
 			public InspectionType? InspectionType { get; set; }
-			public Guid? BranchId { get; set; }
 			public bool IsActive { get; set; } = true;
 			public List<UpsertChecklistSectionRequest> Sections { get; set; } = new();
 		}

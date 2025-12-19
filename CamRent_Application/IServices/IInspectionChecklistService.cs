@@ -8,9 +8,9 @@ namespace CamRent_Application.IServices
 {
 	public interface IInspectionChecklistService
 	{
-		Task<ChecklistTemplateResponse?> GetActiveTemplateAsync(ItemType itemType, InspectionType? inspectionType, Guid? branchId);
+		Task<ChecklistTemplateResponse?> GetActiveTemplateAsync(ItemType itemType, InspectionType? inspectionType);
 		Task<ChecklistTemplateResponse?> GetTemplateByIdAsync(Guid id);
-		Task<List<ChecklistTemplateSummaryResponse>> ListTemplatesAsync(ItemType? itemType, InspectionType? inspectionType, Guid? branchId);
+		Task<List<ChecklistTemplateSummaryResponse>> ListTemplatesAsync(ItemType? itemType, InspectionType? inspectionType);
 
 		Task<Guid> CreateTemplateAsync(UpsertChecklistTemplateRequest request, Guid adminId);
 		Task<int> UpdateTemplateAsync(Guid id, UpsertChecklistTemplateRequest request, Guid adminId);
@@ -20,4 +20,3 @@ namespace CamRent_Application.IServices
 		Task<SubmitChecklistResultResponse> SubmitChecklistResultAsync(SubmitChecklistResultRequest request, Guid staffId);
 	}
 }
-

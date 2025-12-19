@@ -119,6 +119,25 @@ namespace CamRent_Application.Services
 						.Include(b => b.Payments)
 						.Include(b => b.Contracts));
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
+
+			foreach (var booking in results)
+			{
+				foreach (var item in booking.Items )
+				{
+					if (item.ItemType == ItemType.Camera.ToString())
+					{
+						var media = (await _unitOfWork.Repository<FileAsset>()
+							.ListAsync(f => f.OwnerType == FileOwnerType.Camera && f.OwnerId == item.ItemId)).ToList();
+						item.Media = _mapper.Map<List<FileAssetDTO>>(media);
+					}
+					else if (item.ItemType == ItemType.Accessory.ToString())
+					{
+						var media = (await _unitOfWork.Repository<FileAsset>()
+							.ListAsync(f => f.OwnerType == FileOwnerType.Accessory && f.OwnerId == item.ItemId)).ToList();
+						item.Media = _mapper.Map<List<FileAssetDTO>>(media);
+					}
+				}	
+			}
 			return results;
 		}
 
