@@ -246,12 +246,6 @@ namespace CamRent_Infrastructure.Persistence
                 .HasForeignKey(bi => bi.AccessoryId);
 
 			// Inspection checklist template relationships
-			modelBuilder.Entity<InspectionChecklistTemplate>()
-				.HasOne(t => t.Branch)
-				.WithMany()
-				.HasForeignKey(t => t.BranchId)
-				.OnDelete(DeleteBehavior.SetNull);
-
 			modelBuilder.Entity<InspectionChecklistSection>()
 				.HasOne(s => s.Template)
 				.WithMany(t => t.Sections)

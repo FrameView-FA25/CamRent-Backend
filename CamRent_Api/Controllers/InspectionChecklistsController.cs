@@ -22,10 +22,10 @@ namespace CamRent_Api.Controllers
 		// Staff: load active template for rendering checklist UI
 		[HttpGet("active")]
 		[Authorize(Policy = "Staff")]
-		[SwaggerOperation(Summary = "Lấy checklist template đang active", Description = "Trả về template checklist theo ItemType + InspectionType (+ BranchId nếu có).")]
-		public async Task<IActionResult> GetActive([FromQuery] ItemType itemType, [FromQuery] InspectionType? inspectionType, [FromQuery] Guid? branchId)
+		[SwaggerOperation(Summary = "Lấy checklist template đang active", Description = "Trả về template checklist theo ItemType + InspectionType.")]
+		public async Task<IActionResult> GetActive([FromQuery] ItemType itemType, [FromQuery] InspectionType? inspectionType)
 		{
-			var template = await _checklistService.GetActiveTemplateAsync(itemType, inspectionType, branchId);
+			var template = await _checklistService.GetActiveTemplateAsync(itemType, inspectionType);
 			if (template == null) return NotFound(new { Message = "Không tìm thấy checklist template đang active." });
 			return Ok(template);
 		}
@@ -34,9 +34,9 @@ namespace CamRent_Api.Controllers
 		[HttpGet]
 		[Authorize(Policy = "AdminOnly")]
 		[SwaggerOperation(Summary = "Danh sách checklist templates", Description = "Admin xem danh sách template checklist.")]
-		public async Task<IActionResult> List([FromQuery] ItemType? itemType, [FromQuery] InspectionType? inspectionType, [FromQuery] Guid? branchId)
+		public async Task<IActionResult> List([FromQuery] ItemType? itemType, [FromQuery] InspectionType? inspectionType)
 		{
-			var list = await _checklistService.ListTemplatesAsync(itemType, inspectionType, branchId);
+			var list = await _checklistService.ListTemplatesAsync(itemType, inspectionType);
 			return Ok(list);
 		}
 
@@ -87,7 +87,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPatch("{id:guid}/active")]
 		[Authorize(Policy = "AdminOnly")]
-		[SwaggerOperation(Summary = "Bật/tắt template", Description = "Admin bật/tắt template. Khi bật, các template khác cùng (ItemType, InspectionType, BranchId) sẽ bị tắt.")]
+		[SwaggerOperation(Summary = "Bật/tắt template", Description = "Admin bật/tắt template. Khi bật, các template khác cùng (ItemType, InspectionType) sẽ bị tắt.")]
 		public async Task<IActionResult> SetActive(Guid id, [FromBody] SetActiveRequest request)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -112,4 +112,3 @@ namespace CamRent_Api.Controllers
 		}
 	}
 }
-

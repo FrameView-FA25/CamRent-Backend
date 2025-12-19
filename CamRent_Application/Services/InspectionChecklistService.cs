@@ -17,18 +17,16 @@ namespace CamRent_Application.Services
 			_unitOfWork = unitOfWork;
 		}
 
-		public async Task<ChecklistTemplateResponse?> GetActiveTemplateAsync(ItemType itemType, InspectionType? inspectionType, Guid? branchId)
+		public async Task<ChecklistTemplateResponse?> GetActiveTemplateAsync(ItemType itemType, InspectionType? inspectionType)
 		{
 			var templates = (await _unitOfWork.Repository<InspectionChecklistTemplate>()
 				.ListAsync(
 					filter: t =>
 						t.ItemType == itemType &&
 						t.IsActive &&
-						(branchId == null || t.BranchId == branchId || t.BranchId == null) &&
 						(inspectionType == null || t.InspectionType == inspectionType || t.InspectionType == null),
 					orderBy: q => q
-						.OrderByDescending(t => branchId != null && t.BranchId == branchId)
-						.ThenByDescending(t => inspectionType != null && t.InspectionType == inspectionType)
+						.OrderByDescending(t => inspectionType != null && t.InspectionType == inspectionType)
 						.ThenByDescending(t => t.UpdatedAt ?? t.CreatedAt),
 					include: q => q
 						.Include(t => t.Sections)
@@ -57,14 +55,13 @@ namespace CamRent_Application.Services
 			return template == null ? null : MapTemplate(template);
 		}
 
-		public async Task<List<ChecklistTemplateSummaryResponse>> ListTemplatesAsync(ItemType? itemType, InspectionType? inspectionType, Guid? branchId)
+		public async Task<List<ChecklistTemplateSummaryResponse>> ListTemplatesAsync(ItemType? itemType, InspectionType? inspectionType)
 		{
 			var templates = (await _unitOfWork.Repository<InspectionChecklistTemplate>()
 				.ListAsync(
 					filter: t =>
 						(itemType == null || t.ItemType == itemType) &&
-						(inspectionType == null || t.InspectionType == inspectionType) &&
-						(branchId == null || t.BranchId == branchId),
+						(inspectionType == null || t.InspectionType == inspectionType),
 					orderBy: q => q.OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
 				)).ToList();
 
@@ -74,7 +71,6 @@ namespace CamRent_Application.Services
 				Name = t.Name,
 				ItemType = t.ItemType,
 				InspectionType = t.InspectionType,
-				BranchId = t.BranchId,
 				IsActive = t.IsActive,
 				CreatedAt = t.CreatedAt,
 				UpdatedAt = t.UpdatedAt
@@ -90,7 +86,6 @@ namespace CamRent_Application.Services
 				Name = request.Name.Trim(),
 				ItemType = request.ItemType,
 				InspectionType = request.InspectionType,
-				BranchId = request.BranchId,
 				IsActive = request.IsActive,
 				CreatedAt = DateTime.UtcNow,
 				CreatedByUserId = adminId
@@ -123,7 +118,7 @@ namespace CamRent_Application.Services
 
 			if (template.IsActive)
 			{
-				await DeactivateOthersAsync(template.ItemType, template.InspectionType, template.BranchId, excludeId: null);
+				await DeactivateOthersAsync(template.ItemType, template.InspectionType, excludeId: null);
 			}
 
 			await _unitOfWork.Repository<InspectionChecklistTemplate>().AddAsync(template);
@@ -163,7 +158,6 @@ namespace CamRent_Application.Services
 			template.Name = request.Name.Trim();
 			template.ItemType = request.ItemType;
 			template.InspectionType = request.InspectionType;
-			template.BranchId = request.BranchId;
 			template.IsActive = request.IsActive;
 			template.UpdatedAt = DateTime.UtcNow;
 			template.UpdatedByUserId = adminId;
@@ -196,7 +190,7 @@ namespace CamRent_Application.Services
 
 			if (template.IsActive)
 			{
-				await DeactivateOthersAsync(template.ItemType, template.InspectionType, template.BranchId, excludeId: template.Id);
+				await DeactivateOthersAsync(template.ItemType, template.InspectionType, excludeId: template.Id);
 			}
 
 			await _unitOfWork.Repository<InspectionChecklistTemplate>().UpdateAsync(template);
@@ -245,7 +239,7 @@ namespace CamRent_Application.Services
 
 			if (isActive)
 			{
-				await DeactivateOthersAsync(template.ItemType, template.InspectionType, template.BranchId, excludeId: template.Id);
+				await DeactivateOthersAsync(template.ItemType, template.InspectionType, excludeId: template.Id);
 			}
 
 			await _unitOfWork.Repository<InspectionChecklistTemplate>().UpdateAsync(template);
@@ -267,7 +261,7 @@ namespace CamRent_Application.Services
 			}
 
 			// validate checklist against active template
-			var activeTemplate = await GetActiveTemplateAsync(request.ItemType, request.Type, request.BranchId);
+			var activeTemplate = await GetActiveTemplateAsync(request.ItemType, request.Type);
 			if (activeTemplate == null)
 			{
 				throw new InvalidOperationException("No active checklist template found for this item type.");
@@ -364,13 +358,12 @@ namespace CamRent_Application.Services
 			};
 		}
 
-		private async Task DeactivateOthersAsync(ItemType itemType, InspectionType? inspectionType, Guid? branchId, Guid? excludeId)
+		private async Task DeactivateOthersAsync(ItemType itemType, InspectionType? inspectionType, Guid? excludeId)
 		{
 			var others = (await _unitOfWork.Repository<InspectionChecklistTemplate>()
 				.ListAsync(t =>
 					t.ItemType == itemType &&
 					t.InspectionType == inspectionType &&
-					t.BranchId == branchId &&
 					t.IsActive &&
 					(excludeId == null || t.Id != excludeId.Value)))
 				.ToList();
@@ -423,7 +416,6 @@ namespace CamRent_Application.Services
 				Name = template.Name,
 				ItemType = template.ItemType,
 				InspectionType = template.InspectionType,
-				BranchId = template.BranchId,
 				IsActive = template.IsActive,
 				Sections = template.Sections
 					.OrderBy(s => s.SortOrder)
