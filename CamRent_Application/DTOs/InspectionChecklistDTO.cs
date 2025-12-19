@@ -91,28 +91,6 @@ namespace CamRent_Application.DTOs
 			public bool IsActive { get; set; } = true;
 		}
 
-		// Staff submits checklist results in a single request (no files here)
-		public class SubmitChecklistResultRequest
-		{
-			[Required]
-			public ItemType ItemType { get; set; }
-			[Required]
-			public Guid ItemId { get; set; }
-			[Required]
-			public InspectionType Type { get; set; }
-			public HandoverType? HandoverType { get; set; }
-			[Required]
-			public Guid InspectionTypeId { get; set; } // BookingId or VerifyRequestId
-
-			public Guid? BranchId { get; set; }
-
-			// Optional: force overall result; otherwise derived from rows
-			public bool? Passed { get; set; }
-
-			[MinLength(1, ErrorMessage = "At least one checklist row is required.")]
-			public List<SubmitChecklistRowRequest> Rows { get; set; } = new();
-		}
-
 		public class SubmitChecklistRowRequest
 		{
 			[Required]
@@ -125,12 +103,6 @@ namespace CamRent_Application.DTOs
 
 			public bool? Passed { get; set; }
 			public string Notes { get; set; } = string.Empty;
-		}
-
-		public class SubmitChecklistResultResponse
-		{
-			public bool? OverallPassed { get; set; }
-			public List<Guid> InspectionIds { get; set; } = new();
 		}
 	}
 }

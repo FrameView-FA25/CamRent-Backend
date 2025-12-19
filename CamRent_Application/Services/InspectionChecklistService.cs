@@ -1,4 +1,3 @@
-using CamRent_Application.DTOs;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -139,7 +138,7 @@ namespace CamRent_Application.Services
 			var template = templates.FirstOrDefault();
 			if (template == null) return 0;
 
-			// Delete old children explicitly to avoid relying on cascade behavior without a migration
+			// delete old children explicitly
 			foreach (var section in template.Sections.ToList())
 			{
 				foreach (var item in section.Items.ToList())
@@ -199,7 +198,6 @@ namespace CamRent_Application.Services
 
 		public async Task<int> DeleteTemplateAsync(Guid id)
 		{
-			// Delete children first
 			var templates = (await _unitOfWork.Repository<InspectionChecklistTemplate>()
 				.ListAsync(
 					filter: t => t.Id == id,
@@ -246,118 +244,6 @@ namespace CamRent_Application.Services
 			return await _unitOfWork.Complete();
 		}
 
-		public async Task<SubmitChecklistResultResponse> SubmitChecklistResultAsync(SubmitChecklistResultRequest request, Guid staffId)
-		{
-			// validate booking/verification existence
-			if (request.Type == InspectionType.Booking)
-			{
-				var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(request.InspectionTypeId);
-				if (booking == null) throw new InvalidOperationException("Booking not found for the given InspectionTypeId.");
-			}
-			else if (request.Type == InspectionType.Verification)
-			{
-				var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(request.InspectionTypeId);
-				if (verification == null) throw new InvalidOperationException("VerificationRequest not found for the given InspectionTypeId.");
-			}
-
-			// validate checklist against active template
-			var activeTemplate = await GetActiveTemplateAsync(request.ItemType, request.Type);
-			if (activeTemplate == null)
-			{
-				throw new InvalidOperationException("No active checklist template found for this item type.");
-			}
-
-			static string Key(string section, string label)
-				=> $"{(section ?? string.Empty).Trim().ToLowerInvariant()}|{(label ?? string.Empty).Trim().ToLowerInvariant()}";
-
-			var allowed = activeTemplate.Sections
-				.SelectMany(s => s.Items.Select(i => new
-				{
-					Key = Key(s.Name, i.Label),
-					AllowedMethodIds = i.AllowedMethods.Select(m => m.Id).ToHashSet()
-				}))
-				.ToDictionary(x => x.Key, x => x.AllowedMethodIds);
-
-			foreach (var row in request.Rows)
-			{
-				var rowKey = Key(row.Section, row.Label);
-				if (!allowed.ContainsKey(rowKey))
-				{
-					throw new InvalidOperationException($"Checklist row is not part of the active template: [{row.Section}] {row.Label}");
-				}
-
-				var allowedMethodIds = allowed[rowKey];
-				foreach (var methodId in row.MethodIds.Distinct())
-				{
-					if (!allowedMethodIds.Contains(methodId))
-					{
-						throw new InvalidOperationException($"Method is not allowed for checklist row: [{row.Section}] {row.Label}");
-					}
-				}
-			}
-
-			var overallPassed = request.Passed ?? DeriveOverallPassed(request.Rows);
-			if (overallPassed != null)
-			{
-				await UpdateItemConfirmationAsync(request.ItemType, request.ItemId, overallPassed.Value);
-			}
-
-			// Validate method ids exist
-			await EnsureMethodsExistAsync(request.Rows.SelectMany(r => r.MethodIds));
-
-			var createdInspections = new List<Inspection>();
-			var methodSelections = new List<InspectionMethodSelection>();
-			foreach (var row in request.Rows)
-			{
-				var inspection = new Inspection
-				{
-					Id = Guid.NewGuid(),
-					Type = request.Type,
-					HandoverType = request.HandoverType,
-					BranchId = request.BranchId,
-					CreatedAt = DateTime.UtcNow,
-					CreatedByUserId = staffId,
-					Section = row.Section.Trim(),
-					Label = row.Label.Trim(),
-					Value = null,
-					Passed = row.Passed,
-					Notes = row.Notes ?? string.Empty,
-					BookingId = request.Type == InspectionType.Booking ? request.InspectionTypeId : null,
-					VerificationId = request.Type == InspectionType.Verification ? request.InspectionTypeId : null,
-					CameraId = request.ItemType == ItemType.Camera ? request.ItemId : null,
-					AccessoryId = request.ItemType == ItemType.Accessory ? request.ItemId : null
-				};
-
-				await _unitOfWork.Repository<Inspection>().AddAsync(inspection);
-				createdInspections.Add(inspection);
-
-				foreach (var methodId in row.MethodIds.Distinct())
-				{
-					methodSelections.Add(new InspectionMethodSelection
-					{
-						Id = Guid.NewGuid(),
-						InspectionId = inspection.Id,
-						MethodId = methodId,
-						CreatedAt = DateTime.UtcNow,
-						CreatedByUserId = staffId
-					});
-				}
-			}
-
-			foreach (var ms in methodSelections)
-			{
-				await _unitOfWork.Repository<InspectionMethodSelection>().AddAsync(ms);
-			}
-
-			await _unitOfWork.Complete();
-
-			return new SubmitChecklistResultResponse
-			{
-				OverallPassed = overallPassed,
-				InspectionIds = createdInspections.Select(i => i.Id).ToList()
-			};
-		}
-
 		private async Task DeactivateOthersAsync(ItemType itemType, InspectionType? inspectionType, Guid? excludeId)
 		{
 			var others = (await _unitOfWork.Repository<InspectionChecklistTemplate>()
@@ -377,35 +263,6 @@ namespace CamRent_Application.Services
 			}
 
 			await _unitOfWork.Complete();
-		}
-
-		private async Task UpdateItemConfirmationAsync(ItemType itemType, Guid itemId, bool passed)
-		{
-			if (itemType == ItemType.Camera)
-			{
-				var camera = await _unitOfWork.Repository<Camera>().GetByIdAsync(itemId);
-				if (camera != null)
-				{
-					camera.IsConfirmed = passed;
-					await _unitOfWork.Repository<Camera>().UpdateAsync(camera);
-				}
-			}
-			else if (itemType == ItemType.Accessory)
-			{
-				var accessory = await _unitOfWork.Repository<Accessory>().GetByIdAsync(itemId);
-				if (accessory != null)
-				{
-					accessory.IsConfirmed = passed;
-					await _unitOfWork.Repository<Accessory>().UpdateAsync(accessory);
-				}
-			}
-		}
-
-		private static bool? DeriveOverallPassed(List<SubmitChecklistRowRequest> rows)
-		{
-			if (rows.Any(r => r.Passed == false)) return false;
-			if (rows.Count > 0 && rows.All(r => r.Passed == true)) return true;
-			return null;
 		}
 
 		private static ChecklistTemplateResponse MapTemplate(InspectionChecklistTemplate template)
@@ -457,9 +314,8 @@ namespace CamRent_Application.Services
 				.ListAsync(m => ids.Contains(m.Id))).ToList();
 
 			if (methods.Count != ids.Count)
-			{
 				throw new InvalidOperationException("One or more inspection methods do not exist.");
-			}
 		}
 	}
 }
+

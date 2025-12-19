@@ -27,6 +27,7 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
+		public DbSet<InspectionForm> InspectionForms => Set<InspectionForm>();
 		public DbSet<InspectionMethod> InspectionMethods => Set<InspectionMethod>();
 		public DbSet<InspectionMethodSelection> InspectionMethodSelections => Set<InspectionMethodSelection>();
 		public DbSet<InspectionChecklistTemplate> InspectionChecklistTemplates => Set<InspectionChecklistTemplate>();
@@ -258,6 +259,24 @@ namespace CamRent_Infrastructure.Persistence
 				.HasForeignKey(i => i.SectionId)
 				.OnDelete(DeleteBehavior.Cascade);
 
+			modelBuilder.Entity<InspectionForm>()
+				.HasOne(f => f.Template)
+				.WithMany()
+				.HasForeignKey(f => f.TemplateId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<InspectionForm>()
+				.HasOne(f => f.Staff)
+				.WithMany()
+				.HasForeignKey(f => f.CreatedByUserId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<Inspection>()
+				.HasOne(i => i.Form)
+				.WithMany(f => f.Inspections)
+				.HasForeignKey(i => i.FormId)
+				.OnDelete(DeleteBehavior.SetNull);
+
 			modelBuilder.Entity<InspectionChecklistItemAllowedMethod>()
 				.HasOne(x => x.ChecklistItem)
 				.WithMany(i => i.AllowedMethods)
@@ -317,32 +336,7 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(vi => vi.AccessoryId);
 
-            modelBuilder.Entity<Inspection>()
-                         .HasOne(i => i.Booking)
-                         .WithMany(b => b.Inspections)
-                         .HasForeignKey(i => i.BookingId);
 
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Verification)
-                .WithMany(v => v.Inspections)
-                .HasForeignKey(i => i.VerificationId);
-
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Branch)
-                .WithMany()
-                .HasForeignKey(i => i.BranchId);
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Staff)
-                .WithMany()
-                .HasForeignKey(i => i.CreatedByUserId);
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Camera)
-                .WithMany()
-                .HasForeignKey(i => i.CameraId);
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Accessory)
-                .WithMany()
-                .HasForeignKey(i => i.AccessoryId);
 
 			modelBuilder.Entity<HomePageCarouselItem>()
 				.HasOne(x => x.ImageAsset)

@@ -9,11 +9,6 @@ namespace CamRent_Application.IServices
 {
 	public interface IInspectionService
 	{
-		Task<Guid> CreateInspectionAsync(InspectionRequest inspectionRequest, Guid staffId);
-		Task<List<InspectionResponseDTO>> GetByBookingAsync(Guid bookingId);
-		Task<List<InspectionResponseDTO>> GetByVerificationAsync(Guid verificationId);
 		Task<InspectionResponseDTO?> GetByIdAsync(Guid id);
-		Task<int> UpdateInspectionAsync(Guid id, UpdateInspectionRequest request, Guid staffId);
-		Task<int> DeleteInspectionAsync(Guid id);
 	}
 }
