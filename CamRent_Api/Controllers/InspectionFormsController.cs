@@ -34,7 +34,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("{id:guid}")]
-		[Authorize(Policy = "Staff")]
+		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Xem lại phiếu kiểm tra", Description = "Trả về phiếu checklist (header + rows) giống lúc tạo để có thể edit.")]
 		public async Task<IActionResult> GetById(Guid id)
 		{
@@ -44,7 +44,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("booking/{bookingId:guid}")]
-		[Authorize(Policy = "Staff")]
+		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Danh sách phiếu theo booking", Description = "Trả về các phiếu checklist đã tạo cho một booking.")]
 		public async Task<IActionResult> ListByBooking(Guid bookingId)
 		{
@@ -53,7 +53,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("verification/{verificationId:guid}")]
-		[Authorize(Policy = "Staff")]
+		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Danh sách phiếu theo verification", Description = "Trả về các phiếu checklist đã tạo cho một verification request.")]
 		public async Task<IActionResult> ListByVerification(Guid verificationId)
 		{
@@ -62,7 +62,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpPut("{id:guid}")]
-		[Authorize(Policy = "ManagerOrStaff")]
+		[Authorize(Policy = "Staff")]
 		[SwaggerOperation(Summary = "Cập nhật phiếu kiểm tra", Description = "Cập nhật pass/notes/methods cho các dòng trong phiếu.")]
 		public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInspectionFormRequest request)
 		{
