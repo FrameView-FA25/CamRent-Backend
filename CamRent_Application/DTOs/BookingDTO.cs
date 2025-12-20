@@ -46,8 +46,8 @@ namespace CamRent_Application.DTOs
 			public decimal SnapshotPlatformFeePercent { get; set; }
 			public decimal SnapshotRentalTotal { get; set; }
 			public decimal SnapshotDepositAmount { get; set; }
-			public ICollection<BookingItemDTO>? Items { get; set; } 
-			public ICollection<ContractResponse>? Contracts { get; set; } 
+			public ICollection<BookingItemDTO>? Items { get; set; }
+			public ICollection<ContractResponse>? Contracts { get; set; }
 			public ICollection<PaymentDTO>? Payments { get; set; }
 		}
 		public class Cart
@@ -144,8 +144,17 @@ namespace CamRent_Application.DTOs
 			public decimal AuthorizedAmount { get; set; }
 			public decimal CapturedAmount { get; set; }
 			public decimal RefundedAmount { get; set; }
-			public List<PaymentLine> Lines { get; set; } = new();
+			public List<PaymentLineDTO> Lines { get; set; } = new();
 
+		}
+		public class PaymentLineDTO
+		{
+			public Guid PaymentId { get; set; }
+			public string Type { get; set; } = string.Empty; // rental, deposit, delivery_fee, adjustment
+			public decimal Amount { get; set; }
+			public decimal CapturedAmount { get; set; }
+			public decimal RefundedAmount { get; set; }
+			public string Currency { get; set; } = "VND";
 		}
 	}
 }
