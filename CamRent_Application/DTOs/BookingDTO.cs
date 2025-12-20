@@ -48,7 +48,7 @@ namespace CamRent_Application.DTOs
 			public decimal SnapshotDepositAmount { get; set; }
 			public ICollection<BookingItemDTO>? Items { get; set; } 
 			public ICollection<ContractResponse>? Contracts { get; set; } 
-			public ICollection<Payment>? Payments { get; set; }
+			public ICollection<PaymentDTO>? Payments { get; set; }
 		}
 		public class Cart
 		{
