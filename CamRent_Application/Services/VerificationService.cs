@@ -306,49 +306,48 @@ namespace CamRent_Application.Services
 
 			if (status == VerificationStatus.Approved)
 			{
-				var manager = await userRepo.GetByIdAsync(managerId);
-				if (manager == null)
-					throw new InvalidOperationException($"Manager not found: {managerId}");
+				var manager = await userRepo.GetByIdAsync(managerId)
+					?? throw new InvalidOperationException($"Manager not found: {managerId}");
 
 				if (!manager.SignatureAssetId.HasValue)
 					throw new InvalidOperationException("Manager chưa có chữ ký (SignatureAssetId null).");
 
-				// Lấy contract của verification
 				var contract = await contractRepo.FirstOrDefaultAsync(c =>
-					c.VerificationId == id && c.Status == ContractStatus.PendingSignatures);
+					c.VerificationId == id && c.Status == ContractStatus.PendingSignatures)
+					?? throw new InvalidOperationException("Không tìm thấy contract PendingSignatures cho verification này.");
 
-				if (contract == null)
-					throw new InvalidOperationException("Không tìm thấy contract PendingSignatures cho verification này.");
-
-				// Lấy signer theo role Platform (manager ký)
 				var managerSigner = await signatureRepo.FirstOrDefaultAsync(s =>
 					s.ContractId == contract.Id &&
 					s.UserId == managerId &&
 					s.Role == ContractSignerRole.Platform);
 
-				// Nếu chưa có record signer thì tạo mới
 				if (managerSigner == null)
 				{
+					// Tạo mới: CHỈ AddAsync, KHÔNG UpdateAsync
 					managerSigner = new ContractSignature
 					{
 						ContractId = contract.Id,
 						UserId = managerId,
 						Role = ContractSignerRole.Platform,
-						IsSigned = false
+						SignatureAssetId = manager.SignatureAssetId,
+						SignedAt = DateTime.UtcNow,
+						IsSigned = true
 					};
 					await signatureRepo.AddAsync(managerSigner);
 				}
-
-				managerSigner.SignatureAssetId = manager.SignatureAssetId;
-				managerSigner.SignedAt = DateTime.UtcNow;
-				managerSigner.IsSigned = true;
-
-				await signatureRepo.UpdateAsync(managerSigner);
+				else
+				{
+					// Đã có: entity tracked -> chỉ set field
+					managerSigner.SignatureAssetId = manager.SignatureAssetId;
+					managerSigner.SignedAt = DateTime.UtcNow;
+					managerSigner.IsSigned = true;
+				}
 			}
 
-			await verificationRepo.UpdateAsync(verification);
+			// verification tracked -> không cần UpdateAsync
 			return await _unitOfWork.Complete();
 		}
+
 		/// <summary>
 		/// Xóa một verification cùng toàn bộ items con của nó.
 		/// </summary>
