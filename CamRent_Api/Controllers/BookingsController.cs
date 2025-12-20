@@ -90,28 +90,30 @@ namespace CamRent_Api.Controllers
 			var booking = await _bookingService.GetByIdAsync(bookingId);
 			if (bookingId == Guid.Empty)
 				return BadRequest("Tạo booking thất bại.");
-			if(booking.BranchId == null)
-				return Ok(new 
-				{
-					BookingId = bookingId
-				});
-
-			try
+			if(booking.BranchId != null && booking.Status == BookingStatus.Confirmed)
 			{
-				var contract = await _contractService.CreateBookingContractAsync(bookingId, userId);
-
-
-				return Ok(new
+				try
 				{
-					BookingId = bookingId,
-					ContractId = contract?.Id
-				});
+					var contract = await _contractService.CreateBookingContractAsync(bookingId, userId);
+
+
+					return Ok(new
+					{
+						BookingId = bookingId,
+						ContractId = contract?.Id
+					});
+				}
+				catch (AppException ex)
+				{
+					// tuỳ bạn: có thể vẫn trả về bookingId cho FE tiếp tục xử lý
+					return BadRequest(new { message = ex.Message, bookingId });
+				}
 			}
-			catch (AppException ex)
+			return Ok(new
 			{
-				// tuỳ bạn: có thể vẫn trả về bookingId cho FE tiếp tục xử lý
-				return BadRequest(new { message = ex.Message, bookingId });
-			}
+				BookingId = bookingId
+			});
+
 		}
 
 		[HttpGet("renterbookings")]
