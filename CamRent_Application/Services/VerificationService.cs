@@ -293,21 +293,60 @@ namespace CamRent_Application.Services
 		/// </summary>
 		public async Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string note, VerificationStatus status)
 		{
-			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(id);
+			var verificationRepo = _unitOfWork.Repository<VerificationRequest>();
+			var userRepo = _unitOfWork.Repository<User>();
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
+
+			var verification = await verificationRepo.GetByIdAsync(id);
 			if (verification == null) return 0;
+
 			verification.Status = status;
-			verification.Notes = note;
+			verification.Notes = note ?? string.Empty;
+
 			if (status == VerificationStatus.Approved)
 			{
-				var manager = await _unitOfWork.Repository<User>().GetByIdAsync(managerId);
-				var contract = await _unitOfWork.Repository<Contract>().FirstOrDefaultAsync(c => c.VerificationId == id && c.Status == ContractStatus.PendingSignatures);
-				var managerSigner = await _unitOfWork.Repository<ContractSignature>().FirstOrDefaultAsync(s => s.UserId == managerId && s.Role == ContractSignerRole.Platform && s.ContractId == contract.Id);
+				var manager = await userRepo.GetByIdAsync(managerId);
+				if (manager == null)
+					throw new InvalidOperationException($"Manager not found: {managerId}");
+
+				if (!manager.SignatureAssetId.HasValue)
+					throw new InvalidOperationException("Manager chưa có chữ ký (SignatureAssetId null).");
+
+				// Lấy contract của verification
+				var contract = await contractRepo.FirstOrDefaultAsync(c =>
+					c.VerificationId == id && c.Status == ContractStatus.PendingSignatures);
+
+				if (contract == null)
+					throw new InvalidOperationException("Không tìm thấy contract PendingSignatures cho verification này.");
+
+				// Lấy signer theo role Platform (manager ký)
+				var managerSigner = await signatureRepo.FirstOrDefaultAsync(s =>
+					s.ContractId == contract.Id &&
+					s.UserId == managerId &&
+					s.Role == ContractSignerRole.Platform);
+
+				// Nếu chưa có record signer thì tạo mới
+				if (managerSigner == null)
+				{
+					managerSigner = new ContractSignature
+					{
+						ContractId = contract.Id,
+						UserId = managerId,
+						Role = ContractSignerRole.Platform,
+						IsSigned = false
+					};
+					await signatureRepo.AddAsync(managerSigner);
+				}
 
 				managerSigner.SignatureAssetId = manager.SignatureAssetId;
 				managerSigner.SignedAt = DateTime.UtcNow;
 				managerSigner.IsSigned = true;
+
+				await signatureRepo.UpdateAsync(managerSigner);
 			}
-			await _unitOfWork.Repository<VerificationRequest>().UpdateAsync(verification);
+
+			await verificationRepo.UpdateAsync(verification);
 			return await _unitOfWork.Complete();
 		}
 		/// <summary>
