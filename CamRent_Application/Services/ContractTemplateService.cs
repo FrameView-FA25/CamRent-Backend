@@ -1,4 +1,5 @@
 using AutoMapper;
+using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
@@ -14,6 +15,7 @@ namespace CamRent_Application.Services
 	public class ContractTemplateService : IContractTemplateService
 	{
 		private readonly IMapper _mapper;
+		private readonly IUnitOfWork _uow;
 
 		// Màu sắc theo style hợp đồng “formal”
 		private static readonly string PrimaryColor = Colors.Grey.Darken4;  // tiêu đề lớn
@@ -21,9 +23,10 @@ namespace CamRent_Application.Services
 		private static readonly string BoxBorderColor = Colors.Grey.Darken2;  // viền box
 		private static readonly string DangerColor = Colors.Red.Darken2;   // cảnh báo
 
-		public ContractTemplateService(IMapper mapper)
+		public ContractTemplateService(IMapper mapper, IUnitOfWork uow)
 		{
 			_mapper = mapper;
+			_uow = uow;
 		}
 
 		#region SignatureBlock helper
@@ -89,13 +92,16 @@ namespace CamRent_Application.Services
 			// Tính số ngày thuê (ít nhất 1 ngày)
 			var rentalDays = Math.Max(1,
 				(booking.ReturnAt.Date - booking.PickupAt.Date).Days);
+			var returnAt = booking.ReturnAt.AddHours(7);
+			var pickupAt = booking.PickupAt.AddHours(7);
 
 			var totalRental = booking.SnapshotRentalTotal;      // tổng tiền thuê
 			var totalDeposit = booking.SnapshotDepositAmount;    // tổng tiền cọc
 			var grandTotal = totalRental + totalDeposit;
 
 			// Dòng tiền
-			var upfrontPercent = booking.SnapshotPlatformFeePercent;
+			var setting = await _uow.Repository<MoneyFlatformSetting>().FirstOrDefaultAsync(s => s.IsActive);
+			var upfrontPercent = setting.UpfrontPercent;  // % trả trước khi tạo booking
 			var upfrontRental = totalRental * upfrontPercent;   // 10% trả trước
 			var remainingRental = totalRental - upfrontRental;    // 90% còn lại
 			var payOnPickup = remainingRental + totalDeposit; // khi nhận máy
@@ -393,6 +399,7 @@ namespace CamRent_Application.Services
 						?? throw new Exception("Owner is null on VerificationRequest");
 			var branch = verification.Branch;
 			var items = _mapper.Map<List<VerificationItemDTO>>(verification.Items);
+			var setting = await _uow.Repository<MoneyFlatformSetting>().FirstOrDefaultAsync(s => s.IsActive);
 
 			return await Task.Run(() =>
 			{
@@ -537,10 +544,10 @@ namespace CamRent_Application.Services
 										"• Sau khi trừ phí nền tảng và các chi phí xử lý phát sinh (nếu có) theo tỷ lệ đã cấu hình trong tài khoản Owner trên hệ thống CamRent, phần doanh thu còn lại được thanh toán cho Bên A theo chu kỳ đối soát do CamRent quy định."
 									);
 									block.Item().Text(
-										"• Tỷ lệ chia sẻ doanh thu và phí nền tảng được hiển thị công khai trong phần cấu hình tài khoản Owner trên hệ thống CamRent và có hiệu lực khi Bên A chấp thuận. Mọi thay đổi tỷ lệ sẽ được lưu vết trên hệ thống."
+										"• Tỷ lệ chia sẻ doanh thu và phí nền tảng được hiển thị công khai trong phần cấu hình tài khoản Owner trên hệ thống CamRent và có hiệu lực khi Bên A chấp thuận. Mọi thay đổi tỷ lệ sẽ được lưu vết trên hệ thống.\n" 
 									);
+									col.Item().Text($"• Tỉ lệ ăn chia % hiện tại giữa hệ thống CamRent và Owner: {setting.PlatformFeePercent * 100}% và {setting.OwnerSharePercent * 100}%\n");
 								});
-
 							// V. Trách nhiệm các bên
 							col.Item().Text("6. Trách nhiệm của Bên A (Owner)")
 								.Bold().FontColor(SectionTitleColor);

@@ -45,14 +45,9 @@ namespace CamRent_Application.Services
 						.Include(b => b.Payments).ThenInclude(p => p.Lines)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);
-			if (result.Payments != null)
-			{
-				foreach (var pay in result.Payments.ToList())
-				{
-					if (pay.Status != PaymentStatus.Captured)
-						result.Payments.Remove(pay);
-				}
-			}
+			result.Payments = result.Payments?
+			.Where(p => p != null && p.Status == PaymentStatus.Captured)
+			.ToList() ?? new();
 
 			return result;
 		}
@@ -725,9 +720,20 @@ namespace CamRent_Application.Services
 			cart.SnapshotDepositAmount = depositTotal;
 
 			// 5) % phí nền tảng – thường lấy từ config
-			// Ví dụ bạn có IOptions<PlatformSettings> _platformSettings;
+			// Ví dụ bạn có IOptions<PlatformSettings> _platformSettings;	
 			const decimal platformFeePercent = 0.10m; // 10%
-			cart.SnapshotPlatformFeePercent = platformFeePercent;
+			var setting = await _unitOfWork.Repository<MoneyFlatformSetting>()
+			.FirstOrDefaultAsync(s => s.IsActive);
+			if (setting != null)
+			{
+				cart.SnapshotPlatformFeePercent = setting.PlatformFeePercent;
+			}
+			else
+			{
+				cart.SnapshotPlatformFeePercent = platformFeePercent;
+			}
+
+
 
 			// ====== CHUYỂN TRẠNG THÁI ======
 			cart.CreatedAt = DateTime.UtcNow;
