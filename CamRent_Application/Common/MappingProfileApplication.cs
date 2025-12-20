@@ -151,6 +151,7 @@ namespace CamRent_Application.Common
 			CreateMap<WalletTransaction, WalletTransactionResponse>();
 			CreateMap<Payment, PaymentDTO>()
 			.ForMember(d => d.Lines, opt => opt.MapFrom(s => s.Lines));
+			CreateMap<PaymentLine, PaymentLineDTO>();
 		}
 	}
 }
