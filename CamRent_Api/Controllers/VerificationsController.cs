@@ -143,6 +143,8 @@ namespace CamRent_Api.Controllers
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
+			if (!Guid.TryParse(userId, out var managerId))
+				return Unauthorized(new { Message = "Không lấy được managerId từ token." });
 			var result = await _verificationService.UpdateVerificationStatusAsync(id, Guid.Parse(userId), note, status);
 			if (result > 0)
 			{
