@@ -1,4 +1,4 @@
-﻿using CamRent_Application.IServices;
+using CamRent_Application.IServices;
 using CamRent_Application.Services;
 using CamRent_Domain.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
+using CamRent_Application.Common;
 using static CamRent_Application.DTOs.AuthDTO;
 using static CamRent_Application.DTOs.BranchDTO;
 
@@ -33,23 +34,91 @@ namespace CamRent_Api.Controllers
 			return Ok(branches);
 		}
 		[HttpGet("Memberships")]
-		[SwaggerOperation(Summary = "Lấy thành viên chi nhánh", Description = "Trả về danh sách membership của chi nhánh. Nếu người gọi là BranchManager sẽ trả kết quả theo manager. Quyền: Người dùng đã đăng nhập")]
-		public async Task<IActionResult> GetBranchMemberships(Guid? branchId)
+		[Authorize(Policy = "BranchManager")] // BranchManager OR Admin (the policy includes Admin)
+		[SwaggerOperation(
+			Summary = "Lấy thành viên chi nhánh",
+			Description = "BranchManager: không cần branchId, hệ thống tự lấy theo manager. Admin: bắt buộc truyền branchId để xem thành viên. Quyền: BranchManager, Admin")]
+		public async Task<IActionResult> GetBranchMemberships([FromQuery] Guid? branchId)
 		{
-			var userId = string.Empty;
 			var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
-			foreach (var role in roles)
-			{
-				if (role == UserRole.BranchManager.ToString())
+			var isManager = roles.Contains(UserRole.BranchManager.ToString());
+			var isAdmin = roles.Contains(UserRole.Admin.ToString());
+
+			Guid? managerId = null;
+			if (isManager && !branchId.HasValue)
 				{
-					userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+				var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
-				}
+				if (string.IsNullOrEmpty(userIdStr))
+					return Unauthorized();
+				managerId = Guid.Parse(userIdStr);
 			}
-			Guid? managerId = Guid.Parse(userId!);
+
+			// Admin phải truyền branchId để xem một chi nhánh cụ thể
+			if (isAdmin && !branchId.HasValue && managerId is null)
+				return BadRequest("branchId is required for admin");
+
 			var memberships = await _branchService.GetBranchMembershipsAsync(branchId, managerId);
 			return Ok(memberships);
+		}
+
+		[HttpGet("unassigned-staff")]
+		[Authorize(Policy = "AdminOnly")]
+		[SwaggerOperation(
+			Summary = "Danh sách Staff chưa thuộc chi nhánh",
+			Description = "Trả về các user có role Staff nhưng chưa có UserBranchMembership. Quyền: Admin")]
+		public async Task<IActionResult> GetUnassignedStaff()
+		{
+			var users = await _branchService.GetUnassignedStaffAsync();
+			return Ok(users);
+		}
+
+		[HttpGet("unassigned-managers")]
+		[Authorize(Policy = "AdminOnly")]
+		[SwaggerOperation(
+			Summary = "Danh sách BranchManager chưa thuộc chi nhánh",
+			Description = "Trả về các user có role BranchManager nhưng chưa có UserBranchMembership. Quyền: Admin")]
+		public async Task<IActionResult> GetUnassignedManagers()
+		{
+			var users = await _branchService.GetUnassignedManagersAsync();
+			return Ok(users);
+		}
+
+		[HttpDelete("{branchId:guid}/members/{userId:guid}")]
+		[Authorize(Policy = "BranchManager")] // BranchManager OR Admin
+		[SwaggerOperation(
+			Summary = "Xoá thành viên khỏi chi nhánh",
+			Description = "Xoá UserBranchMembership của user trong branch. Có kiểm tra điều kiện: booking/contract/verification/inspection/dispute trước khi xoá. Quyền: BranchManager, Admin")]
+		public async Task<IActionResult> RemoveMember(Guid branchId, Guid userId, CancellationToken ct)
+		{
+			var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+			var isAdmin = roles.Contains(UserRole.Admin.ToString());
+			var isManager = roles.Contains(UserRole.BranchManager.ToString());
+
+			// Nếu là BranchManager (không phải admin) thì chỉ được xoá trong chi nhánh mình quản lý
+			if (isManager && !isAdmin)
+			{
+				var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+								  ?? User.FindFirst("sub")?.Value
+								  ?? User.FindFirst("uid")?.Value;
+				if (string.IsNullOrEmpty(currentUserIdStr))
+					return Unauthorized();
+
+				var myBranchId = await _branchService.GetBranchIdByManagerIdAsync(Guid.Parse(currentUserIdStr));
+				if (myBranchId != branchId)
+					return Forbid();
+			}
+
+			try
+			{
+				await _branchService.RemoveMemberFromBranchAsync(branchId, userId, ct);
+				return NoContent();
+			}
+			catch (AppException ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
 		}
 		[HttpGet("{id:guid}")]
 		[SwaggerOperation(Summary = "Lấy chi nhánh theo id", Description = "Trả về thông tin chi nhánh theo id. Quyền: Người dùng đã đăng nhập")]

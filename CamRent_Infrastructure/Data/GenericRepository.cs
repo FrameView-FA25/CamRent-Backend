@@ -27,7 +27,14 @@ namespace CamRent_Infrastructure.Data
 
 		public Task UpdateAsync(T entity)
 		{
-			_context.Set<T>().Update(entity);
+			var entry = _context.Entry(entity);
+
+			if (entry.State == EntityState.Detached)
+				_context.Set<T>().Attach(entity);
+
+			// Không dùng Set.Update(entity) để tránh update nguyên graph
+			entry.State = EntityState.Modified;
+
 			return Task.CompletedTask;
 		}
 

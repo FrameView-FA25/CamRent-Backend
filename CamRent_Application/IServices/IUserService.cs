@@ -22,5 +22,6 @@ namespace CamRent_Application.IServices
 		Task<int> UpdateUserSignAsync(Guid userId, string signatureBase64);
 			// Cập nhật thông tin tài khoản cơ bản cho chính user (email, tên, phone, địa chỉ)
 			Task UpdateAccountAsync(Guid userId, string? email, string? fullName, string? phone, string? country, string? province, string? district);
+		Task<(Guid assetId, string url)> UpdateAvatarAsync(Guid userId, Microsoft.AspNetCore.Http.IFormFile avatarFile, CancellationToken ct = default);
 	}	
 }

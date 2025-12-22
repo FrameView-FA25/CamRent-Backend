@@ -25,10 +25,9 @@ namespace CamRent_Domain.Entities
         public decimal SnapshotRentalTotal { get; set; }
         public decimal SnapshotDepositAmount { get; set; }
 
-		public ICollection<BookingItem> Items { get; set; } = new List<BookingItem>();
-        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
-        public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
-		public ICollection<Inspection> Inspections { get; set; } = new List<Inspection>();
+		public ICollection<BookingItem>? Items { get; set; } 
+        public ICollection<Payment>? Payments { get; set; } 
+        public ICollection<Contract>? Contracts { get; set; } 
+		// Inspection rows are grouped by InspectionForm (phiếu); see InspectionForm APIs.
 	}
 }
-

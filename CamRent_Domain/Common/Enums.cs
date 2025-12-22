@@ -26,7 +26,10 @@ namespace CamRent_Domain.Common
         Inspection = 5,
         ContractDocument = 6,
 		ContractSignature = 7,
-		UserSignature = 8
+		UserSignature = 8,
+		HomePageCarousel = 9,
+		HomePageBlock = 10,
+		BookingReport = 11
 	}
     public enum DeviceCategory
     {
@@ -49,26 +52,23 @@ namespace CamRent_Domain.Common
         [Display(Name = "Giỏ hàng")]
         Draft = 0,
 
-        [Display(Name = "Chờ thanh toán")]
-        PendingApproval = 1,
-
         [Display(Name = "Đã xác nhận")]
-        Confirmed = 2,
+        Confirmed = 1,
 
         [Display(Name = "Đã nhận máy")]
-        PickedUp = 3,
+        PickedUp = 2,
 
         [Display(Name = "Đã trả")]
-        Returned = 4,
+        Returned = 3,
 
         [Display(Name = "Hoàn tất")]
-        Completed = 5,
+        Completed = 4,
 
         [Display(Name = "Đã hủy")]
-        Cancelled = 6,
+        Cancelled = 5,
 
         [Display(Name = "Quá hạn")]
-        Overdue = 7,
+        Overdue = 6,
     }
 
     public enum BookingType
@@ -164,7 +164,8 @@ namespace CamRent_Domain.Common
 	public enum PaymentMethod
 	{
 		PayOs = 1,
-		Wallet = 2
+		Wallet = 2,
+        Cash = 3
 	}
 }
 

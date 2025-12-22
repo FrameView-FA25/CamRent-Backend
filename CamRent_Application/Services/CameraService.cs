@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CamRent_Application.DTOs;
 using CamRent_Application.Common;
 using CamRent_Application.Interfaces;
@@ -117,10 +117,13 @@ namespace CamRent_Application.Services
 				.Distinct()
 				.ToHashSet();
 
-			// 2) Lấy danh sách camera không nằm trong tập unavailable, chỉ lấy camera đã confirmed
+			// 2) Lấy danh sách camera không nằm trong tập unavailable
+			// Note: trước đây endpoint này chỉ trả camera IsConfirmed=true.
+			// Nếu muốn FE/test thấy "khả dụng theo lịch" независимо trạng thái xác minh,
+			// thì bỏ lọc IsConfirmed ở đây.
 			var cameras = await _unitOfWork.Repository<Camera>()
 				.ListAsync(
-					filter: c => c.IsConfirmed && !unavailableCameraIds.Contains(c.Id),
+					filter: c => !unavailableCameraIds.Contains(c.Id),
 					include: c => c.Include(c => c.Branch).Include(c => c.OwnerUser)
 				);
 
@@ -171,15 +174,37 @@ namespace CamRent_Application.Services
 				.ToList();
 
 			// Inspections liên quan tới camera
-			var inspections = await _unitOfWork.Repository<Inspection>()
-				.ListAsync(i => i.CameraId == cameraId);
-			var inspectionDtos = _mapper.Map<List<InspectionDTO.InspectionResponseDTO>>(inspections);
+			var forms = await _unitOfWork.Repository<InspectionForm>()
+				.ListAsync(f => f.ItemType == ItemType.Camera && f.ItemId == cameraId,
+					include: q => q
+						.Include(f => f.Template)
+						.Include(f => f.Staff));
+
+			var inspectionForms = forms
+				.OrderByDescending(f => f.CreatedAt)
+				.Select(f => new InspectionFormDTO.InspectionFormSummaryResponse
+				{
+					Id = f.Id,
+					TemplateId = f.TemplateId,
+					TemplateName = f.Template.Name,
+					StaffId = f.CreatedByUserId,
+					StaffName = f.Staff != null ? f.Staff.FullName : null,
+					ItemType = f.ItemType,
+					ItemId = f.ItemId,
+					Type = f.Type,
+					HandoverType = f.HandoverType,
+					InspectionTypeId = f.InspectionTypeId,
+					BranchId = f.BranchId,
+					OverallPassed = f.OverallPassed,
+					CreatedAt = f.CreatedAt
+				})
+				.ToList();
 
 			return new CameraHistoryDTO
 			{
 				Camera = cameraDto,
 				Bookings = bookingHistory,
-				Inspections = inspectionDtos
+				InspectionForms = inspectionForms
 			};
 		}
 

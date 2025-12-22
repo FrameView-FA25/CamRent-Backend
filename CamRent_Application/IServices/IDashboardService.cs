@@ -18,5 +18,11 @@ namespace CamRent_Application.IServices
 
 		// Workload của tất cả staff trong chi nhánh mà manager đang quản lý
 		Task<StaffWorkloadSummaryDTO> GetStaffWorkloadForManagerAsync(Guid managerUserId, DateTime? from, DateTime? to, CancellationToken ct = default);
+
+		// Tìm staff trong chi nhánh của manager đang rảnh trong khoảng [start, end)
+		Task<AvailableStaffSummaryDTO> GetAvailableStaffForManagerAsync(Guid managerUserId, DateTime start, DateTime end, string type = "both", CancellationToken ct = default);
+
+		// Check 1 slot cụ thể của staff có thể gán booking/verification mới hay không
+		Task<StaffSlotAvailabilityDTO> CheckStaffSlotAvailabilityAsync(Guid staffUserId, DateTime date, int slotIndex, string type, CancellationToken ct = default);
 	}
 }

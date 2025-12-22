@@ -1,4 +1,4 @@
-﻿using CamRent_Domain.Common;
+using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
 using CamRent_Infrastructure.Persistence.SeedData;
 using Microsoft.EntityFrameworkCore;
@@ -25,34 +25,44 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<Camera> Cameras => Set<Camera>();
         public DbSet<Accessory> Accessories => Set<Accessory>();
         public DbSet<Booking> Bookings => Set<Booking>();
+        public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<Inspection> Inspections => Set<Inspection>();
+		public DbSet<InspectionForm> InspectionForms => Set<InspectionForm>();
+		public DbSet<InspectionMethod> InspectionMethods => Set<InspectionMethod>();
+		public DbSet<InspectionMethodSelection> InspectionMethodSelections => Set<InspectionMethodSelection>();
+		public DbSet<InspectionChecklistTemplate> InspectionChecklistTemplates => Set<InspectionChecklistTemplate>();
+		public DbSet<InspectionChecklistSection> InspectionChecklistSections => Set<InspectionChecklistSection>();
+		public DbSet<InspectionChecklistItem> InspectionChecklistItems => Set<InspectionChecklistItem>();
+		public DbSet<InspectionChecklistItemAllowedMethod> InspectionChecklistItemAllowedMethods => Set<InspectionChecklistItemAllowedMethod>();
         public DbSet<Contract> Contracts => Set<Contract>();
         public DbSet<ContractSignature> ContractSignatures => Set<ContractSignature>();
-		public DbSet<Review> Reviews => Set<Review>();
-        public DbSet<DeliveryTask> DeliveryTasks => Set<DeliveryTask>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<PaymentLine> PaymentLines => Set<PaymentLine>();
         public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
         public DbSet<Dispute> Disputes => Set<Dispute>();
         public DbSet<DisputeItem> DisputeItems => Set<DisputeItem>();
-        public DbSet<Category> Categories => Set<Category>();
-        public DbSet<DeviceCategoryLink> DeviceCategories => Set<DeviceCategoryLink>();
+
         public DbSet<Combo> Combos => Set<Combo>();
         public DbSet<ComboItem> ComboItems => Set<ComboItem>();
-        public DbSet<BookingItem> BookingItems => Set<BookingItem>();
         public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
         public DbSet<VerificationRequestItem> VerificationRequestItems => Set<VerificationRequestItem>();
-		public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
+        public DbSet<SeedHistory> SeedHistories => Set<SeedHistory>();
         public DbSet<ResetPasswordToken> ResetPasswordTokens => Set<ResetPasswordToken>();
         public DbSet<Wallet> Wallets => Set<Wallet>();
         public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
-		public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
+        public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
         public DbSet<MoneyFlatformSetting> MoneyFlatformSettings => Set<MoneyFlatformSetting>();
+		public DbSet<WorkSlotDefinition> WorkSlotDefinitions => Set<WorkSlotDefinition>();
+		public DbSet<Review> Reviews => Set<Review>();
+		public DbSet<HomePageCarouselItem> HomePageCarouselItems => Set<HomePageCarouselItem>();
+		public DbSet<HomePageBlock> HomePageBlocks => Set<HomePageBlock>();
+		public DbSet<BookingIssueReport> BookingIssueReports => Set<BookingIssueReport>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // snake_case convention
-            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+			
+			// snake_case convention
+			foreach (var entity in modelBuilder.Model.GetEntityTypes())
             {
                 entity.SetTableName(ToSnakeCase(entity.GetTableName()!));
                 foreach (var property in entity.GetProperties())
@@ -149,15 +159,29 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(b => b.BranchId);
 
+			modelBuilder.Entity<BookingIssueReport>()
+				.HasOne(r => r.Booking)
+				.WithMany()
+				.HasForeignKey(r => r.BookingId);
+			modelBuilder.Entity<BookingIssueReport>()
+				.HasOne(r => r.ReporterUser)
+				.WithMany()
+				.HasForeignKey(r => r.ReporterUserId);
+			modelBuilder.Entity<BookingIssueReport>()
+				.HasOne(r => r.HandledByStaff)
+				.WithMany()
+				.HasForeignKey(r => r.HandledByStaffId)
+				.OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Booking)
-                .WithMany( b => b.Contracts)
+                .WithMany(b => b.Contracts)
                 .HasForeignKey(c => c.BookingId);
             modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Verification)
-                .WithMany( v => v.Contracts)
+                .WithMany(v => v.Contracts)
                 .HasForeignKey(c => c.VerificationId);
-			modelBuilder.Entity<Contract>()
+            modelBuilder.Entity<Contract>()
                 .HasOne(c => c.FileAsset)
                 .WithMany()
                 .HasForeignKey(c => c.FileAssetId);
@@ -166,20 +190,14 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(c => c.BranchId);
 
-			modelBuilder.Entity<ContractSignature>()
+            modelBuilder.Entity<ContractSignature>()
                 .HasOne(s => s.Contract)
                 .WithMany(c => c.Signatures)
-                .HasForeignKey(s => s.ContractId); 
-
-
-			modelBuilder.Entity<DeliveryTask>()
-                .HasOne(t => t.Booking)
-                .WithMany()
-                .HasForeignKey(t => t.BookingId);
+                .HasForeignKey(s => s.ContractId);
 
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Booking)
-                .WithMany( b => b.Payments)
+                .WithMany(b => b.Payments)
                 .HasForeignKey(p => p.BookingId);
 
             modelBuilder.Entity<PaymentLine>()
@@ -197,20 +215,6 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany(d => d.Items)
                 .HasForeignKey(i => i.DisputeId);
 
-            modelBuilder.Entity<DeviceCategoryLink>()
-                .HasOne(dc => dc.Camera)
-                .WithMany(c => c.Categories)
-                .HasForeignKey(dc => dc.CameraId);
-
-            modelBuilder.Entity<DeviceCategoryLink>()
-                .HasOne(dc => dc.Accessory)
-                .WithMany(a => a.Categories)
-                .HasForeignKey(dc => dc.AccessoryId);
-
-            modelBuilder.Entity<DeviceCategoryLink>()
-                .HasOne(dc => dc.Category)
-                .WithMany()
-                .HasForeignKey(dc => dc.CategoryId);
 
             modelBuilder.Entity<ComboItem>()
                 .HasOne(ci => ci.Combo)
@@ -227,7 +231,7 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(ci => ci.AccessoryId);
 
-            modelBuilder.Entity<BookingItem>()
+			modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Booking)
                 .WithMany(b => b.Items)
                 .HasForeignKey(bi => bi.BookingId);
@@ -242,27 +246,82 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(bi => bi.AccessoryId);
 
+			// Inspection checklist template relationships
+			modelBuilder.Entity<InspectionChecklistSection>()
+				.HasOne(s => s.Template)
+				.WithMany(t => t.Sections)
+				.HasForeignKey(s => s.TemplateId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionChecklistItem>()
+				.HasOne(i => i.Section)
+				.WithMany(s => s.Items)
+				.HasForeignKey(i => i.SectionId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionForm>()
+				.HasOne(f => f.Template)
+				.WithMany()
+				.HasForeignKey(f => f.TemplateId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<InspectionForm>()
+				.HasOne(f => f.Staff)
+				.WithMany()
+				.HasForeignKey(f => f.CreatedByUserId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<Inspection>()
+				.HasOne(i => i.Form)
+				.WithMany(f => f.Inspections)
+				.HasForeignKey(i => i.FormId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<InspectionChecklistItemAllowedMethod>()
+				.HasOne(x => x.ChecklistItem)
+				.WithMany(i => i.AllowedMethods)
+				.HasForeignKey(x => x.ChecklistItemId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionChecklistItemAllowedMethod>()
+				.HasOne(x => x.Method)
+				.WithMany()
+				.HasForeignKey(x => x.MethodId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			modelBuilder.Entity<InspectionMethodSelection>()
+				.HasOne(x => x.Inspection)
+				.WithMany(i => i.MethodSelections)
+				.HasForeignKey(x => x.InspectionId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<InspectionMethodSelection>()
+				.HasOne(x => x.Method)
+				.WithMany()
+				.HasForeignKey(x => x.MethodId)
+				.OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<BookingItem>()
                 .HasOne(bi => bi.Combo)
                 .WithMany()
                 .HasForeignKey(bi => bi.ComboId);
-			modelBuilder.Entity<ResetPasswordToken>()
+            modelBuilder.Entity<ResetPasswordToken>()
 	            .HasOne(t => t.User)
 	            .WithMany()
 	            .HasForeignKey(t => t.UserId);
 
-			modelBuilder.Entity<VerificationRequest>()
-                .HasOne(v => v.Staff)
-                .WithMany()
-                .HasForeignKey(v => v.StaffId);
+            modelBuilder.Entity<VerificationRequest>()
+                         .HasOne(v => v.Staff)
+                         .WithMany()
+                         .HasForeignKey(v => v.StaffId);
             modelBuilder.Entity<VerificationRequest>()
                 .HasOne(v => v.Owner)
                 .WithMany()
                 .HasForeignKey(v => v.CreatedByUserId);
-			modelBuilder.Entity<VerificationRequest>()
-                .HasOne(v => v.Branch)
-                .WithMany()
-                .HasForeignKey(v => v.BranchId);
+            modelBuilder.Entity<VerificationRequest>()
+                         .HasOne(v => v.Branch)
+                         .WithMany()
+                         .HasForeignKey(v => v.BranchId);
 
             modelBuilder.Entity<VerificationRequestItem>()
                 .HasOne(vi => vi.VerificationRequest)
@@ -277,37 +336,28 @@ namespace CamRent_Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(vi => vi.AccessoryId);
 
-			modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Booking)
-                .WithMany(b => b.Inspections)
-                .HasForeignKey(i => i.BookingId);
 
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Verification)
-                .WithMany(v => v.Inspections)
-                .HasForeignKey(i => i.VerificationId);
 
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Branch)
-                .WithMany()
-                .HasForeignKey(i => i.BranchId);
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Staff)
-                .WithMany()
-                .HasForeignKey(i => i.CreatedByUserId);
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Camera)
-                .WithMany()
-                .HasForeignKey(i => i.CameraId);
-            modelBuilder.Entity<Inspection>()
-                .HasOne(i => i.Accessory)
-                .WithMany()
-                .HasForeignKey(i => i.AccessoryId);
+			modelBuilder.Entity<HomePageCarouselItem>()
+				.HasOne(x => x.ImageAsset)
+				.WithMany()
+				.HasForeignKey(x => x.ImageAssetId)
+				.OnDelete(DeleteBehavior.SetNull);
 
-			modelBuilder.Entity<HandoverReceipt>()
-                .HasOne(hr => hr.Contract)
-                .WithMany()
-                .HasForeignKey(hr => hr.ContractId);
+			modelBuilder.Entity<HomePageBlock>()
+				.HasOne(x => x.ImageAsset)
+				.WithMany()
+				.HasForeignKey(x => x.ImageAssetId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<HomePageBlock>()
+				.HasIndex(x => x.Key)
+				.IsUnique();
+
+            modelBuilder.Entity<HandoverReceipt>()
+                         .HasOne(hr => hr.Contract)
+                         .WithMany()
+                         .HasForeignKey(hr => hr.ContractId);
             modelBuilder.Entity<HandoverReceipt>()
                 .HasOne(hr => hr.User)
                 .WithMany()
@@ -340,9 +390,28 @@ namespace CamRent_Infrastructure.Persistence
                 .HasOne(wt => wt.Booking)
                 .WithMany()
                 .HasForeignKey(wt => wt.BookingId);
+
+			//modelBuilder.Entity<DeliveryTask>()
+			//             .HasOne(t => t.Booking)
+			//             .WithMany()
+			//             .HasForeignKey(t => t.BookingId);
+			//modelBuilder.Entity<DeviceCategoryLink>()
+			//    .HasOne(dc => dc.Camera)
+			//    .WithMany(c => c.Categories)
+			//    .HasForeignKey(dc => dc.CameraId);
+
+			//modelBuilder.Entity<DeviceCategoryLink>()
+			//    .HasOne(dc => dc.Accessory)
+			//    .WithMany(a => a.Categories)
+			//    .HasForeignKey(dc => dc.AccessoryId);
+
+			//modelBuilder.Entity<DeviceCategoryLink>()
+			//    .HasOne(dc => dc.Category)
+			//    .WithMany()
+			//    .HasForeignKey(dc => dc.CategoryId);
 		}
 
-        private static string ToSnakeCase(string name)
+		private static string ToSnakeCase(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return name;
             var chars = new List<char>(name.Length + 10);
@@ -399,4 +468,3 @@ namespace CamRent_Infrastructure.Persistence
 		}
 	}
 }
-

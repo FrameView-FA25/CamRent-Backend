@@ -42,11 +42,12 @@ namespace CamRent_Application.Services
 		}
 
 		// THANH TOÁN BẰNG VÍ (ĐÃ CAPTURE LUÔN) - DÙNG CHO 10% HOẶC 90%+CỌC TUỲ CÁCH GỌI
-		public async Task<Guid> CreateWalletPaymentAsync(
+		public async Task<Guid> CreatePaymentAsync(
 			Guid bookingId,
 			decimal rentalAmount,     // phần tiền thuê trong lần này (10% hoặc 90%)
 			decimal depositAmount,    // cọc thiết bị (nếu có, thường chỉ ở lần 2)
 			PaymentType mode,
+			PaymentMethod method,
 			decimal capturedAmount)
 		{
 			var payment = new Payment
@@ -54,7 +55,7 @@ namespace CamRent_Application.Services
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				Status = PaymentStatus.Captured,
-				Provider = "Wallet",
+				Provider = method.ToString(),
 				Purpose = "booking",
 				AuthorizedAmount = capturedAmount,
 				CapturedAmount = capturedAmount,
@@ -103,14 +104,18 @@ namespace CamRent_Application.Services
 		{
 			// Số tiền thu lần này = phần thuê + cọc thiết bị (nếu có)
 			decimal authorizedAmount = authorizedAmountOverride ?? (rentalAmount + depositAmount);
-
+			string purpose = "booking";
+			if(depositAmount == 0)
+			{
+				purpose = "reserve";
+			}
 			var payment = new Payment
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				Status = PaymentStatus.Authorized,
 				Provider = "PayOS",
-				Purpose = "booking",
+				Purpose = purpose,
 				AuthorizedAmount = authorizedAmount,
 				CapturedAmount = 0,
 				RefundedAmount = 0,
@@ -118,8 +123,6 @@ namespace CamRent_Application.Services
 			};
 
 			await _unitOfWork.Repository<Payment>().AddAsync(payment);
-			var booking = await _unitOfWork.Repository<Booking>().GetByIdAsync(bookingId);
-			booking.Status = BookingStatus.PendingApproval;
 			// ---------- LINE CHI TIẾT ----------
 			if (rentalAmount > 0)
 			{
@@ -166,7 +169,7 @@ namespace CamRent_Application.Services
 			{
 				var bookingRepo = _unitOfWork.Repository<Booking>();
 				var booking = await bookingRepo.GetByIdAsync(payment.BookingId.Value);
-				if (booking != null && booking.Status == BookingStatus.PendingApproval)
+				if (booking != null)
 				{
 					booking.Status = BookingStatus.Confirmed;
 					await bookingRepo.UpdateAsync(booking);

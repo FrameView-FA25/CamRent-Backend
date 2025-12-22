@@ -53,6 +53,7 @@ namespace CamRent_Application.Services
 			}	
 			verification.CreatedByUserId = ownerId;
 			verification.CreatedAt = DateTime.UtcNow;
+			verification.Status = VerificationStatus.Pending;
 
 			// đảm bảo EF hiểu quan hệ cha–con (nếu bạn dùng navigation)
 			foreach (var item in verification.Items)
@@ -72,10 +73,27 @@ namespace CamRent_Application.Services
 		/// </summary>
 		public async Task<List<VerificationItemDTO>> GetUnverifiedDevicesForOwnerAsync(Guid ownerId)
 		{
-			var cameras = await _unitOfWork.Repository<Camera>()
-				.ListAsync(c => c.OwnerUserId == ownerId && !c.IsConfirmed);
-			var accessories = await _unitOfWork.Repository<Accessory>()
-				.ListAsync(a => a.OwnerUserId == ownerId && !a.IsConfirmed);
+			var cameras = (await _unitOfWork.Repository<Camera>()
+				.ListAsync(c => c.OwnerUserId == ownerId && !c.IsConfirmed)).ToList();
+			var accessories = (await _unitOfWork.Repository<Accessory>()
+				.ListAsync(a => a.OwnerUserId == ownerId && !a.IsConfirmed)).ToList();
+			var verifications = await _unitOfWork.Repository<VerificationRequest>()
+				.ListAsync(v => v.CreatedByUserId == ownerId && v.Status == VerificationStatus.Pending,
+					include: q => q.Include(v => v.Items));
+			foreach (var ver in verifications)
+			{
+				foreach (var item in ver.Items)
+				{
+					if (item.CameraId != null)
+					{
+						cameras.RemoveAll(c => c.Id == item.CameraId.Value);
+					}
+					else if (item.AccessoryId != null)
+					{
+						accessories.RemoveAll(a => a.Id == item.AccessoryId.Value);
+					}
+				}
+			}
 
 			var result = new List<VerificationItemDTO>();
 
@@ -109,26 +127,13 @@ namespace CamRent_Application.Services
 					include: q => q
 						.Include(v => v.Branch)
 						.Include(v => v.Staff)
-						.Include(v => v.Inspections)
+
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -144,26 +149,13 @@ namespace CamRent_Application.Services
 					include: q => q
 						.Include(v => v.Branch)
 						.Include(v => v.Staff)
-						.Include(v => v.Inspections)
+
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -180,25 +172,12 @@ namespace CamRent_Application.Services
 					include: q => q
 						.Include(v => v.Branch)
 						.Include(v => v.Staff)
-						.Include(v => v.Inspections)
+
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -216,24 +195,11 @@ namespace CamRent_Application.Services
 						.Include(v => v.Staff)
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
-						.Include(v => v.Inspections)
+
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				);
 
 			var response = _mapper.Map<List<VerificationResponseDTO>>(verifications);
-			foreach (var ver in response)
-			{
-				foreach (var insp in ver.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
 			return response;
 		}
 
@@ -252,23 +218,12 @@ namespace CamRent_Application.Services
 						.Include(v => v.Staff)
 						.Include(v => v.Items).ThenInclude(i => i.Camera)
 						.Include(v => v.Items).ThenInclude(i => i.Accessory)
-						.Include(v => v.Inspections)
+
 						.Include(b => b.Contracts).ThenInclude(c => c.Signatures)
 				)).FirstOrDefault();
 			if (verification == null) return null;
 			var response = _mapper.Map<VerificationResponseDTO>(verification);
-			if(response.Inspections != null)
-			{
-				foreach (var insp in response.Inspections)
-				{
-					var inspFiles = await _unitOfWork.Repository<FileAsset>().FirstOrDefaultAsync(f => f.OwnerType == FileOwnerType.Inspection && f.OwnerId == insp.Id);
-					if (inspFiles != null)
-					{
-						var file = _mapper.Map<FileAssetDTO>(inspFiles);
-						insp.Media.Add(file);
-					}
-				}
-			}
+
 
 			return response;
 		}
@@ -338,23 +293,61 @@ namespace CamRent_Application.Services
 		/// </summary>
 		public async Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string note, VerificationStatus status)
 		{
-			var verification = await _unitOfWork.Repository<VerificationRequest>().GetByIdAsync(id);
+			var verificationRepo = _unitOfWork.Repository<VerificationRequest>();
+			var userRepo = _unitOfWork.Repository<User>();
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
+
+			var verification = await verificationRepo.GetByIdAsync(id);
 			if (verification == null) return 0;
+
 			verification.Status = status;
-			verification.Notes = note;
+			verification.Notes = note ?? string.Empty;
+
 			if (status == VerificationStatus.Approved)
 			{
-				var manager = await _unitOfWork.Repository<User>().GetByIdAsync(managerId);
-				var contract = await _unitOfWork.Repository<Contract>().FirstOrDefaultAsync(c => c.VerificationId == id && c.Status == ContractStatus.PendingSignatures);
-				var managerSigner = await _unitOfWork.Repository<ContractSignature>().FirstOrDefaultAsync(s => s.UserId == managerId && s.Role == ContractSignerRole.Platform && s.ContractId == contract.Id);
+				var manager = await userRepo.GetByIdAsync(managerId)
+					?? throw new InvalidOperationException($"Manager not found: {managerId}");
 
-				managerSigner.SignatureAssetId = manager.SignatureAssetId;
-				managerSigner.SignedAt = DateTime.UtcNow;
-				managerSigner.IsSigned = true;
+				if (!manager.SignatureAssetId.HasValue)
+					throw new InvalidOperationException("Manager chưa có chữ ký (SignatureAssetId null).");
+
+				var contract = await contractRepo.FirstOrDefaultAsync(c =>
+					c.VerificationId == id && c.Status == ContractStatus.PendingSignatures)
+					?? throw new InvalidOperationException("Không tìm thấy contract PendingSignatures cho verification này.");
+
+				var managerSigner = await signatureRepo.FirstOrDefaultAsync(s =>
+					s.ContractId == contract.Id &&
+					s.UserId == managerId &&
+					s.Role == ContractSignerRole.Platform);
+
+				if (managerSigner == null)
+				{
+					// Tạo mới: CHỈ AddAsync, KHÔNG UpdateAsync
+					managerSigner = new ContractSignature
+					{
+						ContractId = contract.Id,
+						UserId = managerId,
+						Role = ContractSignerRole.Platform,
+						SignatureAssetId = manager.SignatureAssetId,
+						SignedAt = DateTime.UtcNow,
+						IsSigned = true
+					};
+					await signatureRepo.AddAsync(managerSigner);
+				}
+				else
+				{
+					// Đã có: entity tracked -> chỉ set field
+					managerSigner.SignatureAssetId = manager.SignatureAssetId;
+					managerSigner.SignedAt = DateTime.UtcNow;
+					managerSigner.IsSigned = true;
+				}
 			}
-			await _unitOfWork.Repository<VerificationRequest>().UpdateAsync(verification);
+
+			// verification tracked -> không cần UpdateAsync
 			return await _unitOfWork.Complete();
 		}
+
 		/// <summary>
 		/// Xóa một verification cùng toàn bộ items con của nó.
 		/// </summary>

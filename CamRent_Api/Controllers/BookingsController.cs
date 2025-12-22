@@ -90,28 +90,30 @@ namespace CamRent_Api.Controllers
 			var booking = await _bookingService.GetByIdAsync(bookingId);
 			if (bookingId == Guid.Empty)
 				return BadRequest("Tạo booking thất bại.");
-			if(booking.BranchId == null)
-				return Ok(new 
-				{
-					BookingId = bookingId
-				});
-
-			try
+			if(booking.BranchId != null && booking.Status == BookingStatus.Confirmed)
 			{
-				var contract = await _contractService.CreateBookingContractAsync(bookingId, userId);
-
-
-				return Ok(new
+				try
 				{
-					BookingId = bookingId,
-					ContractId = contract?.Id
-				});
+					var contract = await _contractService.CreateBookingContractAsync(bookingId, userId);
+
+
+					return Ok(new
+					{
+						BookingId = bookingId,
+						ContractId = contract?.Id
+					});
+				}
+				catch (AppException ex)
+				{
+					// tuỳ bạn: có thể vẫn trả về bookingId cho FE tiếp tục xử lý
+					return BadRequest(new { message = ex.Message, bookingId });
+				}
 			}
-			catch (AppException ex)
+			return Ok(new
 			{
-				// tuỳ bạn: có thể vẫn trả về bookingId cho FE tiếp tục xử lý
-				return BadRequest(new { message = ex.Message, bookingId });
-			}
+				BookingId = bookingId
+			});
+
 		}
 
 		[HttpGet("renterbookings")]
@@ -220,6 +222,42 @@ namespace CamRent_Api.Controllers
 			return Ok(bookings);
 		}
 
+		// Owner xem danh sách renter đã từng thuê thiết bị của mình
+		[HttpGet("owner/renters")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(
+			Summary = "Danh sách khách thuê thiết bị của owner",
+			Description = "Trả về danh sách renter đã từng thuê ít nhất một camera/phụ kiện thuộc owner hiện tại, kèm tổng số booking và lần thuê gần nhất.")]
+		public async Task<ActionResult<IEnumerable<OwnerRenterSummaryDTO>>> GetOwnerRenters()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var renters = await _bookingService.GetOwnerRentersAsync(Guid.Parse(userId));
+			return Ok(renters);
+		}
+
+		// Owner xem lịch sử booking với một renter cụ thể (chỉ các thiết bị thuộc owner)
+		[HttpGet("owner/renters/{renterId:guid}/bookings")]
+		[Authorize(Policy = "Owner")]
+		[SwaggerOperation(
+			Summary = "Lịch sử booking của một khách đối với thiết bị owner",
+			Description = "Trả về danh sách booking giữa owner hiện tại và renter chỉ định, chỉ bao gồm các items thuộc owner.")]
+		public async Task<ActionResult<IEnumerable<OwnerRenterBookingDTO>>> GetOwnerRenterBookings(Guid renterId)
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+					  ?? User.FindFirst("sub")?.Value
+					  ?? User.FindFirst("uid")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var result = await _bookingService.GetOwnerRenterBookingsAsync(Guid.Parse(userId), renterId);
+			return Ok(result);
+		}
+
 		/// <summary>
 		/// Lịch bận của một thiết bị (camera/phụ kiện/combo) để hiển thị calendar tránh trùng lịch.
 		/// </summary>
@@ -232,37 +270,33 @@ namespace CamRent_Api.Controllers
 			var ranges = await _bookingService.GetUnavailableRangesForItemAsync(itemId, type, HttpContext.RequestAborted);
 			return Ok(ranges);
 		}
+
 		[HttpPut("{id:guid}/update-status")]
-		[Authorize(Policy = "ManagerOrStaff")]
-		public async Task<IActionResult> UpdateBookingStatus(Guid id, BookingStatus status)
+		[Authorize(Roles = "Staff,Renter,BranchManager")]
+		public async Task<IActionResult> UpdateBookingStatus(Guid id, [FromQuery] BookingStatus status)
 		{
 			var result = await _bookingService.UpdateBookingStatusAsync(id, status);
-			if (result > 0)
+			if (result <= 0) return BadRequest();
+
+			var booking = await _bookingService.GetByIdAsync(id);
+			if (booking != null)
 			{
-				// Bắn signalr cho renter, staff, manager, owner liên quan biết booking đổi trạng thái
-				var booking = await _bookingService.GetByIdAsync(id);
-				if (booking != null)
+				var renterId = booking.RenterId?.ToString();
+				if (!string.IsNullOrEmpty(renterId))
 				{
-					var renterId = booking.RenterId?.ToString();
-					if (!string.IsNullOrEmpty(renterId))
-					{
-						await _hub.Clients.User(renterId)
-							.SendAsync("BookingUpdated", new { booking.Id, booking.Status, booking.StatusText });
-					}
-
-					// Broadcast theo role để dashboard Staff/Manager/Admin có thể reload
-					await _hub.Clients.Group("role:Staff")
-						.SendAsync("BookingUpdatedForStaff", new { booking.Id, booking.Status, booking.StatusText });
-					await _hub.Clients.Group("role:BranchManager")
-						.SendAsync("BookingUpdatedForManager", new { booking.Id, booking.Status, booking.StatusText });
-					await _hub.Clients.Group("role:Admin")
-						.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
+					await _hub.Clients.User(renterId)
+						.SendAsync("BookingUpdated", new { booking.Id, booking.Status, booking.StatusText });
 				}
-				return NoContent();
-			}
-			return BadRequest();
-		}
 
-		
+				await _hub.Clients.Group("role:Staff")
+					.SendAsync("BookingUpdatedForStaff", new { booking.Id, booking.Status, booking.StatusText });
+				await _hub.Clients.Group("role:BranchManager")
+					.SendAsync("BookingUpdatedForManager", new { booking.Id, booking.Status, booking.StatusText });
+				await _hub.Clients.Group("role:Admin")
+					.SendAsync("BookingUpdatedForAdmin", new { booking.Id, booking.Status, booking.StatusText });
+			}
+
+			return Ok(new { message = "Cập nhật trạng thái " + status.GetDisplayName() });
+		}
 	}
 }

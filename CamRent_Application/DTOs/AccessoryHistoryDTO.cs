@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CamRent_Domain.Common;
+using static CamRent_Application.DTOs.InspectionFormDTO;
 
 namespace CamRent_Application.DTOs
 {
@@ -8,7 +9,7 @@ namespace CamRent_Application.DTOs
 	{
 		public AccessoryDTO.AccessoryResponseDTO Accessory { get; set; } = default!;
 		public List<AccessoryBookingHistoryItem> Bookings { get; set; } = new();
-		public List<InspectionDTO.InspectionResponseDTO> Inspections { get; set; } = new();
+		public List<InspectionFormSummaryResponse> InspectionForms { get; set; } = new();
 	}
 
 	public class AccessoryBookingHistoryItem
@@ -21,6 +22,5 @@ namespace CamRent_Application.DTOs
 		public string? RenterName { get; set; }
 	}
 }
-
 
 

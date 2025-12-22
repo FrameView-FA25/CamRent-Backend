@@ -15,11 +15,12 @@ namespace CamRent_Application.IServices
 		Task<Payment?> GetByIdAsync(Guid paymentId);
 
 		Task<Guid> CreateTopupPaymentAsync(Guid userId, decimal amount);
-		Task<Guid> CreateWalletPaymentAsync(
+		Task<Guid> CreatePaymentAsync(
 			Guid bookingId,
 			decimal rentalAmount,
 			decimal depositAmount,
 			PaymentType mode,
+			PaymentMethod method,
 			decimal capturedAmount);
 	}
 }

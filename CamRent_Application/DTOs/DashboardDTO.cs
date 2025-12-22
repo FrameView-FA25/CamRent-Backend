@@ -67,6 +67,22 @@ namespace CamRent_Application.DTOs
 		public int TotalBookings { get; set; }
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
 		public decimal TotalCapturedRevenue { get; set; }
+		/// <summary>
+		/// Doanh thu gộp ước tính của chi nhánh (dựa trên BookingItem.UnitPrice * số ngày).
+		/// </summary>
+		public decimal TotalGrossRevenue { get; set; }
+		/// <summary>
+		/// Top thiết bị được thuê nhiều nhất trong chi nhánh.
+		/// </summary>
+		public List<OwnerAssetStat> TopRentedAssets { get; set; } = new();
+		/// <summary>
+		/// Biểu đồ theo ngày (30 ngày gần nhất) dựa trên PickupAt.
+		/// </summary>
+		public List<DashboardTimePoint> DailyStats { get; set; } = new();
+		/// <summary>
+		/// Biểu đồ theo tháng (12 tháng gần nhất) dựa trên PickupAt.
+		/// </summary>
+		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
 		public int OpenDisputes { get; set; }
 	}
 
@@ -140,5 +156,76 @@ namespace CamRent_Application.DTOs
 		public Guid BranchId { get; set; }
 		public string BranchName { get; set; } = string.Empty;
 		public List<StaffWorkloadItemDTO> Staffs { get; set; } = new();
+	}
+
+	/// <summary>
+	/// Thông tin availability của staff trong một khoảng thời gian cụ thể,
+	/// phục vụ cho BranchManager chọn người để gán booking/verification mới.
+	/// </summary>
+	public class AvailableStaffItemDTO
+	{
+		public Guid StaffId { get; set; }
+		public string StaffName { get; set; } = string.Empty;
+		public bool IsAvailable { get; set; }
+		public int ConflictingBookings { get; set; }
+		public int ConflictingVerifications { get; set; }
+		public int TodayPickupBookings { get; set; }
+		public int TodayReturnBookings { get; set; }
+	}
+
+	public class AvailableStaffSummaryDTO
+	{
+		public Guid BranchId { get; set; }
+		public string BranchName { get; set; } = string.Empty;
+		public DateTime Start { get; set; }
+		public DateTime End { get; set; }
+		public List<AvailableStaffItemDTO> Staffs { get; set; } = new();
+	}
+
+	/// <summary>
+	/// Kết quả check availability của một staff trong một slot cụ thể.
+	/// Dùng khi Manager/Staff click vào slot để tạo booking/verification mới.
+	/// </summary>
+	public class StaffSlotAvailabilityDTO
+	{
+		public Guid StaffId { get; set; }
+		public string StaffName { get; set; } = string.Empty;
+		public DateTime Date { get; set; }
+		public int SlotIndex { get; set; }
+		/// <summary>
+		/// Loại công việc muốn gán: \"booking\" hoặc \"verification\".
+		/// </summary>
+		public string Type { get; set; } = "booking";
+		public bool CanAssign { get; set; }
+		public int ExistingBookings { get; set; }
+		public int ExistingVerifications { get; set; }
+		public List<StaffSlotBookingBriefDTO> Bookings { get; set; } = new();
+		public List<StaffSlotVerificationBriefDTO> Verifications { get; set; } = new();
+	}
+
+	/// <summary>
+	/// Thông tin ngắn gọn về booking nằm trong slot (dùng cho popup UI).
+	/// </summary>
+	public class StaffSlotBookingBriefDTO
+	{
+		public Guid BookingId { get; set; }
+		public DateTime PickupAt { get; set; }
+		public DateTime ReturnAt { get; set; }
+		public BookingStatus Status { get; set; }
+		public string StatusText { get; set; } = string.Empty;
+		public Guid? RenterId { get; set; }
+		public string? RenterName { get; set; }
+	}
+
+	/// <summary>
+	/// Thông tin ngắn gọn về verification nằm trong slot (dùng cho popup UI).
+	/// </summary>
+	public class StaffSlotVerificationBriefDTO
+	{
+		public Guid VerificationId { get; set; }
+		public DateTime InspectionDate { get; set; }
+		public VerificationStatus Status { get; set; }
+		public Guid? OwnerId { get; set; }
+		public string? OwnerName { get; set; }
 	}
 }
