@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static CamRent_Application.DTOs.AuthDTO;
+using static CamRent_Application.DTOs.UserProfileDTO;
 
 namespace CamRent_Application.IServices
 {
@@ -13,6 +14,7 @@ namespace CamRent_Application.IServices
 		
 		Task<List<User>> GetAllUsers();
 		Task<User> GetUserProfileById(Guid id);
+		Task<UserProfileResponse> GetUserProfileWithBranchAsync(Guid id);
 		Task<Guid> GetUserIdByManagerId(Guid managerId);
 		Task<int> UpdateUser(User user);
 		Task<int> DeleteUser(Guid id);
