@@ -58,13 +58,28 @@ namespace CamRent_Application.Services
 				.ListAsync(p => p.Id == id, include: q => q.Include(u => u.Roles).Include(u => u.SignatureAsset).Include(u => u.Avatar));
 			var user = users.FirstOrDefault() ?? throw new InvalidOperationException("User not found");
 
+			// Build địa chỉ dạng string thân thiện cho FE
+			string? addressText = null;
+			if (user.Address is not null)
+			{
+				var parts = new[]
+				{
+					user.Address.District,
+					user.Address.Province,
+					user.Address.Country
+				}
+				.Where(s => !string.IsNullOrWhiteSpace(s));
+
+				addressText = string.Join(", ", parts);
+			}
+
 			var response = new UserProfileResponse
 			{
 				Id = user.Id,
 				Email = user.Email,
 				Phone = user.Phone,
 				FullName = user.FullName,
-				Address = user.Address,
+				Address = addressText,
 				Status = user.Status,
 				BankAccountNumber = user.BankAccountNumber,
 				BankName = user.BankName,
@@ -73,7 +88,8 @@ namespace CamRent_Application.Services
 				AvatarId = user.AvatarId,
 				AvatarUrl = user.Avatar?.Url,
 				SignatureUrl = user.SignatureAsset?.Url,
-				Roles = user.Roles.Select(r => r.Role.ToString()).ToList()
+				Roles = user.Roles.Select(r => r.Role.ToString()).ToList(),
+				CreatedAt = user.CreatedAt
 			};
 
 			// Lấy thông tin chi nhánh nếu user là Staff hoặc BranchManager
@@ -151,7 +167,7 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Complete();
 		}
 
-		public async Task UpdateAccountAsync(Guid userId, string? email, string? fullName, string? phone, string? country, string? province, string? district)
+		public async Task UpdateAccountAsync(Guid userId, string? email, string? fullName, string? phone, string? address)
 		{
 			var user = (await _unitOfWork.Repository<User>().ListAsync(p => p.Id == userId)).FirstOrDefault()
 				?? throw new InvalidOperationException("User not found");
@@ -176,15 +192,14 @@ namespace CamRent_Application.Services
 			if (!string.IsNullOrWhiteSpace(phone))
 				user.Phone = phone.Trim();
 
-			// Địa chỉ: nếu có bất kỳ field nào được gửi lên thì cập nhật
-			if (!string.IsNullOrWhiteSpace(country)
-				|| !string.IsNullOrWhiteSpace(province)
-				|| !string.IsNullOrWhiteSpace(district))
+			// Địa chỉ: backend nhận một chuỗi đơn giản và map vào Address.District
+			if (!string.IsNullOrWhiteSpace(address))
 			{
 				user.Address ??= new Address();
-				if (!string.IsNullOrWhiteSpace(country)) user.Address.Country = country!;
-				if (!string.IsNullOrWhiteSpace(province)) user.Address.Province = province!;
-				if (!string.IsNullOrWhiteSpace(district)) user.Address.District = district!;
+				// Lưu toàn bộ chuỗi địa chỉ vào District để không cần tách nhỏ
+				user.Address.District = address.Trim();
+				user.Address.Province = string.Empty;
+				user.Address.Country = string.Empty;
 			}
 
 			await _unitOfWork.Repository<User>().UpdateAsync(user);

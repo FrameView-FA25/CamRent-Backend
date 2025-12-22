@@ -64,9 +64,7 @@ namespace CamRent_Api.Controllers
 				req.Email,
 				req.FullName,
 				req.Phone,
-				req.Country,
-				req.Province,
-				req.District);
+				req.Address);
 
 			return NoContent();
 		}
