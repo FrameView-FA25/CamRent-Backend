@@ -109,6 +109,13 @@ namespace CamRent_Application.Services
 				}).ToList()
 			};
 		}
+
+		public async Task<decimal> CalculateTotalDisputeAmountByBookingIdAsync(Guid bookingId)
+		{
+			var disputes = await _uow.Repository<Dispute>().ListAsync(d => d.BookingId == bookingId);
+			var total = disputes.Sum(d => d.TotalAmount);
+			return total;
+		}
 	}
 }
 

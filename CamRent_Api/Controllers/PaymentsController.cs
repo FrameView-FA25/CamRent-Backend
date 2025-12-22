@@ -20,29 +20,29 @@ namespace CamRent_Api.Controllers
 	public class PaymentsController : ControllerBase
 	{
 		private readonly IPaymentService _paymentService;
-		private readonly IPricingService _pricingService;
 		private readonly IPayOsService _payOsService;
 		private readonly IBookingService _bookingService;
 		private readonly IWalletService _walletService;
 		private readonly IContractService _contractService;
+		private readonly IDisputeService _disputeService;
 		private readonly IHubContext<NotificationHub> _hub;
 
 		public PaymentsController(
 			IPaymentService paymentService,
-			IPricingService pricingService,
 			IPayOsService payOsService,
 			IBookingService bookingService,
 			IWalletService walletService,
+			IDisputeService disputeService,
 			IContractService contractService,
 			IHubContext<NotificationHub> hub)
 		{
 			_paymentService = paymentService;
-			_pricingService = pricingService;
 			_payOsService = payOsService;
 			_bookingService = bookingService;
 			_walletService = walletService;
 			_contractService = contractService;
 			_hub = hub;
+			_disputeService = disputeService;
 		}
 
 		[HttpPost("authorize")]
@@ -151,54 +151,91 @@ namespace CamRent_Api.Controllers
 
 
 
-		[HttpPost("{id:guid}/lines")]
-		[Authorize(Policy = "BranchManager")]
+		[HttpPost("refund")]
+		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(
-			Summary = "Thêm line (rental/deposit/dispute) vào payment",
-			Description = "Branch manager bổ sung một payment line mới cho paymentId tương ứng, dùng để cộng thêm khoản thu/payout.")]
-		public async Task<IActionResult> AddLine(Guid id, [FromBody] AddLineRequest request)
+			Summary = "Hoàn cọc hoặc tạo payment bù tranh chấp",
+			Description = "Nếu tiền cọc - tiền tranh chấp > 0 thì cập nhật refund cho payment cọc và thêm line refund. Nếu < 0 thì tạo payment bù (PayOS/Wallet).")]
+		public async Task<IActionResult> Refund([FromBody] RefundRequest request)
 		{
-			await _paymentService.AddLineAsync(id, request.Type, request.Amount);
-			return NoContent();
-		}
+			var depositPayment = await _paymentService.GetDepositPaymentWithLinesAsync(request.BookingId);
+			if (depositPayment == null)
+				return NotFound("Deposit payment not found");
 
-		[HttpPost("{id:guid}/capture")]
-		[Authorize(Policy = "BranchManager")]
-		[SwaggerOperation(
-			Summary = "Capture thủ công một payment",
-			Description = "Xác nhận đã nhận đủ tiền (ví dụ kiểm tra chuyển khoản) và chuyển payment sang trạng thái Captured, đồng thời kích hoạt quy trình sinh hợp đồng.")]
-		public async Task<IActionResult> Capture(Guid id, [FromBody] CaptureRequest request)
-		{
-			await _paymentService.CaptureAsync(id, request.Amount);
+			var depositLine = depositPayment.Lines
+				.FirstOrDefault(l => string.Equals(l.Type, "device_deposit", StringComparison.OrdinalIgnoreCase));
+			if (depositLine == null)
+				return BadRequest("Device deposit line not found");
 
-			var payment = await _paymentService.GetByIdAsync(id);
-			if (payment != null)
+			var disputeAmount = await _disputeService.CalculateTotalDisputeAmountByBookingIdAsync(request.BookingId);
+			var net = depositLine.Amount - disputeAmount;
+
+			if (net > 0)
 			{
-				// Thông báo cho renter của booking (nếu lấy được)
-				var booking = await _bookingService.GetByIdAsync(payment.BookingId);
-				var renterId = booking?.RenterId?.ToString();
-				if (!string.IsNullOrEmpty(renterId))
-				{
-					await _hub.Clients.User(renterId)
-						.SendAsync("PaymentUpdated", new
-						{
-							payment.Id,
-							Status = payment.Status.ToString(),
-							payment.CapturedAmount,
-							payment.RefundedAmount
-						});
-				}
+				var ok = await _paymentService.RefundDepositAsync(request.BookingId, request.Method, net);
+				if (!ok)
+					return BadRequest("Refund failed.");
 
-				// Broadcast cho dashboard Staff/Manager/Admin
-				await _hub.Clients.Group("role:Staff")
-					.SendAsync("PaymentUpdatedForStaff", new { payment.Id, Status = payment.Status.ToString() });
-				await _hub.Clients.Group("role:BranchManager")
-					.SendAsync("PaymentUpdatedForManager", new { payment.Id, Status = payment.Status.ToString() });
-				await _hub.Clients.Group("role:Admin")
-					.SendAsync("PaymentUpdatedForAdmin", new { payment.Id, Status = payment.Status.ToString() });
+				return Ok(new
+				{
+					type = "refund",
+					amount = net,
+					paymentId = depositPayment.Id
+				});
 			}
 
-			return NoContent();
+			if (net < 0)
+			{
+				var booking = await _bookingService.GetByIdAsync(request.BookingId);
+				if (booking?.RenterId == null)
+					return NotFound("Booking not found");
+
+				var extra = Math.Abs(net);
+
+				if (request.Method == PaymentMethod.PayOs)
+				{
+					var paymentId = await _paymentService.CreateAuthorizationAsync(
+						booking.Id,
+						rentalAmount: 0,
+						depositAmount: 0,
+						mode: PaymentType.Offset,
+						authorizedAmountOverride: extra);
+
+					return Ok(new
+					{
+						type = "offset",
+						amount = extra,
+						paymentId
+					});
+				}
+				if(request.Method == PaymentMethod.Cash)
+				{
+					var paymentId = await _paymentService.CreatePaymentAsync(
+						booking.Id,
+						rentalAmount: 0,
+						depositAmount: 0,
+						mode: PaymentType.Offset,
+						method: PaymentMethod.Cash,
+						capturedAmount: extra
+					);
+					if (paymentId == Guid.Empty)
+					{
+						return StatusCode(StatusCodes.Status400BadRequest, "Tạo payment thất bại.");
+					}
+					return Ok(new
+					{
+						type = "offset",
+						amount = extra,
+						paymentId
+					});
+				}
+			}
+
+			return Ok(new
+			{
+				type = "none",
+				amount = 0m
+			});
 		}
 
 		// Init PayOS payment link

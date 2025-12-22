@@ -32,8 +32,11 @@ namespace CamRent_Api.Models
 
 		public class RefundRequest
 		{
-			[Range(0.01, double.MaxValue)]
-			public decimal Amount { get; set; }
+			[Required]
+			public Guid BookingId { get; set; }
+
+			[Required]
+			public PaymentMethod Method { get; set; }
 		}
 
 		public class InitPayOsRequest

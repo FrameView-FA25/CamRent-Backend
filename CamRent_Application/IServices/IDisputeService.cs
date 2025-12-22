@@ -10,6 +10,7 @@ namespace CamRent_Application.IServices
 		Task AddItemAsync(Guid disputeId, string type, decimal amount, string? notes);
 		Task AssignAsync(Guid disputeId, Guid? userId);
 		Task UpdateStatusAsync(Guid disputeId, string status);
+		Task<decimal> CalculateTotalDisputeAmountByBookingIdAsync(Guid bookingId);
 	}
 }
 
