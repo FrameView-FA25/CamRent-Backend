@@ -62,7 +62,7 @@ namespace CamRent_Application.Services
 			};
 			await _uow.Repository<DisputeItem>().AddAsync(item);
 			// Sau khi thêm item, cập nhật lại TotalAmount = tổng Amount của tất cả DisputeItem.
-			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
+			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Không có tranh chấp này");
 			var items = await _uow.Repository<DisputeItem>().ListAsync(i => i.DisputeId == disputeId);
 			d.TotalAmount = items.Sum(i => i.Amount);
 			d.Status = "under_review"; // Tự động chuyển trạng thái khi có item mới
@@ -78,7 +78,7 @@ namespace CamRent_Application.Services
 
 		public async Task UpdateStatusAsync(Guid disputeId, string status)
 		{
-			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
+			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Không có tranh chấp này");
 			d.Status = status;
 			d.UpdatedAt = DateTime.UtcNow;
 			await _uow.Repository<Dispute>().UpdateAsync(d);
