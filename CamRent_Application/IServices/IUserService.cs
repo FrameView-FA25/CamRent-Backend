@@ -22,8 +22,8 @@ namespace CamRent_Application.IServices
 		Task<(Guid id, string? bankNo, string? bankName, string? bankAccName)> GetProfileAsync(Guid userId);
 		Task UpdateProfileAsync(Guid userId, string? bankNo, string? bankName, string? bankAccName);
 		Task<int> UpdateUserSignAsync(Guid userId, string signatureBase64);
-			// Cập nhật thông tin tài khoản cơ bản cho chính user (email, tên, phone, địa chỉ)
-			Task UpdateAccountAsync(Guid userId, string? email, string? fullName, string? phone, string? country, string? province, string? district);
+			// Cập nhật thông tin tài khoản cơ bản cho chính user (email, tên, phone, địa chỉ dạng chuỗi)
+			Task UpdateAccountAsync(Guid userId, string? email, string? fullName, string? phone, string? address);
 		Task<(Guid assetId, string url)> UpdateAvatarAsync(Guid userId, Microsoft.AspNetCore.Http.IFormFile avatarFile, CancellationToken ct = default);
 	}	
 }
