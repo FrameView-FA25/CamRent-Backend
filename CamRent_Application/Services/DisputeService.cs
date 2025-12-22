@@ -104,7 +104,8 @@ namespace CamRent_Application.Services
 					Id = i.Id,
 					Type = i.Type,
 					Amount = i.Amount,
-					Notes = i.Notes
+					Notes = i.Notes,
+					CreatedAt = i.CreatedAt
 				}).ToList()
 			};
 		}
