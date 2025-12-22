@@ -14,6 +14,7 @@ using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using static CamRent_Application.DTOs.AuthDTO;
+using static CamRent_Application.DTOs.UserProfileDTO;
 
 namespace CamRent_Application.Services
 {
@@ -49,6 +50,74 @@ namespace CamRent_Application.Services
 				.ListAsync(p => p.Id == id, include: q => q.Include(u => u.Roles).Include(u => u.SignatureAsset).Include(u => u.Avatar));
 			var user = users.FirstOrDefault() ?? throw new InvalidOperationException("User not found");
 			return user;
+		}
+
+		public async Task<UserProfileResponse> GetUserProfileWithBranchAsync(Guid id)
+		{
+			var users = await _unitOfWork.Repository<User>()
+				.ListAsync(p => p.Id == id, include: q => q.Include(u => u.Roles).Include(u => u.SignatureAsset).Include(u => u.Avatar));
+			var user = users.FirstOrDefault() ?? throw new InvalidOperationException("User not found");
+
+			var response = new UserProfileResponse
+			{
+				Id = user.Id,
+				Email = user.Email,
+				Phone = user.Phone,
+				FullName = user.FullName,
+				Address = user.Address,
+				Status = user.Status,
+				BankAccountNumber = user.BankAccountNumber,
+				BankName = user.BankName,
+				BankAccountName = user.BankAccountName,
+				SignatureAssetId = user.SignatureAssetId,
+				AvatarId = user.AvatarId,
+				AvatarUrl = user.Avatar?.Url,
+				SignatureUrl = user.SignatureAsset?.Url,
+				Roles = user.Roles.Select(r => r.Role.ToString()).ToList()
+			};
+
+			// Lấy thông tin chi nhánh nếu user là Staff hoặc BranchManager
+			var userRoles = user.Roles.Select(r => r.Role).ToList();
+			if (userRoles.Contains(UserRole.Staff) || userRoles.Contains(UserRole.BranchManager))
+			{
+				Branch? branch = null;
+
+				// Nếu là BranchManager, lấy branch từ ManagerId
+				if (userRoles.Contains(UserRole.BranchManager))
+				{
+					branch = (await _unitOfWork.Repository<Branch>()
+						.ListAsync(filter: b => b.ManagerId == id))
+						.FirstOrDefault();
+				}
+
+				// Nếu là Staff hoặc chưa tìm thấy branch (có thể là Staff), lấy từ UserBranchMembership
+				if (branch == null)
+				{
+					var membership = (await _unitOfWork.Repository<UserBranchMembership>()
+						.ListAsync(
+							filter: m => m.UserId == id,
+							include: m => m.Include(m => m.Branch)))
+						.FirstOrDefault();
+
+					if (membership != null)
+					{
+						branch = membership.Branch;
+					}
+				}
+
+				if (branch != null)
+				{
+					response.Branch = new BranchInfo
+					{
+						Id = branch.Id,
+						Name = branch.Name,
+						Address = branch.Address,
+						IsManager = userRoles.Contains(UserRole.BranchManager)
+					};
+				}
+			}
+
+			return response;
 		}
 
 		public async Task<Guid> GetUserIdByManagerId(Guid managerId)
