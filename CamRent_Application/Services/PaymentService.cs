@@ -2,6 +2,7 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Application.Services
 {
@@ -82,14 +83,26 @@ namespace CamRent_Application.Services
 				await AddLineAsync(payment.Id, "device_deposit", depositAmount);
 
 			// ---------- CẬP NHẬT BOOKING ----------
-			var bookingRepo = _unitOfWork.Repository<Booking>();
-			var booking = await bookingRepo.GetByIdAsync(bookingId);
-			if (booking != null)
+			if (mode == PaymentType.Deposit)
 			{
-				booking.Status = BookingStatus.Confirmed;
-				await bookingRepo.UpdateAsync(booking);
+				var bookingRepo = _unitOfWork.Repository<Booking>();
+				var booking = await bookingRepo.GetByIdAsync(bookingId);
+				if (booking != null)
+				{
+					booking.Status = BookingStatus.Confirmed;
+					await bookingRepo.UpdateAsync(booking);
+				}
+				try
+				{
+					await TryFinalizeContractForDepositAsync(bookingId);
+				}
+				catch (Exception ex)
+				{
+					// Log lỗi nhưng không làm gián đoạn luồng chính
+					// Giả sử có _logger
+					// _logger.LogError(ex, "Failed to finalize contract for Booking {BookingId}", bookingId);
+				}
 			}
-
 			await _unitOfWork.Complete();
 			return payment.Id;
 		}
@@ -177,6 +190,12 @@ namespace CamRent_Application.Services
 			}
 
 			await _unitOfWork.Complete();
+
+			var isDepositPayment = await IsDepositPaymentAsync(paymentId);
+			if (isDepositPayment && payment.BookingId.HasValue)
+			{
+				await TryFinalizeContractForDepositAsync(payment.BookingId.Value);
+			}
 		}
 
 		public async Task RefundAsync(Guid paymentId, decimal amount)
@@ -194,6 +213,30 @@ namespace CamRent_Application.Services
 		public async Task<Payment?> GetByIdAsync(Guid paymentId)
 		{
 			return await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId);
+		}
+
+		private async Task<bool> IsDepositPaymentAsync(Guid paymentId)
+		{
+			var lines = await _unitOfWork.Repository<PaymentLine>()
+				.ListAsync(l => l.PaymentId == paymentId);
+
+			return lines.Any(l => string.Equals(l.Type, "rental_advance", StringComparison.OrdinalIgnoreCase));
+		}
+
+		private async Task TryFinalizeContractForDepositAsync(Guid bookingId)
+		{
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var contract = (await contractRepo.ListAsync(
+					filter: c => c.BookingId == bookingId,
+					include: q => q.Include(c => c.Signatures)))
+				.FirstOrDefault();
+
+			if (contract == null || contract.Status == ContractStatus.Completed)
+				return;
+
+			var fullContract = await _contractService.GetByIdAsync(contract.Id);
+			var signatures = fullContract?.Signatures?.ToList() ?? contract.Signatures.ToList();
+			await _contractService.GenerateAndUploadFinalPdfAsync(contract.Id, signatures);
 		}
 	}
 }

@@ -3,6 +3,7 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PayOS;
@@ -147,6 +148,29 @@ public sealed class PayOsService : IPayOsService
 					booking.Status = BookingStatus.Confirmed;
 					await bookingRepo.UpdateAsync(booking);
 				}
+
+				var isDepositPayment = await IsDepositPaymentAsync(payment.Id);
+				if (isDepositPayment)
+				{
+					try
+					{
+						await TryFinalizeContractForDepositAsync(payment.BookingId.Value);
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Failed to finalize contract for Booking {BookingId}", payment.BookingId.Value);
+					}
+				}
+			}
+		}
+		else if (!isPaid)
+		{
+			payment.Status = PaymentStatus.Failed;
+			await paymentRepo.UpdateAsync(payment);
+			var contract = await _uow.Repository<Contract>().FirstOrDefaultAsync(c => c.BookingId == payment.BookingId);
+			if (contract != null)
+			{
+				await _uow.Repository<Contract>().DeleteAsync(contract.Id);
 			}
 		}
 
@@ -164,6 +188,35 @@ public sealed class PayOsService : IPayOsService
 		};
 	}
 
+	private async Task<bool> IsDepositPaymentAsync(Guid paymentId)
+	{
+		var lines = await _uow.Repository<PaymentLine>()
+			.ListAsync(l => l.PaymentId == paymentId);
 
+		return lines.Any(l => string.Equals(l.Type, "rental_advance", StringComparison.OrdinalIgnoreCase));
+	}
+
+	private async Task TryFinalizeContractForDepositAsync(Guid bookingId)
+	{
+		var contract = (await _uow.Repository<Contract>().ListAsync(
+				filter: c => c.BookingId == bookingId,
+				include: q => q.Include(c => c.Signatures)))
+			.FirstOrDefault();
+
+		if (contract == null || contract.Status != ContractStatus.Signed)
+			return;
+
+		var fullContract = await _contractService.GetByIdAsync(contract.Id);
+		var signatures = fullContract?.Signatures?.ToList() ?? contract.Signatures.ToList();
+
+		try
+		{
+			await _contractService.GenerateAndUploadFinalPdfAsync(contract.Id, signatures);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to generate final PDF for Contract {ContractId}", contract.Id);
+		}
+	}
 
 }

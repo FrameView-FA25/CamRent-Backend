@@ -90,7 +90,14 @@ namespace CamRent_Api.Controllers
 			var booking = await _bookingService.GetByIdAsync(bookingId);
 			if (bookingId == Guid.Empty)
 				return BadRequest("Tạo booking thất bại.");
-			if(booking.BranchId != null && booking.Status == BookingStatus.Confirmed)
+			if (booking.BranchId == null)
+			{
+				return Ok(new
+				{
+					BookingId = bookingId
+				});
+			}
+			else
 			{
 				try
 				{
@@ -109,10 +116,6 @@ namespace CamRent_Api.Controllers
 					return BadRequest(new { message = ex.Message, bookingId });
 				}
 			}
-			return Ok(new
-			{
-				BookingId = bookingId
-			});
 
 		}
 

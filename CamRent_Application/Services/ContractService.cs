@@ -81,8 +81,7 @@ namespace CamRent_Application.Services
 				throw new AppException("Branch does not have a manager configured");
 
 			var hasPending = await contractRepo.FirstOrDefaultAsync(c =>
-				c.BookingId == bookingId &&
-				c.Status == ContractStatus.PendingSignatures);
+				c.BookingId == bookingId);
 
 			if (hasPending != null)
 			{
@@ -207,8 +206,7 @@ namespace CamRent_Application.Services
 			var contract = await contractRepo.GetByIdAsync(contractId)
 							 ?? throw new AppException("Contract not found");
 
-			var signature = (await signatureRepo.GetAllAsync())
-				.FirstOrDefault(s => s.ContractId == contractId && s.Role == role)
+			var signature = await signatureRepo.FirstOrDefaultAsync(s => s.ContractId == contractId && s.Role == role)
 				?? throw new AppException("Signature slot not found for this role");
 
 			if (signature.IsSigned)
@@ -239,29 +237,33 @@ namespace CamRent_Application.Services
 			signature.SignedIp = ip;
 			signature.SignedUserAgent = userAgent;
 
-			await _unitOfWork.Complete(); // 🟢 TỚI ĐÂY CHẮC CHẮN ĐÃ KÝ
-
-			// Reload signatures để check đủ chưa
 			var allSignatures = (await signatureRepo.GetAllAsync())
 				.Where(s => s.ContractId == contractId)
 				.ToList();
 
 			if (allSignatures.All(s => s.IsSigned))
 			{
-				// tất cả đã ký => cố gắng generate contract final
-				try
+				contract.Status = ContractStatus.Signed;
+				if(role == ContractSignerRole.Owner)
 				{
-					await GenerateAndUploadFinalPdfAsync(contract.Id, allSignatures);
-				}
-				catch (Exception ex)
-				{
-					// Log lỗi nhưng KHÔNG làm hỏng việc ký
-					// Có thể set trạng thái riêng nếu muốn, ví dụ:
-					// contract.Status = ContractStatus.SignedButPdfFailed;
-					// await contractRepo.UpdateAsync(contract);
-					// await _unitOfWork.Complete();
+					try
+					{
+						await GenerateAndUploadFinalPdfAsync(contract.Id, allSignatures);
+					}
+					catch (Exception ex)
+					{
+						// Log lỗi nhưng KHÔNG làm hỏng việc ký
+						// Có thể set trạng thái riêng nếu muốn, ví dụ:
+						// contract.Status = ContractStatus.SignedButPdfFailed;
+						// await contractRepo.UpdateAsync(contract);
+						// await _unitOfWork.Complete();
+					}
 				}
 			}
+
+			await _unitOfWork.Complete(); // 🟢 TỚI ĐÂY CHẮC CHẮN ĐÃ KÝ
+
+			
 
 			return contract;
 		}
@@ -322,7 +324,7 @@ namespace CamRent_Application.Services
 			// 4. Update contract
 			contract.FileAssetId = pdfAsset.Id;
 			contract.FileHash = hash;
-			contract.Status = ContractStatus.Signed;
+			contract.Status = ContractStatus.Completed;
 			contract.SignedAt = DateTime.UtcNow;
 
 			// 5. Option: set DocumentHashAtSignTime cho từng chữ ký
@@ -361,6 +363,17 @@ namespace CamRent_Application.Services
 					.Include(c => c.Branch)
 				);
 			return contract.FirstOrDefault();
+		}
+
+		public async Task DeleteBookingContractAsync(Guid bookingId)
+		{
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var contract = await contractRepo.FirstOrDefaultAsync(c => c.BookingId == bookingId);
+			if (contract == null)
+				return;
+
+			await contractRepo.DeleteAsync(contract.Id);
+			await _unitOfWork.Complete();
 		}
 	}
 }
