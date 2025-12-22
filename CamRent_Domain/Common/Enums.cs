@@ -161,12 +161,14 @@ namespace CamRent_Domain.Common
     {
         Deposit = 1,
         Rental = 2,
-	}
+        Offset = 3,
+    }
 	public enum PaymentMethod
 	{
 		PayOs = 1,
 		Wallet = 2,
-        Cash = 3
+        Cash = 3,
+		Transfer = 4,
 	}
 }
 

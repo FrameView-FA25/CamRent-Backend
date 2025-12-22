@@ -23,13 +23,11 @@ namespace CamRent_Api.Controllers
 	{
 
 		private readonly IBookingService _bookingService;
-		private readonly IPricingService _pricingService;
 		private readonly IContractService _contractService;
 		private readonly IHubContext<NotificationHub> _hub;
-		public BookingsController(IBookingService bookingService, IPricingService pricingService, IContractService contractService, IHubContext<NotificationHub> hub)
+		public BookingsController(IBookingService bookingService, IContractService contractService, IHubContext<NotificationHub> hub)
 		{
 			_bookingService = bookingService;
-			_pricingService = pricingService;
 			_contractService = contractService;
 			_hub = hub;
 		}
