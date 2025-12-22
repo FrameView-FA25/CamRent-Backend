@@ -3,6 +3,7 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Application.DTOs;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace CamRent_Application.Services
 {
@@ -56,26 +57,61 @@ namespace CamRent_Application.Services
 			}
 
 			// Combos
+			// Index tất cả combo vào vector database với thông tin chi tiết về các items bên trong
 			var combos = await _uow.Repository<Combo>().GetAllAsync();
 			foreach (var combo in combos)
 			{
-				var items = await _uow.Repository<ComboItem>().ListAsync(i => i.ComboId == combo.Id);
-				var desc = $"{combo.Description}\nItems: " + string.Join(", ", items.Select(i =>
-				{
-					if (i.CameraId.HasValue) return $"Camera";
-					if (i.AccessoryId.HasValue) return $"Accessory";
-					return $"Item";
-				}));
+				// Bước 1: Lấy tất cả ComboItem của combo này, kèm theo thông tin Camera và Accessory
+				// Sử dụng Include để eager load related entities, tránh N+1 query problem
+				// Mỗi ComboItem có thể chứa Camera hoặc Accessory (không thể có cả 2)
+				var items = await _uow.Repository<ComboItem>().ListAsync(
+					filter: i => i.ComboId == combo.Id,
+					include: i => i.Include(item => item.Camera).Include(item => item.Accessory));
 
+				// Bước 2: Build danh sách mô tả chi tiết cho từng item trong combo
+				// Thay vì chỉ ghi "Camera" hoặc "Accessory", ta lấy thông tin brand/model/variant cụ thể
+				// Ví dụ: "Canon EOS R5" thay vì chỉ "Camera"
+				var itemDescriptions = items.Select(i =>
+				{
+					// Nếu item là Camera, lấy thông tin Brand + Model + Variant
+					if (i.CameraId.HasValue && i.Camera != null)
+					{
+						return $"{i.Camera.Brand} {i.Camera.Model} {i.Camera.Variant}".Trim();
+					}
+					// Nếu item là Accessory, lấy thông tin Brand + Model + Variant
+					if (i.AccessoryId.HasValue && i.Accessory != null)
+					{
+						return $"{i.Accessory.Brand} {i.Accessory.Model} {i.Accessory.Variant}".Trim();
+					}
+					// Fallback nếu không xác định được loại item
+					return "Unknown Item";
+				});
+
+				// Bước 3: Tạo description đầy đủ cho combo
+				// Sử dụng Description của combo nếu có, nếu không thì dùng Name làm fallback
+				// Kết hợp với danh sách items chi tiết để AI có thể search tốt hơn
+				// Ví dụ: "Combo chụp ảnh cưới. Items: Canon EOS R5, Canon RF 24-70mm f/2.8, Canon Speedlite 600EX"
+				var baseDesc = !string.IsNullOrWhiteSpace(combo.Description) ? combo.Description : combo.Name;
+				var desc = $"{baseDesc}. Items: {string.Join(", ", itemDescriptions)}";
+
+				// Bước 4: Tạo properties object để lưu vào Weaviate
+				// Properties này sẽ được lưu cùng với vector embedding để hỗ trợ hybrid search
 				var props = new Dictionary<string, object>
 				{
 					{ "name", combo.Name },
-					{ "description", desc },
+					{ "description", desc }, // Description chi tiết với thông tin items
 					{ "category", "Combo" },
 					{ "priceInfo", combo.PriceOverride.HasValue ? $"ComboPrice: {combo.PriceOverride.Value:N0} VND" : "ComboPrice: N/A" }
 				};
+
+				// Bước 5: Tạo text để embedding
+				// Kết hợp tất cả thông tin thành một chuỗi text để tạo vector embedding
+				// Vector này sẽ được dùng cho semantic search
 				var text = $"{props["name"]}. {props["description"]}. {props["category"]}. {props["priceInfo"]}";
 				var vec = await _embed.EmbedAsync(text, ct);
+
+				// Bước 6: Lưu vào Weaviate vector database
+				// Upsert sẽ tạo mới hoặc cập nhật nếu đã tồn tại
 				await _vector.UpsertAsync(new VectorUpsertItem { Id = combo.Id, Class = "Combo", Properties = props, Vector = vec }, ct);
 			}
 		}
