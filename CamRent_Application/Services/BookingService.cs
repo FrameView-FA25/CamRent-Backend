@@ -42,6 +42,8 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
+						.Include(b => b.Contracts)
+							.ThenInclude(c => c.Signatures)
 						.Include(b => b.Payments).ThenInclude(p => p.Lines)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);

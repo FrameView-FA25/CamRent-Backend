@@ -24,6 +24,7 @@ namespace CamRent_Api.Controllers
 		private readonly IPayOsService _payOsService;
 		private readonly IBookingService _bookingService;
 		private readonly IWalletService _walletService;
+		private readonly IContractService _contractService;
 		private readonly IHubContext<NotificationHub> _hub;
 
 		public PaymentsController(
@@ -32,6 +33,7 @@ namespace CamRent_Api.Controllers
 			IPayOsService payOsService,
 			IBookingService bookingService,
 			IWalletService walletService,
+			IContractService contractService,
 			IHubContext<NotificationHub> hub)
 		{
 			_paymentService = paymentService;
@@ -39,6 +41,7 @@ namespace CamRent_Api.Controllers
 			_payOsService = payOsService;
 			_bookingService = bookingService;
 			_walletService = walletService;
+			_contractService = contractService;
 			_hub = hub;
 		}
 
@@ -86,7 +89,7 @@ namespace CamRent_Api.Controllers
 			{
 				// Thanh toán bằng ví
 				if (totalThisTime <= 0)
-					return BadRequest("No amount to pay by wallet");
+					return BadRequest("Không có số tiền nào cần thanh toán");
 
 				var walletReq = new WalletTransactionRequest
 				{
@@ -101,7 +104,10 @@ namespace CamRent_Api.Controllers
 				
 				var ok = await _walletService.DebitAsync(renterId, walletReq);
 				if (!ok)
-					return BadRequest("Wallet balance not enough");
+				{
+					await _contractService.DeleteBookingContractAsync(booking.Id);
+					return BadRequest("Số dư ví không đủ");
+				}
 
 				var paymentId = await _paymentService.CreatePaymentAsync(
 					booking.Id,

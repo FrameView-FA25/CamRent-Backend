@@ -103,7 +103,8 @@ namespace CamRent_Domain.Common
 		Draft = 1,
 		PendingSignatures = 2,
 		Signed = 3,
-		Cancelled = 4
+		Completed = 4,
+		Cancelled = 5
 	}
 
 	public enum ContractSignerRole
