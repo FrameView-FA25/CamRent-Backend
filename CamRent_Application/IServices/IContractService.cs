@@ -16,6 +16,7 @@ namespace CamRent_Application.IServices
 		Task GenerateAndUploadFinalPdfAsync(Guid contractId, List<ContractSignature> signatures);
 		Task<Contract?> GetByIdAsync(Guid contractId);
 		Task DeleteBookingContractAsync(Guid bookingId);
+		Task UpdateStatusContractSignatureByBookingIdAsync(Guid booking);
 
 		Task<ContractResponse?> GetContractByIdAsync(Guid contractId);
 		Task<List<ContractResponse>> GetContractsAsync();

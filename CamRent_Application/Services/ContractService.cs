@@ -232,6 +232,11 @@ namespace CamRent_Application.Services
 
 			// update signature row
 			signature.IsSigned = true;
+			if (role == ContractSignerRole.Renter && userId != null)
+			{
+				signature.UserId = userId;
+				signature.IsSigned = false; // đảm bảo renter ký đúng user
+			}
 			signature.SignedAt = DateTime.UtcNow;
 			signature.SignatureAssetId = asset.Id;
 			signature.SignedIp = ip;
@@ -374,6 +379,19 @@ namespace CamRent_Application.Services
 
 			await contractRepo.DeleteAsync(contract.Id);
 			await _unitOfWork.Complete();
+		}
+
+		public async Task UpdateStatusContractSignatureByBookingIdAsync(Guid booking)
+		{
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var signatureRepo = _unitOfWork.Repository<ContractSignature>();
+			var contract = await contractRepo.FirstOrDefaultAsync(c => c.BookingId == booking);
+			var signature = await signatureRepo.FirstOrDefaultAsync(s => s.ContractId == contract.Id && s.Role == ContractSignerRole.Renter);
+			if (signature != null)
+			{
+				signature.IsSigned = true;
+				await signatureRepo.UpdateAsync(signature);
+			}
 		}
 	}
 }

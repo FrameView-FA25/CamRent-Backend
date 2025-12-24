@@ -353,7 +353,7 @@ namespace CamRent_Application.Services
 								row.RelativeItem().Element(c =>
 								{
 									var renterSigUrl = contract.Signatures
-										.FirstOrDefault(x => x.Role == ContractSignerRole.Renter)
+										.FirstOrDefault(x => x.Role == ContractSignerRole.Renter && x.IsSigned == true)
 										?.SignatureAsset?.Url;
 
 									SignatureBlock(

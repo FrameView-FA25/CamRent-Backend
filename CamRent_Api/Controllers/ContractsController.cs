@@ -100,7 +100,7 @@ namespace CamRent_Api.Controllers
 
 		// 2) Ký hợp đồng (nhận base64 chữ ký)
 		[HttpPost("{contractId:guid}/sign")]
-		[AllowAnonymous] // hoặc [Authorize] nếu bạn muốn bắt buộc login
+		[Authorize]// hoặc [Authorize] nếu bạn muốn bắt buộc login
 		[SwaggerOperation(
 			Summary = "Ký hợp đồng điện tử",
 			Description = "Nhận chữ ký dạng ảnh base64, lưu Cloudinary, cập nhật trạng thái hợp đồng."
@@ -109,7 +109,7 @@ namespace CamRent_Api.Controllers
 			[FromRoute] Guid contractId,
 			[FromBody] SignContractRequest request)
 		{
-			var userId = GetCurrentUserId(); // có thể null nếu AllowAnonymous
+			var userId = GetCurrentUserId(); 
 			var role = User.FindAll(ClaimTypes.Role).Select(r => r.Value).FirstOrDefault();
 			ContractSignerRole contractSignerRole = ContractSignerRole.Platform; 
 			if (role == UserRole.Owner.ToString())
