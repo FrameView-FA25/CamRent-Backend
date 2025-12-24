@@ -143,10 +143,17 @@ public sealed class PayOsService : IPayOsService
 			{
 				var bookingRepo = _uow.Repository<Booking>();
 				var booking = await bookingRepo.GetByIdAsync(payment.BookingId.Value);
+				var contract = await _uow.Repository<Contract>().FirstOrDefaultAsync(c => c.BookingId == payment.BookingId);
+				var signature = await _uow.Repository<ContractSignature>().FirstOrDefaultAsync(s => s.ContractId == contract.Id && s.Role == ContractSignerRole.Renter);
 				if (booking != null)
 				{
 					booking.Status = BookingStatus.Confirmed;
 					await bookingRepo.UpdateAsync(booking);
+				}
+				if(signature != null)
+				{
+					signature.IsSigned = true;
+					await _uow.Repository<ContractSignature>().UpdateAsync(signature);
 				}
 
 				var isDepositPayment = await IsDepositPaymentAsync(payment.Id);
