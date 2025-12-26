@@ -191,7 +191,7 @@ namespace CamRent_Api.Controllers
 					var asset = await _fileStorageService.UploadAsync(
 						file,
 						ownerId: existing.Id,
-						ownerType: FileOwnerType.Accessory,
+						ownerType: FileOwnerType.Camera,
 						folder: $"camrent/accessories/{existing.Id}",
 						label: $"{existing.Brand} {existing.Model}"
 					);
