@@ -7,7 +7,6 @@ using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using PayOS.Exceptions;
 using System.Security.Cryptography;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using static CamRent_Application.DTOs.ContractDTO;
