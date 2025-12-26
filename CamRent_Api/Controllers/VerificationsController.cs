@@ -138,7 +138,7 @@ namespace CamRent_Api.Controllers
 		[HttpPut("{id}/update-status")]
 		[Authorize(Policy = "BranchManager")]
 		[SwaggerOperation(Summary = "Cập nhật trạng thái verification", Description = "Cập nhật trạng thái của một yêu cầu verification. Quyền: BranchManager.")]
-		public async Task<IActionResult> UpdateStatus(Guid id, string note, VerificationStatus status)
+		public async Task<IActionResult> UpdateStatus(Guid id, string? note, VerificationStatus status)
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value

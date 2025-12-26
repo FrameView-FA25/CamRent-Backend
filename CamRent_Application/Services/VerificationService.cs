@@ -291,7 +291,7 @@ namespace CamRent_Application.Services
 		/// Nếu status = Approved, đồng thời tự động ký hợp đồng bởi Platform Manager
 		/// bằng cách gán chữ ký của manager vào ContractSignature tương ứng.
 		/// </summary>
-		public async Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string note, VerificationStatus status)
+		public async Task<int> UpdateVerificationStatusAsync(Guid id, Guid managerId, string? note, VerificationStatus status)
 		{
 			var verificationRepo = _unitOfWork.Repository<VerificationRequest>();
 			var userRepo = _unitOfWork.Repository<User>();

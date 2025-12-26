@@ -520,8 +520,8 @@ namespace CamRent_Application.Services
 											header.Cell().Element(c => HeaderCell(c, "#"));
 											header.Cell().Element(c => HeaderCell(c, "Thiết bị"));
 											header.Cell().Element(c => HeaderCell(c, "Loại"));
-											header.Cell().Element(c => HeaderCell(c, "Gia/ngay"));
-											header.Cell().Element(c => HeaderCell(c, "Tien coc"));
+											header.Cell().Element(c => HeaderCell(c, "Giá/ngày"));
+											header.Cell().Element(c => HeaderCell(c, "Tiền cọc"));
 										});
 
 										int index = 1;
@@ -530,8 +530,8 @@ namespace CamRent_Application.Services
 											table.Cell().Element(c => BodyCell(c, index++.ToString()));
 											table.Cell().Element(c => BodyCell(c, item.ItemName));
 											table.Cell().Element(c => BodyCell(c, item.ItemType.ToString()));
-											table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} d"));
-											table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} d"));
+											table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} đ"));
+											table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} đ"));
 										}
 									});
 							}
