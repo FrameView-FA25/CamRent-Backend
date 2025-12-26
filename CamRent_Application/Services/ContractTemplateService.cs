@@ -94,6 +94,10 @@ namespace CamRent_Application.Services
 				(booking.ReturnAt.Date - booking.PickupAt.Date).Days);
 			var returnAt = booking.ReturnAt.AddHours(7);
 			var pickupAt = booking.PickupAt.AddHours(7);
+			var pickupWindowStart = pickupAt.AddHours(-1);
+			var pickupWindowEnd = pickupAt;
+			var returnWindowStart = returnAt;
+			var returnWindowEnd = returnAt.AddHours(1);
 
 			var totalRental = booking.SnapshotRentalTotal;      // tổng tiền thuê
 			var totalDeposit = booking.SnapshotDepositAmount;    // tổng tiền cọc
@@ -169,8 +173,8 @@ namespace CamRent_Application.Services
 							col.Item().Text($"• Ngày thuê: {booking.PickupAt:dd/MM/yyyy}");
 							col.Item().Text($"• Ngày trả: {booking.ReturnAt:dd/MM/yyyy}");
 							col.Item().Text($"• Số ngày thuê dự kiến: {rentalDays} ngày");
-							if (booking.Location != null)
-								col.Item().Text($"• Địa chỉ giao hàng (nếu chọn giao): {booking.Location.Province}, {booking.Location.District}");
+							col.Item().Text(
+								$"• Khách hàng vui lòng tới chi nhánh nhận hàng trong khoảng thời gian {pickupWindowStart:HH:mm} - {pickupWindowEnd:HH:mm} ngày {pickupWindowEnd:dd/MM/yyyy} và trả hàng trong khoảng thời gian {returnWindowStart:HH:mm} - {returnWindowEnd:HH:mm} ngày {returnWindowEnd:dd/MM/yyyy}.");
 							// Hiệu lực hợp đồng = từ thời điểm nhận máy đến thời điểm trả máy theo booking
 							col.Item().Text(
 								$"• Thời hạn hiệu lực hợp đồng: từ {booking.PickupAt:dd/MM/yyyy HH:mm} đến {booking.ReturnAt:dd/MM/yyyy HH:mm}");
@@ -334,8 +338,8 @@ namespace CamRent_Application.Services
 							col.Item().Text("6. Điều khoản về sử dụng, trả hàng và bồi thường")
 								.Bold().FontColor(SectionTitleColor);
 							col.Item().Text(
-								"• Bên thuê có trách nhiệm kiểm tra tình trạng thiết bị khi nhận, báo ngay cho CamRent nếu phát hiện lỗi.\n" +
-								"• Trả hàng trước hoặc đúng 16h ngày trả theo Booking."
+								$"• Bên thuê có trách nhiệm kiểm tra tình trạng thiết bị khi nhận, báo ngay cho CamRent nếu phát hiện lỗi.\n" +
+								$"• Trả hàng trong khoảng thời gian {returnWindowStart:HH:mm} - {returnWindowEnd:HH:mm} ngày {returnWindowEnd:dd/MM/yyyy}."
 							);
 							col.Item().Text(
 								$"• Nếu trả trễ, {lateFeeText}"

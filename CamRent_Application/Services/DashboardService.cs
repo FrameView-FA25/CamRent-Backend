@@ -222,7 +222,7 @@ namespace CamRent_Application.Services
 			// Bookings in branch
 			var bookings = await _uow.Repository<Booking>()
 				.ListAsync(b => b.BranchId == branchId);
-			var totalBookings = bookings.Count();
+			var totalBookings = bookings.Count(b => b.Status == BookingStatus.Completed);
 			var bookingsByStatus = bookings
 				.GroupBy(b => b.Status)
 				.Select(g => new BookingStatusCount
@@ -275,7 +275,7 @@ namespace CamRent_Application.Services
 				var booking = item.Booking!;
 				var days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
 				var gross = item.UnitPrice * days;
-				var net = gross * (1 - booking.SnapshotPlatformFeePercent);
+				var net = gross * booking.SnapshotPlatformFeePercent;
 
 				totalGrossRevenue += gross;
 
@@ -396,7 +396,7 @@ namespace CamRent_Application.Services
 				TotalCapturedRevenue = totalCommission,
 				TotalCommissionRevenue = totalCommission,
 				TotalDisputeRevenue = resolvedDisputeRevenue,
-				TotalNetRevenue = totalCommission + resolvedDisputeRevenue,
+				TotalNetRevenue = totalCommission,
 				TotalGrossRevenue = totalGrossRevenue,
 				TopRentedAssets = topAssets,
 				DailyStats = dailyStats,

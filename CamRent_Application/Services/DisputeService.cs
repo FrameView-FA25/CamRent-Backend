@@ -3,6 +3,8 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 
 namespace CamRent_Application.Services
 {
@@ -46,6 +48,71 @@ namespace CamRent_Application.Services
 			};
 			await _uow.Repository<Dispute>().AddAsync(d);
 			await _uow.Complete();
+			return d.Id;
+		}
+
+		public async Task<Guid> OpenWithAutoItemAsync(
+			Guid bookingId,
+			string typeText,
+			int? downtimeDays)
+		{
+			var (booking, baseDailyRate, setting) = await LoadPricingInputsAsync(bookingId);
+			var normalizedType = NormalizeDisputeType(typeText);
+			var (title, description, severity) = BuildDefaults(normalizedType);
+
+			decimal amount;
+			if (normalizedType == "downtime")
+			{
+				var days = downtimeDays.GetValueOrDefault();
+				if (days <= 0)
+					throw new InvalidOperationException("DowntimeDays phải lớn > 0.");
+
+				amount = baseDailyRate * setting.DowntimeFactor * days;
+				description += $" Thời gian bị gián đoạn {days} day(s).";
+			}
+			else if (normalizedType == "late")
+			{
+				var lateDays = CalculateLateDays(booking.ReturnAt, DateTime.UtcNow);
+				if (lateDays <= 0)
+					throw new InvalidOperationException("Đơn hàng không bị quá hạn");
+
+				var firstDays = Math.Min(lateDays, setting.LateFeeFirstNDays);
+				var remaining = Math.Max(0, lateDays - firstDays);
+				amount = baseDailyRate * (firstDays * setting.LateFeeFactorFirstN + remaining * setting.LateFeeFactorAfter);
+				description += $" Trả muộn {lateDays} day(s).";
+			}
+			else
+			{
+				throw new InvalidOperationException("Unsupported dispute type.");
+			}
+
+			amount = decimal.Round(amount, 0);
+
+			var d = new Dispute
+			{
+				Id = Guid.NewGuid(),
+				BookingId = bookingId,
+				Title = title,
+				Description = description,
+				Severity = severity,
+				Status = "under_review",
+				TotalAmount = amount,
+				CreatedAt = DateTime.UtcNow
+			};
+
+			var item = new DisputeItem
+			{
+				Id = Guid.NewGuid(),
+				DisputeId = d.Id,
+				Type = normalizedType,
+				Amount = amount,
+				CreatedAt = DateTime.UtcNow
+			};
+
+			await _uow.Repository<Dispute>().AddAsync(d);
+			await _uow.Repository<DisputeItem>().AddAsync(item);
+			await _uow.Complete();
+
 			return d.Id;
 		}
 
@@ -131,6 +198,81 @@ namespace CamRent_Application.Services
 			var disputes = await _uow.Repository<Dispute>().ListAsync(d => d.BookingId == bookingId);
 			var total = disputes.Sum(d => d.TotalAmount);
 			return total;
+		}
+
+		private async Task<(Booking booking, decimal baseDailyRate, MoneyFlatformSetting setting)> LoadPricingInputsAsync(Guid bookingId)
+		{
+			var booking = await _uow.Repository<Booking>().FirstOrDefaultAsync(b => b.Id == bookingId)
+				?? throw new InvalidOperationException("Booking not found.");
+
+			var baseDailyRate = booking.SnapshotBaseDailyRate;
+			if (baseDailyRate <= 0)
+			{
+				var items = await _uow.Repository<BookingItem>().ListAsync(i => i.BookingId == bookingId);
+				baseDailyRate = items.Sum(i => i.UnitPrice);
+			}
+
+			if (baseDailyRate <= 0)
+				throw new InvalidOperationException("Base daily rate is not available.");
+
+			var setting = await _uow.Repository<MoneyFlatformSetting>().FirstOrDefaultAsync(s => s.IsActive)
+				?? throw new InvalidOperationException("Money platform setting not found.");
+
+			return (booking, baseDailyRate, setting);
+		}
+
+		private static int CalculateLateDays(DateTime scheduledReturnUtc, DateTime nowUtc)
+		{
+			var returnUtc = scheduledReturnUtc.Kind == DateTimeKind.Utc
+				? scheduledReturnUtc
+				: scheduledReturnUtc.ToUniversalTime();
+
+			var diff = nowUtc - returnUtc;
+			if (diff.TotalDays <= 0)
+				return 0;
+
+			return (int)Math.Ceiling(diff.TotalDays);
+		}
+
+		private static string NormalizeDisputeType(string input)
+		{
+			if (string.IsNullOrWhiteSpace(input))
+				throw new InvalidOperationException("Dispute type is required.");
+
+			var normalized = RemoveDiacritics(input.Trim().ToLowerInvariant());
+
+			if (normalized.Contains("gian doan") || normalized.Contains("downtime"))
+				return "downtime_fee";
+
+			if (normalized.Contains("tra muon") || normalized.Contains("tre muon") || normalized.Contains("late"))
+				return "late_fee";
+
+			return normalized;
+		}
+
+		private static (string title, string description, string severity) BuildDefaults(string normalizedType)
+		{
+			return normalizedType switch
+			{
+				"downtime_fee" => ("Downtime fee", "Auto-calculated downtime fee", "minor"),
+				"late_fee" => ("Late fee", "Auto-calculated late fee", "minor"),
+				_ => ("Dispute", "Auto-calculated dispute fee", "minor")
+			};
+		}
+
+		private static string RemoveDiacritics(string text)
+		{
+			var normalizedString = text.Normalize(NormalizationForm.FormD);
+			var sb = new StringBuilder();
+
+			foreach (var c in normalizedString)
+			{
+				var category = CharUnicodeInfo.GetUnicodeCategory(c);
+				if (category != UnicodeCategory.NonSpacingMark)
+					sb.Append(c);
+			}
+
+			return sb.ToString().Normalize(NormalizationForm.FormC);
 		}
 	}
 }
