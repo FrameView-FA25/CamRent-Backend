@@ -71,13 +71,27 @@ namespace CamRent_Application.Services
 
 				foreach (var img in images.Where(f => f != null && f.Length > 0))
 				{
-					var asset = await _files.UploadAsync(
-						img,
-						ownerId: report.Id,
-						ownerType: FileOwnerType.BookingReport,
-						folder: $"camrent/bookings/{bookingId}/reports/{report.Id}",
-						label: report.Title);
-					imageUrls.Add(asset.Url);
+					try
+					{
+						var asset = await _files.UploadAsync(
+							img,
+							ownerId: report.Id,
+							ownerType: FileOwnerType.BookingReport,
+							folder: $"camrent/bookings/{bookingId}/reports/{report.Id}",
+							label: report.Title);
+						
+						if (!string.IsNullOrWhiteSpace(asset?.Url))
+						{
+							imageUrls.Add(asset.Url);
+						}
+					}
+					catch (Exception ex)
+					{
+						// Log lỗi nhưng tiếp tục với các ảnh khác
+						// Nếu tất cả ảnh đều lỗi, vẫn trả về report nhưng ImageUrls sẽ rỗng
+						// Frontend có thể hiển thị thông báo lỗi upload ảnh
+						// TODO: Log error để debug: $"Failed to upload image {img.FileName}: {ex.Message}"
+					}
 				}
 			}
 
@@ -122,9 +136,22 @@ namespace CamRent_Application.Services
 					.Include(r => r.ReporterUser)
 			);
 
-			return reports
+			var reportList = reports
 				.OrderByDescending(r => r.CreatedAt)
 				.Take(take)
+				.ToList();
+
+			// Load hình ảnh cho tất cả reports
+			var reportIds = reportList.Select(r => r.Id).ToList();
+			var allFiles = await _uow.Repository<FileAsset>().ListAsync(
+				f => f.OwnerType == FileOwnerType.BookingReport && f.OwnerId.HasValue && reportIds.Contains(f.OwnerId.Value));
+			
+			var filesByReportId = allFiles
+				.Where(f => f.OwnerId.HasValue)
+				.GroupBy(f => f.OwnerId!.Value)
+				.ToDictionary(g => g.Key, g => g.Select(f => f.Url).Where(u => !string.IsNullOrWhiteSpace(u)).ToList());
+
+			return reportList
 				.Select(r => new BookingIssueReportStaffListItem
 				{
 					Id = r.Id,
@@ -136,7 +163,8 @@ namespace CamRent_Application.Services
 					Status = r.Status,
 					StatusText = StatusText(r.Status),
 					ReporterName = r.ReporterUser?.FullName ?? string.Empty,
-					Devices = BuildDevicesFromBooking(r.Booking).ToList()
+					Devices = BuildDevicesFromBooking(r.Booking).ToList(),
+					ImageUrls = filesByReportId.GetValueOrDefault(r.Id, new List<string>())
 				})
 				.ToList();
 		}
