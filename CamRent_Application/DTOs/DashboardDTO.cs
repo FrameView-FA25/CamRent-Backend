@@ -104,6 +104,7 @@ namespace CamRent_Application.DTOs
 		public string Name { get; set; } = string.Empty;
 		public int RentalCount { get; set; }
 		public decimal GrossRevenue { get; set; }
+		public decimal NetRevenue { get; set; }
 	}
 
 	/// <summary>
