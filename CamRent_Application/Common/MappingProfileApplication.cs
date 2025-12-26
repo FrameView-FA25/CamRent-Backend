@@ -8,6 +8,7 @@ using static CamRent_Application.DTOs.BranchDTO;
 using static CamRent_Application.DTOs.CameraDTO;
 using static CamRent_Application.DTOs.ContractDTO;
 using static CamRent_Application.DTOs.InspectionDTO;
+using static CamRent_Application.DTOs.ReviewDTO;
 using static CamRent_Application.DTOs.VerificationRequestDTO;
 using static CamRent_Application.DTOs.WalletDTO;
 
@@ -152,6 +153,15 @@ namespace CamRent_Application.Common
 			CreateMap<Payment, PaymentDTO>()
 			.ForMember(d => d.Lines, opt => opt.MapFrom(s => s.Lines));
 			CreateMap<PaymentLine, PaymentLineDTO>();
+
+			// Review mappings
+			CreateMap<Review, ReviewResponseDTO>()
+				.ForMember(d => d.AuthorName, opt => opt.MapFrom(s => s.AuthorUser != null ? s.AuthorUser.FullName : null))
+				.ForMember(d => d.AuthorAvatarUrl, opt => opt.MapFrom(s => s.AuthorUser != null && s.AuthorUser.Avatar != null ? s.AuthorUser.Avatar.Url : null))
+				.ForMember(d => d.TargetCameraName, opt => opt.MapFrom(s => s.TargetCamera != null ? s.TargetCamera.Brand + " " + s.TargetCamera.Model : null))
+				.ForMember(d => d.TargetAccessoryName, opt => opt.MapFrom(s => s.TargetAccessory != null ? s.TargetAccessory.Brand + " " + s.TargetAccessory.Model : null))
+				.ForMember(d => d.ReviewedByStaffName, opt => opt.MapFrom(s => s.ReviewedByStaff != null ? s.ReviewedByStaff.FullName : null))
+				.ForMember(d => d.Media, opt => opt.MapFrom(s => s.Media));
 		}
 	}
 }
