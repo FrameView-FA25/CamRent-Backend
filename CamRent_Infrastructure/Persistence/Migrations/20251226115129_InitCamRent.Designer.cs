@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CamRent_Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CamRentDbContext))]
-    [Migration("20251206085816_FixInspection")]
-    partial class FixInspection
+    [Migration("20251226115129_InitCamRent")]
+    partial class InitCamRent
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -68,10 +68,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<decimal>("EstimatedValueVnd")
                         .HasColumnType("numeric")
                         .HasColumnName("estimated_value_vnd");
-
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_available");
 
                     b.Property<bool>("IsConfirmed")
                         .HasColumnType("boolean")
@@ -131,6 +127,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("BookingCode")
+                        .HasColumnType("text")
+                        .HasColumnName("booking_code");
+
                     b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
@@ -143,6 +143,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
 
+                    b.Property<bool>("IsSettled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_settled");
+
                     b.Property<DateTime>("PickupAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("pickup_at");
@@ -154,6 +158,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("ReturnAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("return_at");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("settled_at");
 
                     b.Property<decimal>("SnapshotBaseDailyRate")
                         .HasColumnType("numeric")
@@ -197,6 +205,80 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.HasIndex("StaffId");
 
                     b.ToTable("bookings");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.BookingIssueReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("HandledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("handled_at");
+
+                    b.Property<Guid?>("HandledByStaffId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("handled_by_staff_id");
+
+                    b.Property<string>("HandlerNote")
+                        .HasColumnType("text")
+                        .HasColumnName("handler_note");
+
+                    b.Property<Guid>("ReporterUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reporter_user_id");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("HandledByStaffId");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.ToTable("booking_issue_reports");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.BookingItem", b =>
@@ -342,10 +424,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("estimated_value_vnd");
 
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_available");
-
                     b.Property<bool>("IsConfirmed")
                         .HasColumnType("boolean")
                         .HasColumnName("is_confirmed");
@@ -395,45 +473,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId");
 
                     b.ToTable("cameras");
-                });
-
-            modelBuilder.Entity("CamRent_Domain.Entities.Category", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<Guid?>("ParentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("parent_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
-
-                    b.ToTable("categories");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Combo", b =>
@@ -676,117 +715,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("contract_signatures");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.DeliveryTask", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid?>("AssigneeUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("assignee_user_id");
-
-                    b.Property<Guid>("BookingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("booking_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<DateTime?>("DeliveredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("delivered_at");
-
-                    b.Property<decimal?>("DeliveryFee")
-                        .HasColumnType("numeric")
-                        .HasColumnName("delivery_fee");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text")
-                        .HasColumnName("notes");
-
-                    b.Property<DateTime?>("PickedUpAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("picked_up_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
-
-                    b.Property<string>("TrackingCode")
-                        .HasColumnType("text")
-                        .HasColumnName("tracking_code");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssigneeUserId");
-
-                    b.HasIndex("BookingId");
-
-                    b.ToTable("delivery_tasks");
-                });
-
-            modelBuilder.Entity("CamRent_Domain.Entities.DeviceCategoryLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid?>("AccessoryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("accessory_id");
-
-                    b.Property<Guid?>("CameraId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("camera_id");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("category_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by_user_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccessoryId");
-
-                    b.HasIndex("CameraId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("device_categories");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.Dispute", b =>
                 {
                     b.Property<Guid>("Id")
@@ -965,10 +893,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("branch_id");
 
-                    b.Property<string>("ConditionNote")
-                        .HasColumnType("text")
-                        .HasColumnName("condition_note");
-
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uuid")
                         .HasColumnName("contract_id");
@@ -989,10 +913,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("inspection_id");
 
-                    b.Property<string>("ItemsJson")
-                        .HasColumnType("text")
-                        .HasColumnName("items_json");
-
                     b.Property<string>("PartySignatureUrl")
                         .HasColumnType("text")
                         .HasColumnName("party_signature_url");
@@ -1001,14 +921,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("party_type");
-
-                    b.Property<string>("ReceiptPdfUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("receipt_pdf_url");
-
-                    b.Property<string>("StaffSignatureUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("staff_signature_url");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -1042,28 +954,17 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("handover_receipts");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Inspection", b =>
+            modelBuilder.Entity("CamRent_Domain.Entities.HomePageBlock", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid?>("AccessoryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("accessory_id");
-
-                    b.Property<Guid?>("BookingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("booking_id");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("branch_id");
-
-                    b.Property<Guid?>("CameraId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("camera_id");
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1072,6 +973,125 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid?>("ImageAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("image_asset_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("key");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageAssetId");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("home_page_blocks");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.HomePageCarouselItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid?>("ImageAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("image_asset_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LinkUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("link_url");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageAssetId");
+
+                    b.ToTable("home_page_carousel_items");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.Inspection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ChecklistItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("checklist_item_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid?>("FormId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_id");
 
                     b.Property<string>("Label")
                         .IsRequired()
@@ -1092,10 +1112,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("section");
 
-                    b.Property<string>("Type")
-                        .HasColumnType("text")
-                        .HasColumnName("type");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1108,25 +1124,394 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("value");
 
-                    b.Property<Guid?>("VerificationId")
+                    b.HasKey("Id");
+
+                    b.HasIndex("FormId");
+
+                    b.ToTable("inspections");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("verification_id");
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("label");
+
+                    b.Property<Guid>("SectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("section_id");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccessoryId");
+                    b.HasIndex("SectionId");
 
-                    b.HasIndex("BookingId");
+                    b.ToTable("inspection_checklist_items");
+                });
 
-                    b.HasIndex("BranchId");
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistItemAllowedMethod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
-                    b.HasIndex("CameraId");
+                    b.Property<Guid>("ChecklistItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("checklist_item_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid>("MethodId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("method_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistItemId");
+
+                    b.HasIndex("MethodId");
+
+                    b.ToTable("inspection_checklist_item_allowed_methods");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistSection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("inspection_checklist_sections");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("InspectionType")
+                        .HasColumnType("text")
+                        .HasColumnName("inspection_type");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("item_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("inspection_checklist_templates");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionForm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("HandoverType")
+                        .HasColumnType("text")
+                        .HasColumnName("handover_type");
+
+                    b.Property<Guid>("InspectionTypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inspection_type_id");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("item_type");
+
+                    b.Property<bool?>("OverallPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("overall_passed");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("VerificationId");
+                    b.HasIndex("TemplateId");
 
-                    b.ToTable("inspections");
+                    b.ToTable("inspection_forms");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionMethod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("inspection_methods");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionMethodSelection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inspection_id");
+
+                    b.Property<Guid>("MethodId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("method_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InspectionId");
+
+                    b.HasIndex("MethodId");
+
+                    b.ToTable("inspection_method_selections");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.MoneyFlatformSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<TimeSpan>("CancelTime")
+                        .HasColumnType("interval")
+                        .HasColumnName("cancel_time");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<decimal>("DowntimeFactor")
+                        .HasColumnType("numeric")
+                        .HasColumnName("downtime_factor");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal>("LateFeeFactorAfter")
+                        .HasColumnType("numeric")
+                        .HasColumnName("late_fee_factor_after");
+
+                    b.Property<decimal>("LateFeeFactorFirstN")
+                        .HasColumnType("numeric")
+                        .HasColumnName("late_fee_factor_first_n");
+
+                    b.Property<int>("LateFeeFirstNDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("late_fee_first_n_days");
+
+                    b.Property<decimal>("OwnerSharePercent")
+                        .HasColumnType("numeric")
+                        .HasColumnName("owner_share_percent");
+
+                    b.Property<decimal>("PlatformFeePercent")
+                        .HasColumnType("numeric")
+                        .HasColumnName("platform_fee_percent");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<decimal>("UpfrontPercent")
+                        .HasColumnType("numeric")
+                        .HasColumnName("upfront_percent");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("money_flatform_settings");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Payment", b =>
@@ -1164,6 +1549,11 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<string>("ProviderPaymentId")
                         .HasColumnType("text")
                         .HasColumnName("provider_payment_id");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("purpose");
 
                     b.Property<decimal>("RefundedAmount")
                         .HasColumnType("numeric")
@@ -1486,6 +1876,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AvatarId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("avatar_id");
+
                     b.Property<string>("BankAccountName")
                         .HasColumnType("text")
                         .HasColumnName("bank_account_name");
@@ -1516,15 +1910,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("full_name");
 
-                    b.Property<string>("KycStatus")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("kyc_status");
-
-                    b.Property<string>("NationalIdNumber")
-                        .HasColumnType("text")
-                        .HasColumnName("national_id_number");
-
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1540,6 +1925,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("phone");
 
+                    b.Property<Guid?>("SignatureAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("signature_asset_id");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1554,6 +1943,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AvatarId");
+
+                    b.HasIndex("SignatureAssetId");
 
                     b.ToTable("users");
                 });
@@ -1688,6 +2081,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("UpdatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("VerificationCode")
+                        .HasColumnType("text")
+                        .HasColumnName("verification_code");
 
                     b.HasKey("Id");
 
@@ -1852,6 +2249,50 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.ToTable("wallet_transactions");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.WorkSlotDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("interval")
+                        .HasColumnName("end_time");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("SlotIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("slot_index");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("interval")
+                        .HasColumnName("start_time");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("work_slot_definitions");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.Accessory", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Branch", "Branch")
@@ -1913,6 +2354,32 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Renter");
 
                     b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.BookingIssueReport", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CamRent_Domain.Entities.User", "HandledByStaff")
+                        .WithMany()
+                        .HasForeignKey("HandledByStaffId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CamRent_Domain.Entities.User", "ReporterUser")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("HandledByStaff");
+
+                    b.Navigation("ReporterUser");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.BookingItem", b =>
@@ -1997,15 +2464,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("OwnerUser");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Category", b =>
-                {
-                    b.HasOne("CamRent_Domain.Entities.Category", "Parent")
-                        .WithMany()
-                        .HasForeignKey("ParentId");
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.ComboItem", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Accessory", "Accessory")
@@ -2079,100 +2537,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.DeliveryTask", b =>
-                {
-                    b.HasOne("CamRent_Domain.Entities.User", "AssigneeUser")
-                        .WithMany()
-                        .HasForeignKey("AssigneeUserId");
-
-                    b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.OwnsOne("CamRent_Domain.Common.Address", "DropoffAddress", b1 =>
-                        {
-                            b1.Property<Guid>("DeliveryTaskId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Country")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("District")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.HasKey("DeliveryTaskId");
-
-                            b1.ToTable("delivery_tasks");
-
-                            b1.WithOwner()
-                                .HasForeignKey("DeliveryTaskId");
-                        });
-
-                    b.OwnsOne("CamRent_Domain.Common.Address", "PickupAddress", b1 =>
-                        {
-                            b1.Property<Guid>("DeliveryTaskId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Country")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("District")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.HasKey("DeliveryTaskId");
-
-                            b1.ToTable("delivery_tasks");
-
-                            b1.WithOwner()
-                                .HasForeignKey("DeliveryTaskId");
-                        });
-
-                    b.Navigation("AssigneeUser");
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("DropoffAddress");
-
-                    b.Navigation("PickupAddress");
-                });
-
-            modelBuilder.Entity("CamRent_Domain.Entities.DeviceCategoryLink", b =>
-                {
-                    b.HasOne("CamRent_Domain.Entities.Accessory", "Accessory")
-                        .WithMany("Categories")
-                        .HasForeignKey("AccessoryId");
-
-                    b.HasOne("CamRent_Domain.Entities.Camera", "Camera")
-                        .WithMany("Categories")
-                        .HasForeignKey("CameraId");
-
-                    b.HasOne("CamRent_Domain.Entities.Category", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Accessory");
-
-                    b.Navigation("Camera");
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.Dispute", b =>
                 {
                     b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
@@ -2230,43 +2594,112 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.HomePageBlock", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.FileAsset", "ImageAsset")
+                        .WithMany()
+                        .HasForeignKey("ImageAssetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ImageAsset");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.HomePageCarouselItem", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.FileAsset", "ImageAsset")
+                        .WithMany()
+                        .HasForeignKey("ImageAssetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ImageAsset");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.Inspection", b =>
                 {
-                    b.HasOne("CamRent_Domain.Entities.Accessory", "Accessory")
-                        .WithMany()
-                        .HasForeignKey("AccessoryId");
-
-                    b.HasOne("CamRent_Domain.Entities.Booking", "Booking")
+                    b.HasOne("CamRent_Domain.Entities.InspectionForm", "Form")
                         .WithMany("Inspections")
-                        .HasForeignKey("BookingId");
+                        .HasForeignKey("FormId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CamRent_Domain.Entities.Branch", "Branch")
+                    b.Navigation("Form");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistItem", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.InspectionChecklistSection", "Section")
+                        .WithMany("Items")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistItemAllowedMethod", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.InspectionChecklistItem", "ChecklistItem")
+                        .WithMany("AllowedMethods")
+                        .HasForeignKey("ChecklistItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CamRent_Domain.Entities.InspectionMethod", "Method")
                         .WithMany()
-                        .HasForeignKey("BranchId");
+                        .HasForeignKey("MethodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("CamRent_Domain.Entities.Camera", "Camera")
-                        .WithMany()
-                        .HasForeignKey("CameraId");
+                    b.Navigation("ChecklistItem");
 
+                    b.Navigation("Method");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistSection", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.InspectionChecklistTemplate", "Template")
+                        .WithMany("Sections")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionForm", b =>
+                {
                     b.HasOne("CamRent_Domain.Entities.User", "Staff")
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId");
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CamRent_Domain.Entities.VerificationRequest", "Verification")
-                        .WithMany("Inspections")
-                        .HasForeignKey("VerificationId");
-
-                    b.Navigation("Accessory");
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("Camera");
+                    b.HasOne("CamRent_Domain.Entities.InspectionChecklistTemplate", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Staff");
 
-                    b.Navigation("Verification");
+                    b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionMethodSelection", b =>
+                {
+                    b.HasOne("CamRent_Domain.Entities.Inspection", "Inspection")
+                        .WithMany("MethodSelections")
+                        .HasForeignKey("InspectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CamRent_Domain.Entities.InspectionMethod", "Method")
+                        .WithMany()
+                        .HasForeignKey("MethodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Inspection");
+
+                    b.Navigation("Method");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Payment", b =>
@@ -2331,6 +2764,14 @@ namespace CamRent_Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CamRent_Domain.Entities.User", b =>
                 {
+                    b.HasOne("CamRent_Domain.Entities.FileAsset", "Avatar")
+                        .WithMany()
+                        .HasForeignKey("AvatarId");
+
+                    b.HasOne("CamRent_Domain.Entities.FileAsset", "SignatureAsset")
+                        .WithMany()
+                        .HasForeignKey("SignatureAssetId");
+
                     b.OwnsOne("CamRent_Domain.Common.Address", "Address", b1 =>
                         {
                             b1.Property<Guid>("UserId")
@@ -2357,6 +2798,10 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("Address");
+
+                    b.Navigation("Avatar");
+
+                    b.Navigation("SignatureAsset");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.UserBranchMembership", b =>
@@ -2467,16 +2912,9 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Wallet");
                 });
 
-            modelBuilder.Entity("CamRent_Domain.Entities.Accessory", b =>
-                {
-                    b.Navigation("Categories");
-                });
-
             modelBuilder.Entity("CamRent_Domain.Entities.Booking", b =>
                 {
                     b.Navigation("Contracts");
-
-                    b.Navigation("Inspections");
 
                     b.Navigation("Items");
 
@@ -2486,11 +2924,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CamRent_Domain.Entities.Branch", b =>
                 {
                     b.Navigation("UserMemberships");
-                });
-
-            modelBuilder.Entity("CamRent_Domain.Entities.Camera", b =>
-                {
-                    b.Navigation("Categories");
                 });
 
             modelBuilder.Entity("CamRent_Domain.Entities.Combo", b =>
@@ -2508,6 +2941,31 @@ namespace CamRent_Infrastructure.Persistence.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("CamRent_Domain.Entities.Inspection", b =>
+                {
+                    b.Navigation("MethodSelections");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistItem", b =>
+                {
+                    b.Navigation("AllowedMethods");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistSection", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionChecklistTemplate", b =>
+                {
+                    b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("CamRent_Domain.Entities.InspectionForm", b =>
+                {
+                    b.Navigation("Inspections");
+                });
+
             modelBuilder.Entity("CamRent_Domain.Entities.Payment", b =>
                 {
                     b.Navigation("Lines");
@@ -2521,8 +2979,6 @@ namespace CamRent_Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CamRent_Domain.Entities.VerificationRequest", b =>
                 {
                     b.Navigation("Contracts");
-
-                    b.Navigation("Inspections");
 
                     b.Navigation("Items");
                 });
