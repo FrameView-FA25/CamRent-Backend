@@ -35,6 +35,7 @@ namespace CamRent_Application.DTOs
 			public string StatusText { get; set; } = string.Empty;
 			public string ReporterName { get; set; } = string.Empty;
 			public List<BookingReportDeviceBrief> Devices { get; set; } = new();
+			public List<string> ImageUrls { get; set; } = new();
 		}
 
 		public sealed class BookingIssueReportStaffDetail
