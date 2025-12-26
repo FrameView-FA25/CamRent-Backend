@@ -32,10 +32,64 @@ namespace CamRent_Application.Services
 			if (d == null) return null;
 			return Map(d);
 		}
-
-		public async Task<Guid> OpenAsync(Guid bookingId, string title, string description, string severity)
+		public async Task<Guid> OpenAsync(Guid bookingId, string title, string description, string severity, int? downtimeDays)
 		{
-			var d = new Dispute
+			var autoType = TryDetectAutoType(title);
+			if (autoType == "downtime_fee" || autoType == "late_fee")
+			{
+				var (booking, baseDailyRate, setting) = await LoadPricingInputsAsync(bookingId);
+
+				decimal amount;
+				if (autoType == "downtime_fee")
+				{
+					var days = downtimeDays.GetValueOrDefault();
+					if (days <= 0)
+						throw new InvalidOperationException("DowntimeDays phải lớn hơn 0.");
+
+					amount = baseDailyRate * setting.DowntimeFactor * days;
+				}
+				else
+				{
+					var lateDays = CalculateLateDays(booking.ReturnAt, DateTime.UtcNow);
+					if (lateDays <= 0)
+						throw new InvalidOperationException("Đơn hàng chưa bị quá hạn");
+
+					var firstDays = Math.Min(lateDays, setting.LateFeeFirstNDays);
+					var remaining = Math.Max(0, lateDays - firstDays);
+					amount = baseDailyRate * (firstDays * setting.LateFeeFactorFirstN + remaining * setting.LateFeeFactorAfter);
+				}
+
+				amount = decimal.Round(amount, 0);
+
+				var d = new Dispute
+				{
+					Id = Guid.NewGuid(),
+					BookingId = bookingId,
+					Title = title,
+					Description = description,
+					Severity = severity,
+					Status = "under_review",
+					TotalAmount = amount,
+					CreatedAt = DateTime.UtcNow
+				};
+
+				var item = new DisputeItem
+				{
+					Id = Guid.NewGuid(),
+					DisputeId = d.Id,
+					Type = autoType,
+					Amount = amount,
+					CreatedAt = DateTime.UtcNow
+				};
+
+				await _uow.Repository<Dispute>().AddAsync(d);
+				await _uow.Repository<DisputeItem>().AddAsync(item);
+				await _uow.Complete();
+
+				return d.Id;
+			}
+
+			var dispute = new Dispute
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
@@ -46,75 +100,12 @@ namespace CamRent_Application.Services
 				TotalAmount = 0,
 				CreatedAt = DateTime.UtcNow
 			};
-			await _uow.Repository<Dispute>().AddAsync(d);
+			await _uow.Repository<Dispute>().AddAsync(dispute);
 			await _uow.Complete();
-			return d.Id;
+			return dispute.Id;
 		}
 
-		public async Task<Guid> OpenWithAutoItemAsync(
-			Guid bookingId,
-			string typeText,
-			int? downtimeDays)
-		{
-			var (booking, baseDailyRate, setting) = await LoadPricingInputsAsync(bookingId);
-			var normalizedType = NormalizeDisputeType(typeText);
-			var (title, description, severity) = BuildDefaults(normalizedType);
-
-			decimal amount;
-			if (normalizedType == "downtime")
-			{
-				var days = downtimeDays.GetValueOrDefault();
-				if (days <= 0)
-					throw new InvalidOperationException("DowntimeDays phải lớn > 0.");
-
-				amount = baseDailyRate * setting.DowntimeFactor * days;
-				description += $" Thời gian bị gián đoạn {days} day(s).";
-			}
-			else if (normalizedType == "late")
-			{
-				var lateDays = CalculateLateDays(booking.ReturnAt, DateTime.UtcNow);
-				if (lateDays <= 0)
-					throw new InvalidOperationException("Đơn hàng không bị quá hạn");
-
-				var firstDays = Math.Min(lateDays, setting.LateFeeFirstNDays);
-				var remaining = Math.Max(0, lateDays - firstDays);
-				amount = baseDailyRate * (firstDays * setting.LateFeeFactorFirstN + remaining * setting.LateFeeFactorAfter);
-				description += $" Trả muộn {lateDays} day(s).";
-			}
-			else
-			{
-				throw new InvalidOperationException("Unsupported dispute type.");
-			}
-
-			amount = decimal.Round(amount, 0);
-
-			var d = new Dispute
-			{
-				Id = Guid.NewGuid(),
-				BookingId = bookingId,
-				Title = title,
-				Description = description,
-				Severity = severity,
-				Status = "under_review",
-				TotalAmount = amount,
-				CreatedAt = DateTime.UtcNow
-			};
-
-			var item = new DisputeItem
-			{
-				Id = Guid.NewGuid(),
-				DisputeId = d.Id,
-				Type = normalizedType,
-				Amount = amount,
-				CreatedAt = DateTime.UtcNow
-			};
-
-			await _uow.Repository<Dispute>().AddAsync(d);
-			await _uow.Repository<DisputeItem>().AddAsync(item);
-			await _uow.Complete();
-
-			return d.Id;
-		}
+		
 
 		public async Task AddItemAsync(Guid disputeId, string type, decimal amount, string? notes)
 		{
@@ -233,11 +224,10 @@ namespace CamRent_Application.Services
 
 			return (int)Math.Ceiling(diff.TotalDays);
 		}
-
-		private static string NormalizeDisputeType(string input)
+		private static string? TryDetectAutoType(string input)
 		{
 			if (string.IsNullOrWhiteSpace(input))
-				throw new InvalidOperationException("Dispute type is required.");
+				return null;
 
 			var normalized = RemoveDiacritics(input.Trim().ToLowerInvariant());
 
@@ -247,17 +237,7 @@ namespace CamRent_Application.Services
 			if (normalized.Contains("tra muon") || normalized.Contains("tre muon") || normalized.Contains("late"))
 				return "late_fee";
 
-			return normalized;
-		}
-
-		private static (string title, string description, string severity) BuildDefaults(string normalizedType)
-		{
-			return normalizedType switch
-			{
-				"downtime_fee" => ("Downtime fee", "Auto-calculated downtime fee", "minor"),
-				"late_fee" => ("Late fee", "Auto-calculated late fee", "minor"),
-				_ => ("Dispute", "Auto-calculated dispute fee", "minor")
-			};
+			return null;
 		}
 
 		private static string RemoveDiacritics(string text)
@@ -276,4 +256,9 @@ namespace CamRent_Application.Services
 		}
 	}
 }
+
+
+
+
+
 

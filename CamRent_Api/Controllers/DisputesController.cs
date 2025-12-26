@@ -21,12 +21,6 @@ namespace CamRent_Api.Controllers
 			public string Title { get; set; } = string.Empty;
 			public string Description { get; set; } = string.Empty;
 			public string Severity { get; set; } = "minor";
-		}
-
-		public sealed class OpenAutoItemRequest
-		{
-			public Guid BookingId { get; set; }
-			public string Type { get; set; } = string.Empty;
 			public int? DowntimeDays { get; set; }
 		}
 
@@ -66,19 +60,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Staff mở dispute", Description = "Staff gửi dispute mới cho booking (mô tả, mức độ). Quyền: Staff")]
 		public async Task<ActionResult<Guid>> Open([FromBody] OpenRequest req)
 		{
-			var id = await _dispute.OpenAsync(req.BookingId, req.Title, req.Description, req.Severity);
-			return Ok(id);
-		}
-
-		[HttpPost("auto-item")]
-		[Authorize(Policy = "Staff")]
-		[SwaggerOperation(Summary = "Staff open dispute with auto fee item", Description = "Auto-calc downtime/late fee amount when opening a dispute. Policy: Staff.")]
-		public async Task<ActionResult<Guid>> OpenAutoItem([FromBody] OpenAutoItemRequest req)
-		{
-			var id = await _dispute.OpenWithAutoItemAsync(
-				req.BookingId,
-				req.Type,
-				req.DowntimeDays);
+			var id = await _dispute.OpenAsync(req.BookingId, req.Title, req.Description, req.Severity, req.DowntimeDays);
 			return Ok(id);
 		}
 
