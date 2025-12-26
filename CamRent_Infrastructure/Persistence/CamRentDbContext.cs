@@ -50,7 +50,6 @@ namespace CamRent_Infrastructure.Persistence
         public DbSet<ResetPasswordToken> ResetPasswordTokens => Set<ResetPasswordToken>();
         public DbSet<Wallet> Wallets => Set<Wallet>();
         public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
-        public DbSet<HandoverReceipt> HandoverReceipts => Set<HandoverReceipt>();
         public DbSet<MoneyFlatformSetting> MoneyFlatformSettings => Set<MoneyFlatformSetting>();
 		public DbSet<WorkSlotDefinition> WorkSlotDefinitions => Set<WorkSlotDefinition>();
 		public DbSet<Review> Reviews => Set<Review>();
@@ -354,26 +353,6 @@ namespace CamRent_Infrastructure.Persistence
 				.HasIndex(x => x.Key)
 				.IsUnique();
 
-            modelBuilder.Entity<HandoverReceipt>()
-                         .HasOne(hr => hr.Contract)
-                         .WithMany()
-                         .HasForeignKey(hr => hr.ContractId);
-            modelBuilder.Entity<HandoverReceipt>()
-                .HasOne(hr => hr.User)
-                .WithMany()
-                .HasForeignKey(hr => hr.UserId);
-            modelBuilder.Entity<HandoverReceipt>()
-                .HasOne(hr => hr.Staff)
-                .WithMany()
-                .HasForeignKey(hr => hr.CreatedByUserId);
-            modelBuilder.Entity<HandoverReceipt>()
-                .HasOne(hr => hr.Branch)
-                .WithMany()
-                .HasForeignKey(hr => hr.BranchId);
-            modelBuilder.Entity<HandoverReceipt>()
-                .HasOne(hr => hr.Inspection)
-                .WithMany()
-                .HasForeignKey(hr => hr.InspectionId);
             modelBuilder.Entity<Wallet>()
                 .HasOne(w => w.User)
                 .WithMany()
