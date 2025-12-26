@@ -121,10 +121,22 @@ namespace CamRent_Application.Common
 					s.Camera != null ? s.Camera.Brand + " " + s.Camera.Model :
 					s.Accessory != null ? s.Accessory.Brand + " " + s.Accessory.Model :
 					null))
+				.ForMember(d => d.SerialNumber, o => o.MapFrom(s =>
+					s.Camera != null ? s.Camera.SerialNumber :
+					s.Accessory != null ? s.Accessory.SerialNumber :
+					null))
 				.ForMember(d => d.ItemType, o => o.MapFrom(s =>
 					s.CameraId != null ? ItemType.Camera :
 					s.AccessoryId != null ? ItemType.Accessory :
-					ItemType.Combo));
+					ItemType.Combo))
+				.ForMember(d => d.UnitPrice, o => o.MapFrom(s =>
+					s.Camera != null ? s.Camera.BaseDailyRate :
+					s.Accessory != null ? s.Accessory.BaseDailyRate :
+					0m))
+				.ForMember(d => d.DepositAmount, o => o.MapFrom(s =>
+					s.Camera != null ? CalculateDepositForCamera(s.Camera) :
+					s.Accessory != null ? CalculateDepositForAccessory(s.Accessory) :
+					0m));
 
 			CreateMap<Inspection, InspectionResponseDTO>()
 				.ForMember(d => d.ItemName, opt => opt.Ignore())
@@ -162,6 +174,32 @@ namespace CamRent_Application.Common
 				.ForMember(d => d.TargetAccessoryName, opt => opt.MapFrom(s => s.TargetAccessory != null ? s.TargetAccessory.Brand + " " + s.TargetAccessory.Model : null))
 				.ForMember(d => d.ReviewedByStaffName, opt => opt.MapFrom(s => s.ReviewedByStaff != null ? s.ReviewedByStaff.FullName : null))
 				.ForMember(d => d.Media, opt => opt.MapFrom(s => s.Media));
+		}
+
+		private static decimal CalculateDepositForCamera(Camera camera)
+		{
+			var raw = camera.EstimatedValueVnd * camera.DepositPercent;
+
+			if (camera.DepositCapMinVnd.HasValue)
+				raw = Math.Max(raw, camera.DepositCapMinVnd.Value);
+
+			if (camera.DepositCapMaxVnd.HasValue)
+				raw = Math.Min(raw, camera.DepositCapMaxVnd.Value);
+
+			return raw;
+		}
+
+		private static decimal CalculateDepositForAccessory(Accessory accessory)
+		{
+			var raw = accessory.EstimatedValueVnd * accessory.DepositPercent;
+
+			if (accessory.DepositCapMinVnd.HasValue)
+				raw = Math.Max(raw, accessory.DepositCapMinVnd.Value);
+
+			if (accessory.DepositCapMaxVnd.HasValue)
+				raw = Math.Min(raw, accessory.DepositCapMaxVnd.Value);
+
+			return raw;
 		}
 	}
 }
