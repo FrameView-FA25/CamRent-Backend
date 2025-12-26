@@ -106,6 +106,7 @@ namespace CamRent_Api.Controllers
 				if (!ok)
 				{
 					await _contractService.DeleteBookingContractAsync(booking.Id);
+					await _contractService.UpdateStatusContractSignatureByBookingIdAsync(booking.Id);
 					return BadRequest("Số dư ví không đủ");
 				}
 				var paymentId = await _paymentService.CreatePaymentAsync(
@@ -116,10 +117,6 @@ namespace CamRent_Api.Controllers
 					method: PaymentMethod.Wallet,
 					capturedAmount: totalThisTime
 				);
-				if(paymentId != Guid.Empty)
-				{
-					await _contractService.UpdateStatusContractSignatureByBookingIdAsync(booking.Id);
-				}
 				return Ok("Thanh toán bằng ví thành công");
 			}
 			else if (request.Method == PaymentMethod.Cash)

@@ -231,11 +231,6 @@ namespace CamRent_Application.Services
 
 			// update signature row
 			signature.IsSigned = true;
-			if (role == ContractSignerRole.Renter && userId != null)
-			{
-				signature.UserId = userId;
-				signature.IsSigned = false; // đảm bảo renter ký đúng user
-			}
 			signature.SignedAt = DateTime.UtcNow;
 			signature.SignatureAssetId = asset.Id;
 			signature.SignedIp = ip;
@@ -388,7 +383,7 @@ namespace CamRent_Application.Services
 			var signature = await signatureRepo.FirstOrDefaultAsync(s => s.ContractId == contract.Id && s.Role == ContractSignerRole.Renter);
 			if (signature != null)
 			{
-				signature.IsSigned = true;
+				signature.IsSigned = false;
 				await signatureRepo.UpdateAsync(signature);
 			}
 		}
