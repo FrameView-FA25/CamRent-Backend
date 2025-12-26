@@ -275,6 +275,7 @@ namespace CamRent_Application.Services
 				var booking = item.Booking!;
 				var days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
 				var gross = item.UnitPrice * days;
+				var net = gross * (1 - booking.SnapshotPlatformFeePercent);
 
 				totalGrossRevenue += gross;
 
@@ -323,13 +324,15 @@ namespace CamRent_Application.Services
 						ItemType = type,
 						Name = name,
 						RentalCount = 0,
-						GrossRevenue = 0
+						GrossRevenue = 0,
+						NetRevenue = 0
 					};
 					assetStats[key] = stat;
 				}
 
 				stat.RentalCount += 1;
 				stat.GrossRevenue += gross;
+				stat.NetRevenue += net;
 			}
 
 			var bookingInfo = validItems
@@ -552,13 +555,15 @@ namespace CamRent_Application.Services
 						ItemType = type,
 						Name = name,
 						RentalCount = 0,
-						GrossRevenue = 0
+						GrossRevenue = 0,
+						NetRevenue = 0
 					};
 					assetStats[key] = stat;
 				}
 
 				stat.RentalCount += 1;
 				stat.GrossRevenue += gross;
+				stat.NetRevenue += net;
 			}
 
 			// Chuẩn bị dữ liệu booking + doanh thu theo booking
