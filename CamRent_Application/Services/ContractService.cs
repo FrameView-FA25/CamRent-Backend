@@ -236,6 +236,13 @@ namespace CamRent_Application.Services
 			signature.SignedIp = ip;
 			signature.SignedUserAgent = userAgent;
 
+			if (role == ContractSignerRole.Owner
+				&& contract.Type == ContractType.Verification
+				&& contract.VerificationId.HasValue)
+			{
+				await AssignVerificationBranchToDevicesAsync(contract.VerificationId.Value);
+			}
+
 			var allSignatures = (await signatureRepo.GetAllAsync())
 				.Where(s => s.ContractId == contractId)
 				.ToList();
@@ -265,6 +272,49 @@ namespace CamRent_Application.Services
 			
 
 			return contract;
+		}
+
+		private async Task AssignVerificationBranchToDevicesAsync(Guid verificationId)
+		{
+			var verification = (await _unitOfWork.Repository<VerificationRequest>().ListAsync(
+				filter: v => v.Id == verificationId,
+				include: q => q.Include(v => v.Items)))
+				.FirstOrDefault();
+
+			if (verification?.BranchId == null || verification.Items == null || !verification.Items.Any())
+				return;
+
+			var branchId = verification.BranchId.Value;
+
+			var cameraIds = verification.Items
+				.Where(i => i.CameraId.HasValue)
+				.Select(i => i.CameraId!.Value)
+				.Distinct()
+				.ToList();
+			if (cameraIds.Count > 0)
+			{
+				var cameras = await _unitOfWork.Repository<Camera>()
+					.ListAsync(c => cameraIds.Contains(c.Id));
+				foreach (var camera in cameras)
+				{
+					camera.BranchId = branchId;
+				}
+			}
+
+			var accessoryIds = verification.Items
+				.Where(i => i.AccessoryId.HasValue)
+				.Select(i => i.AccessoryId!.Value)
+				.Distinct()
+				.ToList();
+			if (accessoryIds.Count > 0)
+			{
+				var accessories = await _unitOfWork.Repository<Accessory>()
+					.ListAsync(a => accessoryIds.Contains(a.Id));
+				foreach (var accessory in accessories)
+				{
+					accessory.BranchId = branchId;
+				}
+			}
 		}
 
 
