@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace CamRent_Api.Controllers
@@ -24,7 +25,9 @@ namespace CamRent_Api.Controllers
 
 		public sealed class CreateBookingReportRequest
 		{
+			[Required(ErrorMessage = "Title là bắt buộc")]
 			public string Title { get; set; } = string.Empty;
+			[Required(ErrorMessage = "Description là bắt buộc")]
 			public string Description { get; set; } = string.Empty;
 			public string Severity { get; set; } = "minor";
 			public List<IFormFile>? Images { get; set; }
@@ -38,21 +41,38 @@ namespace CamRent_Api.Controllers
 			Description = "Renter gửi report cho booking đang ở trạng thái PickedUp/Overdue. Có thể đính kèm ảnh.")]
 		public async Task<IActionResult> Create([FromRoute] Guid bookingId, [FromForm] CreateBookingReportRequest req, CancellationToken ct)
 		{
+			// Validate ModelState
+			if (!ModelState.IsValid)
+			{
+				return BadRequest(new { message = "Dữ liệu không hợp lệ", errors = ModelState });
+			}
+
+			// Validate required fields manually (for mobile compatibility)
+			if (string.IsNullOrWhiteSpace(req?.Title))
+				return BadRequest(new { message = "Title là bắt buộc" });
+			if (string.IsNullOrWhiteSpace(req?.Description))
+				return BadRequest(new { message = "Description là bắt buộc" });
+
 			var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
 						  ?? User.FindFirst("sub")?.Value
 						  ?? User.FindFirst("uid")?.Value;
 			if (string.IsNullOrEmpty(userIdStr))
-				return Unauthorized();
+				return Unauthorized(new { message = "Không tìm thấy thông tin người dùng" });
+
+			if (!Guid.TryParse(userIdStr, out var renterId))
+				return BadRequest(new { message = "User ID không hợp lệ" });
+
+			if (bookingId == Guid.Empty)
+				return BadRequest(new { message = "BookingId không hợp lệ" });
 
 			try
 			{
-				var renterId = Guid.Parse(userIdStr);
 				var created = await _reports.CreateForRenterAsync(
 					renterId,
 					bookingId,
 					req.Title,
 					req.Description,
-					req.Severity,
+					req.Severity ?? "minor",
 					req.Images,
 					ct);
 
@@ -67,6 +87,16 @@ namespace CamRent_Api.Controllers
 			catch (AppException ex)
 			{
 				return BadRequest(new { message = ex.Message });
+			}
+			catch (FormatException ex)
+			{
+				return BadRequest(new { message = "Định dạng dữ liệu không hợp lệ", detail = ex.Message });
+			}
+			catch (Exception ex)
+			{
+				// Log exception for debugging
+				// TODO: Log error: $"Unexpected error creating booking report: {ex.Message}"
+				return StatusCode(500, new { message = "Đã xảy ra lỗi khi tạo report. Vui lòng thử lại sau." });
 			}
 		}
 	}
