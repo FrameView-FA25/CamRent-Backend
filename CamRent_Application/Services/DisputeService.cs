@@ -61,12 +61,28 @@ namespace CamRent_Application.Services
 				CreatedAt = DateTime.UtcNow
 			};
 			await _uow.Repository<DisputeItem>().AddAsync(item);
-			// Sau khi thêm item, cập nhật lại TotalAmount = tổng Amount của tất cả DisputeItem.
-			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Không có tranh chấp này");
-			var items = await _uow.Repository<DisputeItem>().ListAsync(i => i.DisputeId == disputeId);
-			d.TotalAmount = items.Sum(i => i.Amount);
-			d.Status = "under_review"; // Tự động chuyển trạng thái khi có item mới
+			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Khong co tranh chap nay");
+			d.TotalAmount += amount;
+			d.Status = "under_review"; // Auto-move status when new item added
 			await _uow.Repository<Dispute>().UpdateAsync(d);
+			await _uow.Complete();
+		}
+
+		public async Task DeleteItemAsync(Guid disputeId, Guid itemId)
+		{
+			var itemRepo = _uow.Repository<DisputeItem>();
+			var disputeRepo = _uow.Repository<Dispute>();
+
+			var item = await itemRepo.GetByIdAsync(itemId);
+			if (item == null || item.DisputeId != disputeId)
+				throw new InvalidOperationException("Khong co dispute item nay");
+
+			var d = await disputeRepo.GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Khong co tranh chap nay");
+			var items = await itemRepo.ListAsync(i => i.DisputeId == disputeId);
+			d.TotalAmount = items.Where(i => i.Id != itemId).Sum(i => i.Amount);
+
+			await itemRepo.DeleteAsync(itemId);
+			await disputeRepo.UpdateAsync(d);
 			await _uow.Complete();
 		}
 

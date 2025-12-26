@@ -72,6 +72,15 @@ namespace CamRent_Api.Controllers
 			return NoContent();
 		}
 
+		[HttpDelete("{id:guid}/items/{itemId:guid}")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Xoa dispute item", Description = "Xoa mot khoan boi thuong khoi dispute. Quyen: Staff/BranchManager")]
+		public async Task<IActionResult> DeleteItem(Guid id, Guid itemId)
+		{
+			await _dispute.DeleteItemAsync(id, itemId);
+			return NoContent();
+		}
+
 		[HttpPut("{id:guid}/resolved")]
 		[Authorize(Policy = "ManagerOrStaff")]
 		[SwaggerOperation(Summary = "Cập nhật trạng thái dispute", Description = "Cập nhật trạng thái xử lý dispute (under_review/resolved/...).")]

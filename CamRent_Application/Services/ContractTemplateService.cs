@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -485,10 +485,12 @@ namespace CamRent_Application.Services
 									{
 										table.ColumnsDefinition(columns =>
 										{
-											columns.ConstantColumn(25);   // #
+											columns.ConstantColumn(25);
 											columns.RelativeColumn(4);    // Thiết bị
-											columns.RelativeColumn(3);    // Loại
-										});
+											columns.RelativeColumn(2);    // Loại
+											columns.RelativeColumn(2.5f); // Gia/ngay
+											columns.RelativeColumn(2.5f); // Tien coc
+											});
 
 										static void HeaderCell(IContainer container, string text)
 										{
@@ -510,6 +512,8 @@ namespace CamRent_Application.Services
 											header.Cell().Element(c => HeaderCell(c, "#"));
 											header.Cell().Element(c => HeaderCell(c, "Thiết bị"));
 											header.Cell().Element(c => HeaderCell(c, "Loại"));
+											header.Cell().Element(c => HeaderCell(c, "Gia/ngay"));
+											header.Cell().Element(c => HeaderCell(c, "Tien coc"));
 										});
 
 										int index = 1;
@@ -518,6 +522,8 @@ namespace CamRent_Application.Services
 											table.Cell().Element(c => BodyCell(c, index++.ToString()));
 											table.Cell().Element(c => BodyCell(c, item.ItemName));
 											table.Cell().Element(c => BodyCell(c, item.ItemType.ToString()));
+											table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} d"));
+											table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} d"));
 										}
 									});
 							}
@@ -626,3 +632,5 @@ namespace CamRent_Application.Services
 		}
 	}
 }
+
+
