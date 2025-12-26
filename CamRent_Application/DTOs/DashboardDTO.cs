@@ -46,6 +46,10 @@ namespace CamRent_Application.DTOs
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
 		public decimal TotalCapturedRevenue { get; set; }
 		public decimal TotalRefundedAmount { get; set; }
+		public decimal TotalCommissionRevenue { get; set; }
+		public decimal TotalDisputeRevenue { get; set; }
+		public decimal TotalNetRevenue { get; set; }
+		public List<BranchRevenueDTO> BranchRevenues { get; set; } = new();
 
 		public List<DashboardTimePoint> DailyStats { get; set; } = new();
 		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
@@ -67,6 +71,9 @@ namespace CamRent_Application.DTOs
 		public int TotalBookings { get; set; }
 		public List<BookingStatusCount> BookingsByStatus { get; set; } = new();
 		public decimal TotalCapturedRevenue { get; set; }
+		public decimal TotalCommissionRevenue { get; set; }
+		public decimal TotalDisputeRevenue { get; set; }
+		public decimal TotalNetRevenue { get; set; }
 		/// <summary>
 		/// Doanh thu gộp ước tính của chi nhánh (dựa trên BookingItem.UnitPrice * số ngày).
 		/// </summary>
@@ -108,9 +115,19 @@ namespace CamRent_Application.DTOs
 		public int TotalAccessories { get; set; }
 		public int TotalBookingsForOwnerItems { get; set; }
 		public decimal TotalGrossRevenue { get; set; }
+		public decimal TotalNetRevenue { get; set; }
 		public List<OwnerAssetStat> TopRentedAssets { get; set; } = new();
 		public List<DashboardTimePoint> DailyStats { get; set; } = new();
 		public List<DashboardTimePoint> MonthlyStats { get; set; } = new();
+	}
+
+	public class BranchRevenueDTO
+	{
+		public Guid BranchId { get; set; }
+		public string BranchName { get; set; } = string.Empty;
+		public decimal CommissionRevenue { get; set; }
+		public decimal DisputeRevenue { get; set; }
+		public decimal NetRevenue { get; set; }
 	}
 
 	/// <summary>
