@@ -155,8 +155,9 @@ namespace CamRent_Domain.Common
     {
         Pending = 0,
         Approved = 1,
-        Rejected = 2
-    }
+        Rejected = 2,
+        Completed = 3
+	}
 
     public enum PaymentType
     {

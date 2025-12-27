@@ -592,7 +592,11 @@ namespace CamRent_Application.Services
 								"• Tiền đặt cọc được ưu tiên dùng để bù đắp thiệt hại cho Bên A. Nếu chi phí thực tế lớn hơn tiền đặt cọc, CamRent hỗ trợ tiếp tục làm việc với người thuê để thu thêm phần chênh lệch."
 							);
 
-							col.Item().Text("9. Điều khoản chung và giải quyết tranh chấp")
+														col.Item().Text(
+								"• Trường hợp thiết bị hư hỏng, mất mát do lỗi của CamRent trong quá trình vận chuyển, lưu kho, bảo quản hoặc xử lý, CamRent chịu trách nhiệm bồi thường cho Bên A theo giá trị thực tế của thiết bị tại thời điểm bàn giao/nhận thiết bị hoặc theo thỏa thuận khác giữa hai bên."
+							);
+
+col.Item().Text("9. Điều khoản chung và giải quyết tranh chấp")
 								.Bold().FontColor(SectionTitleColor);
 							col.Item().Text(
 								"• Hai bên cam kết tuân thủ các điều khoản trong Hợp đồng và các chính sách công bố trên nền tảng CamRent.\n" +
@@ -644,5 +648,6 @@ namespace CamRent_Application.Services
 		}
 	}
 }
+
 
 

@@ -250,6 +250,17 @@ namespace CamRent_Application.Services
 			if (allSignatures.All(s => s.IsSigned))
 			{
 				contract.Status = ContractStatus.Signed;
+
+				if (contract.Type == ContractType.Verification && contract.VerificationId.HasValue)
+				{
+					var verificationRepo = _unitOfWork.Repository<VerificationRequest>();
+					var verification = await verificationRepo.GetByIdAsync(contract.VerificationId.Value);
+					if (verification != null && verification.Status == VerificationStatus.Approved)
+					{
+						verification.Status = VerificationStatus.Completed;
+					}
+				}
+
 				if(role == ContractSignerRole.Owner)
 				{
 					try
