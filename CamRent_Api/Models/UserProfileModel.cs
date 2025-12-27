@@ -14,7 +14,7 @@ namespace CamRent_Api.Models
 			public string? BankAccName { get; set; } 
 		}
 
-		// Cập nhật thông tin tài khoản của chính user (email, tên, địa chỉ, phone)
+		// Cập nhật thông tin tài khoản của chính user (email, tên, địa chỉ dạng chuỗi, phone)
 		public class UpdateAccountRequest
 		{
 			[EmailAddress]
@@ -27,15 +27,9 @@ namespace CamRent_Api.Models
 			[StringLength(32)]
 			public string? Phone { get; set; }
 
-			// Địa chỉ đơn giản hoá theo 3 field trong Address value object
-			[StringLength(128)]
-			public string? Country { get; set; }
-
-			[StringLength(128)]
-			public string? Province { get; set; }
-
-			[StringLength(128)]
-			public string? District { get; set; }
+			// Địa chỉ dạng chuỗi đơn giản (VD: "123 Lê Lợi, Quận 1, TP.HCM")
+			[StringLength(256)]
+			public string? Address { get; set; }
 		}
 		public class UpdateSignRequest
 		{

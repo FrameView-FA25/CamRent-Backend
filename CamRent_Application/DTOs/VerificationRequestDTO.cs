@@ -62,6 +62,9 @@ namespace CamRent_Application.DTOs
 			public Guid? ItemId { get; set; }
 			public string? ItemName { get; set; }
 			public ItemType ItemType { get; set; }
+			public string? SerialNumber { get; set; }
+			public decimal UnitPrice { get; set; }
+			public decimal DepositAmount { get; set; }
 		}
 	}
 }

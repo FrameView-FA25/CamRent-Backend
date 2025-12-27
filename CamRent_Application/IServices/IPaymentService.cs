@@ -10,9 +10,9 @@ namespace CamRent_Application.IServices
 		Task<Guid> CreateAuthorizationAsync(Guid bookingId,decimal rentalAmount,decimal depositAmount,PaymentType mode,decimal? authorizedAmountOverride = null);
 
 		Task AddLineAsync(Guid paymentId, string type, decimal amount);
-		Task CaptureAsync(Guid paymentId, decimal amount);
-		Task RefundAsync(Guid paymentId, decimal amount);
 		Task<Payment?> GetByIdAsync(Guid paymentId);
+		Task<Payment?> GetDepositPaymentWithLinesAsync(Guid bookingId);
+		Task<bool> RefundDepositAsync(Guid bookingId, PaymentMethod method, decimal refundAmount);
 
 		Task<Guid> CreateTopupPaymentAsync(Guid userId, decimal amount);
 		Task<Guid> CreatePaymentAsync(

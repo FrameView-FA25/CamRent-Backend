@@ -20,7 +20,6 @@ namespace CamRent_Application
 			services.AddScoped<IAuthService, AuthService>();
 			services.AddScoped<ICameraService, CameraService>();
 			services.AddScoped<IBookingService, BookingService>();
-			services.AddScoped<IPricingService, PricingService>();
 			services.AddScoped<IPaymentService, PaymentService>();
 			services.AddScoped<IContractService, ContractService>();
 			services.AddScoped<IContractTemplateService, ContractTemplateService>();

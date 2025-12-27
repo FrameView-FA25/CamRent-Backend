@@ -20,14 +20,14 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("UserID")]
-		[SwaggerOperation(Summary = "Thông tin hồ sơ người dùng hiện tại", Description = "Trả về profile của người dùng dựa trên token (NameIdentifier). Quyền: Người dùng đã đăng nhập")]
+		[SwaggerOperation(Summary = "Thông tin hồ sơ người dùng hiện tại", Description = "Trả về profile của người dùng dựa trên token (NameIdentifier), bao gồm thông tin chi nhánh nếu user là Staff hoặc BranchManager. Quyền: Người dùng đã đăng nhập")]
 		public async Task<ActionResult<object>> GetUserProfile()
 		{
 			// Dùng thông tin trong token để lấy đúng hồ sơ (User) của người đang đăng nhập.
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
 					  ?? User.FindFirst("sub")?.Value
 					  ?? User.FindFirst("uid")?.Value;
-			var p = await _userService.GetUserProfileById(Guid.Parse(userId));
+			var p = await _userService.GetUserProfileWithBranchAsync(Guid.Parse(userId));
 			return Ok(p);
 		}
 
@@ -64,9 +64,7 @@ namespace CamRent_Api.Controllers
 				req.Email,
 				req.FullName,
 				req.Phone,
-				req.Country,
-				req.Province,
-				req.District);
+				req.Address);
 
 			return NoContent();
 		}

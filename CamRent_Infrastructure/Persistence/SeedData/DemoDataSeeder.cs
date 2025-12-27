@@ -67,7 +67,7 @@ namespace CamRent_Infrastructure.Persistence.SeedData
 						CreatedAt = DateTime.UtcNow
 					};
 
-					user.PasswordHash = hasher.HashPassword(user, "12345");
+					user.PasswordHash = hasher.HashPassword(user, "123456");
 
 					_db.Users.Add(user);
 					_db.UserRoles.Add(new UserRoleMapping

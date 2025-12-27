@@ -21,6 +21,7 @@ namespace CamRent_Api.Controllers
 			public string Title { get; set; } = string.Empty;
 			public string Description { get; set; } = string.Empty;
 			public string Severity { get; set; } = "minor";
+			public int? DowntimeDays { get; set; }
 		}
 
 		// Một khoản bồi thường cụ thể trong dispute (ví dụ: hỏng ống kính, mất phụ kiện...).
@@ -59,7 +60,7 @@ namespace CamRent_Api.Controllers
 		[SwaggerOperation(Summary = "Staff mở dispute", Description = "Staff gửi dispute mới cho booking (mô tả, mức độ). Quyền: Staff")]
 		public async Task<ActionResult<Guid>> Open([FromBody] OpenRequest req)
 		{
-			var id = await _dispute.OpenAsync(req.BookingId, req.Title, req.Description, req.Severity);
+			var id = await _dispute.OpenAsync(req.BookingId, req.Title, req.Description, req.Severity, req.DowntimeDays);
 			return Ok(id);
 		}
 
@@ -69,6 +70,15 @@ namespace CamRent_Api.Controllers
 		public async Task<IActionResult> AddItem(Guid id, [FromBody] AddItemRequest req)
 		{
 			await _dispute.AddItemAsync(id, req.Type, req.Amount, req.Notes);
+			return NoContent();
+		}
+
+		[HttpDelete("{id:guid}/items/{itemId:guid}")]
+		[Authorize(Policy = "ManagerOrStaff")]
+		[SwaggerOperation(Summary = "Xoa dispute item", Description = "Xoa mot khoan boi thuong khoi dispute. Quyen: Staff/BranchManager")]
+		public async Task<IActionResult> DeleteItem(Guid id, Guid itemId)
+		{
+			await _dispute.DeleteItemAsync(id, itemId);
 			return NoContent();
 		}
 

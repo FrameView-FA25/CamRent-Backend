@@ -29,7 +29,8 @@ namespace CamRent_Domain.Common
 		UserSignature = 8,
 		HomePageCarousel = 9,
 		HomePageBlock = 10,
-		BookingReport = 11
+		BookingReport = 11,
+		Review = 12
 	}
     public enum DeviceCategory
     {
@@ -103,7 +104,8 @@ namespace CamRent_Domain.Common
 		Draft = 1,
 		PendingSignatures = 2,
 		Signed = 3,
-		Cancelled = 4
+		Completed = 4,
+		Cancelled = 5
 	}
 
 	public enum ContractSignerRole
@@ -160,12 +162,14 @@ namespace CamRent_Domain.Common
     {
         Deposit = 1,
         Rental = 2,
-	}
+        Offset = 3,
+    }
 	public enum PaymentMethod
 	{
 		PayOs = 1,
 		Wallet = 2,
-        Cash = 3
+        Cash = 3,
+		Transfer = 4,
 	}
 }
 

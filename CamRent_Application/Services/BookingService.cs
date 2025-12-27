@@ -17,13 +17,11 @@ namespace CamRent_Application.Services
 	public class BookingService : IBookingService
 	{
 		private readonly IUnitOfWork _unitOfWork;
-		private readonly IPricingService _pricingService;
 		private readonly IWalletService _walletService;
 		private readonly IMapper _mapper;
-		public BookingService(IUnitOfWork unitOfWork,  IPricingService pricingService, IMapper mapper, IWalletService walletService)
+		public BookingService(IUnitOfWork unitOfWork,  IMapper mapper, IWalletService walletService)
 		{
 			_unitOfWork = unitOfWork;
-			_pricingService = pricingService;
 			_mapper = mapper;
 			_walletService = walletService;
 		}
@@ -42,11 +40,13 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Accessory)
 						.Include(b => b.Items)
 							.ThenInclude(i => i.Combo)
+						.Include(b => b.Contracts)
+							.ThenInclude(c => c.Signatures)
 						.Include(b => b.Payments).ThenInclude(p => p.Lines)
 						.Include(b => b.Renter))).FirstOrDefault();
 			var result = _mapper.Map<BookingResponseDTO>(booking);
 			result.Payments = result.Payments?
-			.Where(p => p != null && p.Status == PaymentStatus.Captured)
+			.Where(p => p != null && (p.Status == PaymentStatus.Captured || p.Status == PaymentStatus.Refunded))
 			.ToList() ?? new();
 
 			return result;
@@ -121,7 +121,8 @@ namespace CamRent_Application.Services
 							.ThenInclude(i => i.Combo)
 						.Include(b => b.Renter)
 						.Include(b => b.Payments)
-						.Include(b => b.Contracts))).ToList();
+						.Include(b => b.Contracts)
+							.ThenInclude(c => c.Signatures))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			foreach (var booking in results)
@@ -162,7 +163,8 @@ namespace CamRent_Application.Services
 						.ThenInclude(i => i.Combo)
 					.Include(b => b.Renter)
 					.Include(b => b.Payments)
-					.Include(b => b.Contracts))).ToList();
+					.Include(b => b.Contracts)
+						.ThenInclude(c => c.Signatures))).ToList();
 
 			var results = _mapper.Map<List<BookingResponseDTO>>(bookings);
 			foreach (var booking in results)

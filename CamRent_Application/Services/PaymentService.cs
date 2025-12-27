@@ -2,6 +2,8 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
 using CamRent_Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using static QuestPDF.Helpers.Colors;
 
 namespace CamRent_Application.Services
 {
@@ -41,7 +43,7 @@ namespace CamRent_Application.Services
 			return payment.Id;
 		}
 
-		// THANH TOÁN BẰNG VÍ (ĐÃ CAPTURE LUÔN) - DÙNG CHO 10% HOẶC 90%+CỌC TUỲ CÁCH GỌI
+		// THANH TOÁN BẰNG VÍ VÀ TIỀN MẶT (ĐÃ CAPTURE LUÔN) - DÙNG CHO 10% HOẶC 90%+CỌC TUỲ CÁCH GỌI
 		public async Task<Guid> CreatePaymentAsync(
 			Guid bookingId,
 			decimal rentalAmount,     // phần tiền thuê trong lần này (10% hoặc 90%)
@@ -50,13 +52,14 @@ namespace CamRent_Application.Services
 			PaymentMethod method,
 			decimal capturedAmount)
 		{
+			var purpose = mode == PaymentType.Offset ? "dispute_offset" : "booking";
 			var payment = new Payment
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
 				Status = PaymentStatus.Captured,
 				Provider = method.ToString(),
-				Purpose = "booking",
+				Purpose = purpose,
 				AuthorizedAmount = capturedAmount,
 				CapturedAmount = capturedAmount,
 				RefundedAmount = 0,
@@ -66,30 +69,50 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Repository<Payment>().AddAsync(payment);
 
 			// ---------- LINE CHI TIẾT ----------
-			// Nếu mode = Deposit  -> rentalAmount = 10%  -> line "rental_advance"
-			// Nếu mode = Rental   -> rentalAmount = 90%  -> line "rental"
-			if (rentalAmount > 0)
+			if (mode == PaymentType.Offset)
 			{
-				var rentalLineType = mode == PaymentType.Deposit
-					? "rental_advance"
-					: "rental";
-
-				await AddLineAsync(payment.Id, rentalLineType, rentalAmount);
+				if (capturedAmount > 0)
+					await AddLineAsync(payment.Id, "offset", capturedAmount);
 			}
+			else
+			{
+				// Nếu mode = Deposit  -> rentalAmount = 10%  -> line "rental_advance"
+				// Nếu mode = Rental   -> rentalAmount = 90%  -> line "rental"
+				if (rentalAmount > 0)
+				{
+					var rentalLineType = mode == PaymentType.Deposit
+						? "rental_advance"
+						: "rental";
 
-			// depositAmount = cọc thiết bị (device deposit)
-			if (depositAmount > 0)
-				await AddLineAsync(payment.Id, "device_deposit", depositAmount);
+					await AddLineAsync(payment.Id, rentalLineType, rentalAmount);
+				}
+
+				// depositAmount = cọc thiết bị (device deposit)
+				if (depositAmount > 0)
+					await AddLineAsync(payment.Id, "device_deposit", depositAmount);
+			}
 
 			// ---------- CẬP NHẬT BOOKING ----------
-			var bookingRepo = _unitOfWork.Repository<Booking>();
-			var booking = await bookingRepo.GetByIdAsync(bookingId);
-			if (booking != null)
+			if (mode == PaymentType.Deposit)
 			{
-				booking.Status = BookingStatus.Confirmed;
-				await bookingRepo.UpdateAsync(booking);
+				var bookingRepo = _unitOfWork.Repository<Booking>();
+				var booking = await bookingRepo.GetByIdAsync(bookingId);
+				if (booking != null)
+				{
+					booking.Status = BookingStatus.Confirmed;
+					await bookingRepo.UpdateAsync(booking);
+				}
+				try
+				{
+					await TryFinalizeContractForDepositAsync(bookingId);
+				}
+				catch (Exception ex)
+				{
+					// Log lỗi nhưng không làm gián đoạn luồng chính
+					// Giả sử có _logger
+					// _logger.LogError(ex, "Failed to finalize contract for Booking {BookingId}", bookingId);
+				}
 			}
-
 			await _unitOfWork.Complete();
 			return payment.Id;
 		}
@@ -105,7 +128,11 @@ namespace CamRent_Application.Services
 			// Số tiền thu lần này = phần thuê + cọc thiết bị (nếu có)
 			decimal authorizedAmount = authorizedAmountOverride ?? (rentalAmount + depositAmount);
 			string purpose = "booking";
-			if(depositAmount == 0)
+			if (mode == PaymentType.Offset)
+			{
+				purpose = "dispute_offset";
+			}
+			else if (depositAmount == 0)
 			{
 				purpose = "reserve";
 			}
@@ -124,17 +151,25 @@ namespace CamRent_Application.Services
 
 			await _unitOfWork.Repository<Payment>().AddAsync(payment);
 			// ---------- LINE CHI TIẾT ----------
-			if (rentalAmount > 0)
+			if (mode == PaymentType.Offset)
 			{
-				var rentalLineType = mode == PaymentType.Deposit
-					? "rental_advance"
-					: "rental";
-
-				await AddLineAsync(payment.Id, rentalLineType, rentalAmount);
+				if (authorizedAmount > 0)
+					await AddLineAsync(payment.Id, "offset", authorizedAmount);
 			}
+			else
+			{
+				if (rentalAmount > 0)
+				{
+					var rentalLineType = mode == PaymentType.Deposit
+						? "rental_advance"
+						: "rental";
 
-			if (depositAmount > 0)
-				await AddLineAsync(payment.Id, "device_deposit", depositAmount);
+					await AddLineAsync(payment.Id, rentalLineType, rentalAmount);
+				}
+
+				if (depositAmount > 0)
+					await AddLineAsync(payment.Id, "device_deposit", depositAmount);
+			}
 
 			await _unitOfWork.Complete();
 			return payment.Id;
@@ -155,45 +190,59 @@ namespace CamRent_Application.Services
 			await _unitOfWork.Repository<PaymentLine>().AddAsync(line);
 		}
 
-		public async Task CaptureAsync(Guid paymentId, decimal amount)
-		{
-			var payment = await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId)
-				?? throw new InvalidOperationException("Payment not found");
-
-			payment.CapturedAmount += amount;
-			payment.Status = PaymentStatus.Captured;
-			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
-
-			// Nếu payment gắn booking thì Confirm booking
-			if (payment.BookingId.HasValue)
-			{
-				var bookingRepo = _unitOfWork.Repository<Booking>();
-				var booking = await bookingRepo.GetByIdAsync(payment.BookingId.Value);
-				if (booking != null)
-				{
-					booking.Status = BookingStatus.Confirmed;
-					await bookingRepo.UpdateAsync(booking);
-				}
-			}
-
-			await _unitOfWork.Complete();
-		}
-
-		public async Task RefundAsync(Guid paymentId, decimal amount)
-		{
-			var payment = await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId)
-				?? throw new InvalidOperationException("Payment not found");
-
-			payment.RefundedAmount += amount;
-			payment.Status = PaymentStatus.Refunded;
-			await _unitOfWork.Repository<Payment>().UpdateAsync(payment);
-			await _unitOfWork.Complete();
-			// TODO: gửi email nếu cần
-		}
-
 		public async Task<Payment?> GetByIdAsync(Guid paymentId)
 		{
 			return await _unitOfWork.Repository<Payment>().GetByIdAsync(paymentId);
+		}
+
+		public async Task<Payment?> GetDepositPaymentWithLinesAsync(Guid bookingId)
+		{
+			var payments = await _unitOfWork.Repository<Payment>().ListAsync(
+				p => p.BookingId == bookingId,
+				include: q => q.Include(p => p.Lines));
+
+			return payments.FirstOrDefault(p =>
+				p.Lines.Any(l => string.Equals(l.Type, "device_deposit", StringComparison.OrdinalIgnoreCase)));
+		}
+
+		public async Task<bool> RefundDepositAsync(Guid bookingId, PaymentMethod method, decimal refundAmount)
+		{
+			if (refundAmount <= 0)
+				throw new ArgumentException("Refund amount must be greater than 0.", nameof(refundAmount));
+
+			var payment = new Payment
+			{
+				Id = Guid.NewGuid(),
+				BookingId = bookingId,
+				Status = PaymentStatus.Refunded,
+				Provider = method.ToString(),
+				Purpose = "Hoàn tiền",
+				AuthorizedAmount = refundAmount,
+				CapturedAmount = 0,
+				RefundedAmount = refundAmount,
+				CreatedAt = DateTime.UtcNow
+			};
+			await _unitOfWork.Repository<Payment>().AddAsync(payment);
+			await AddLineAsync(payment.Id, "refund", refundAmount);
+
+			await _unitOfWork.Complete();
+			return true;
+		}
+
+		private async Task TryFinalizeContractForDepositAsync(Guid bookingId)
+		{
+			var contractRepo = _unitOfWork.Repository<Contract>();
+			var contract = (await contractRepo.ListAsync(
+					filter: c => c.BookingId == bookingId,
+					include: q => q.Include(c => c.Signatures)))
+				.FirstOrDefault();
+
+			if (contract == null || contract.Status == ContractStatus.Completed)
+				return;
+
+			var fullContract = await _contractService.GetByIdAsync(contract.Id);
+			var signatures = fullContract?.Signatures?.ToList() ?? contract.Signatures.ToList();
+			await _contractService.GenerateAndUploadFinalPdfAsync(contract.Id, signatures);
 		}
 	}
 }

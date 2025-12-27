@@ -3,6 +3,8 @@ using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 
 namespace CamRent_Application.Services
 {
@@ -30,10 +32,64 @@ namespace CamRent_Application.Services
 			if (d == null) return null;
 			return Map(d);
 		}
-
-		public async Task<Guid> OpenAsync(Guid bookingId, string title, string description, string severity)
+		public async Task<Guid> OpenAsync(Guid bookingId, string title, string description, string severity, int? downtimeDays)
 		{
-			var d = new Dispute
+			var autoType = TryDetectAutoType(title);
+			if (autoType == "downtime_fee" || autoType == "late_fee")
+			{
+				var (booking, baseDailyRate, setting) = await LoadPricingInputsAsync(bookingId);
+
+				decimal amount;
+				if (autoType == "downtime_fee")
+				{
+					var days = downtimeDays.GetValueOrDefault();
+					if (days <= 0)
+						throw new InvalidOperationException("DowntimeDays phải lớn hơn 0.");
+
+					amount = baseDailyRate * setting.DowntimeFactor * days;
+				}
+				else
+				{
+					var lateDays = CalculateLateDays(booking.ReturnAt, DateTime.UtcNow);
+					if (lateDays <= 0)
+						throw new InvalidOperationException("Đơn hàng chưa bị quá hạn");
+
+					var firstDays = Math.Min(lateDays, setting.LateFeeFirstNDays);
+					var remaining = Math.Max(0, lateDays - firstDays);
+					amount = baseDailyRate * (firstDays * setting.LateFeeFactorFirstN + remaining * setting.LateFeeFactorAfter);
+				}
+
+				amount = decimal.Round(amount, 0);
+
+				var d = new Dispute
+				{
+					Id = Guid.NewGuid(),
+					BookingId = bookingId,
+					Title = title,
+					Description = description,
+					Severity = severity,
+					Status = "under_review",
+					TotalAmount = amount,
+					CreatedAt = DateTime.UtcNow
+				};
+
+				var item = new DisputeItem
+				{
+					Id = Guid.NewGuid(),
+					DisputeId = d.Id,
+					Type = autoType,
+					Amount = amount,
+					CreatedAt = DateTime.UtcNow
+				};
+
+				await _uow.Repository<Dispute>().AddAsync(d);
+				await _uow.Repository<DisputeItem>().AddAsync(item);
+				await _uow.Complete();
+
+				return d.Id;
+			}
+
+			var dispute = new Dispute
 			{
 				Id = Guid.NewGuid(),
 				BookingId = bookingId,
@@ -44,10 +100,12 @@ namespace CamRent_Application.Services
 				TotalAmount = 0,
 				CreatedAt = DateTime.UtcNow
 			};
-			await _uow.Repository<Dispute>().AddAsync(d);
+			await _uow.Repository<Dispute>().AddAsync(dispute);
 			await _uow.Complete();
-			return d.Id;
+			return dispute.Id;
 		}
+
+		
 
 		public async Task AddItemAsync(Guid disputeId, string type, decimal amount, string? notes)
 		{
@@ -61,12 +119,28 @@ namespace CamRent_Application.Services
 				CreatedAt = DateTime.UtcNow
 			};
 			await _uow.Repository<DisputeItem>().AddAsync(item);
-			// Sau khi thêm item, cập nhật lại TotalAmount = tổng Amount của tất cả DisputeItem.
-			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
-			var items = await _uow.Repository<DisputeItem>().ListAsync(i => i.DisputeId == disputeId);
-			d.TotalAmount = items.Sum(i => i.Amount);
-			d.Status = "under_review"; // Tự động chuyển trạng thái khi có item mới
+			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Khong co tranh chap nay");
+			d.TotalAmount += amount;
+			d.Status = "under_review"; // Auto-move status when new item added
 			await _uow.Repository<Dispute>().UpdateAsync(d);
+			await _uow.Complete();
+		}
+
+		public async Task DeleteItemAsync(Guid disputeId, Guid itemId)
+		{
+			var itemRepo = _uow.Repository<DisputeItem>();
+			var disputeRepo = _uow.Repository<Dispute>();
+
+			var item = await itemRepo.GetByIdAsync(itemId);
+			if (item == null || item.DisputeId != disputeId)
+				throw new InvalidOperationException("Khong co dispute item nay");
+
+			var d = await disputeRepo.GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Khong co tranh chap nay");
+			var items = await itemRepo.ListAsync(i => i.DisputeId == disputeId);
+			d.TotalAmount = items.Where(i => i.Id != itemId).Sum(i => i.Amount);
+
+			await itemRepo.DeleteAsync(itemId);
+			await disputeRepo.UpdateAsync(d);
 			await _uow.Complete();
 		}
 
@@ -78,7 +152,7 @@ namespace CamRent_Application.Services
 
 		public async Task UpdateStatusAsync(Guid disputeId, string status)
 		{
-			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Dispute not found");
+			var d = await _uow.Repository<Dispute>().GetByIdAsync(disputeId) ?? throw new InvalidOperationException("Không có tranh chấp này");
 			d.Status = status;
 			d.UpdatedAt = DateTime.UtcNow;
 			await _uow.Repository<Dispute>().UpdateAsync(d);
@@ -104,10 +178,87 @@ namespace CamRent_Application.Services
 					Id = i.Id,
 					Type = i.Type,
 					Amount = i.Amount,
-					Notes = i.Notes
+					Notes = i.Notes,
+					CreatedAt = i.CreatedAt
 				}).ToList()
 			};
 		}
+
+		public async Task<decimal> CalculateTotalDisputeAmountByBookingIdAsync(Guid bookingId)
+		{
+			var disputes = await _uow.Repository<Dispute>().ListAsync(d => d.BookingId == bookingId);
+			var total = disputes.Sum(d => d.TotalAmount);
+			return total;
+		}
+
+		private async Task<(Booking booking, decimal baseDailyRate, MoneyFlatformSetting setting)> LoadPricingInputsAsync(Guid bookingId)
+		{
+			var booking = await _uow.Repository<Booking>().FirstOrDefaultAsync(b => b.Id == bookingId)
+				?? throw new InvalidOperationException("Booking not found.");
+
+			var baseDailyRate = booking.SnapshotBaseDailyRate;
+			if (baseDailyRate <= 0)
+			{
+				var items = await _uow.Repository<BookingItem>().ListAsync(i => i.BookingId == bookingId);
+				baseDailyRate = items.Sum(i => i.UnitPrice);
+			}
+
+			if (baseDailyRate <= 0)
+				throw new InvalidOperationException("Base daily rate is not available.");
+
+			var setting = await _uow.Repository<MoneyFlatformSetting>().FirstOrDefaultAsync(s => s.IsActive)
+				?? throw new InvalidOperationException("Money platform setting not found.");
+
+			return (booking, baseDailyRate, setting);
+		}
+
+		private static int CalculateLateDays(DateTime scheduledReturnUtc, DateTime nowUtc)
+		{
+			var returnUtc = scheduledReturnUtc.Kind == DateTimeKind.Utc
+				? scheduledReturnUtc
+				: scheduledReturnUtc.ToUniversalTime();
+
+			var diff = nowUtc - returnUtc;
+			if (diff.TotalDays <= 0)
+				return 0;
+
+			return (int)Math.Ceiling(diff.TotalDays);
+		}
+		private static string? TryDetectAutoType(string input)
+		{
+			if (string.IsNullOrWhiteSpace(input))
+				return null;
+
+			var normalized = RemoveDiacritics(input.Trim().ToLowerInvariant());
+
+			if (normalized.Contains("gian doan") || normalized.Contains("downtime"))
+				return "downtime_fee";
+
+			if (normalized.Contains("tra muon") || normalized.Contains("tre muon") || normalized.Contains("late"))
+				return "late_fee";
+
+			return null;
+		}
+
+		private static string RemoveDiacritics(string text)
+		{
+			var normalizedString = text.Normalize(NormalizationForm.FormD);
+			var sb = new StringBuilder();
+
+			foreach (var c in normalizedString)
+			{
+				var category = CharUnicodeInfo.GetUnicodeCategory(c);
+				if (category != UnicodeCategory.NonSpacingMark)
+					sb.Append(c);
+			}
+
+			return sb.ToString().Normalize(NormalizationForm.FormC);
+		}
 	}
 }
+
+
+
+
+
 

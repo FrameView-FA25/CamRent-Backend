@@ -71,7 +71,8 @@ namespace CamRent_Application.Services
 			var managers = CountByRole(UserRole.BranchManager);
 
 			// Branch & inventory
-			var totalBranches = (await _uow.Repository<Branch>().GetAllAsync()).Count;
+			var branches = await _uow.Repository<Branch>().GetAllAsync();
+			var totalBranches = branches.Count;
 			var totalCameras = (await _uow.Repository<Camera>().GetAllAsync()).Count;
 			var totalAccessories = (await _uow.Repository<Accessory>().GetAllAsync()).Count;
 			var totalCombos = (await _uow.Repository<Combo>().GetAllAsync()).Count;
@@ -88,32 +89,30 @@ namespace CamRent_Application.Services
 					Count = g.Count()
 				})
 				.ToList();
+			var bookingIds = bookings.Select(b => b.Id).ToHashSet();
 
 			// Payments (revenue)
 			var payments = await _uow.Repository<Payment>().ListAsync();
 			var totalCaptured = payments.Sum(p => p.CapturedAmount);
 			var totalRefunded = payments.Sum(p => p.RefundedAmount);
+			var completedBookings = bookings
+				.Where(b => b.Status == BookingStatus.Completed)
+				.ToList();
+			var totalCommission = completedBookings.Sum(b => b.SnapshotRentalTotal * b.SnapshotPlatformFeePercent);
 
 			// Thống kê theo thời gian
 			// --- Theo ngày: 30 ngày gần nhất (theo CreatedAt UTC) ---
 			var today = DateTime.UtcNow.Date;
 			var fromDay = today.AddDays(-29); // gồm cả hôm nay => 30 ngày
 
-			var dailyStats = bookings
+			var dailyStats = completedBookings
 				.Where(b => b.CreatedAt.Date >= fromDay && b.CreatedAt.Date <= today)
 				.GroupBy(b => b.CreatedAt.Date)
-				.Select(g =>
+				.Select(g => new DashboardTimePoint
 				{
-					var date = g.Key;
-					var dayRevenue = payments
-						.Where(p => p.CreatedAt.Date == date)
-						.Sum(p => p.CapturedAmount);
-					return new DashboardTimePoint
-					{
-						Date = date,
-						BookingCount = g.Count(),
-						CapturedRevenue = dayRevenue
-					};
+					Date = g.Key,
+					BookingCount = g.Count(),
+					CapturedRevenue = g.Sum(b => b.SnapshotRentalTotal * b.SnapshotPlatformFeePercent)
 				})
 				.OrderBy(x => x.Date)
 				.ToList();
@@ -122,20 +121,17 @@ namespace CamRent_Application.Services
 			var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 			var fromMonthStart = thisMonthStart.AddMonths(-11);
 
-			var monthlyStats = bookings
+			var monthlyStats = completedBookings
 				.Where(b => b.CreatedAt >= fromMonthStart)
 				.GroupBy(b => new { b.CreatedAt.Year, b.CreatedAt.Month })
 				.Select(g =>
 				{
 					var monthStart = new DateTime(g.Key.Year, g.Key.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-					var monthRevenue = payments
-						.Where(p => p.CreatedAt.Year == g.Key.Year && p.CreatedAt.Month == g.Key.Month)
-						.Sum(p => p.CapturedAmount);
 					return new DashboardTimePoint
 					{
 						Date = monthStart,
 						BookingCount = g.Count(),
-						CapturedRevenue = monthRevenue
+						CapturedRevenue = g.Sum(b => b.SnapshotRentalTotal * b.SnapshotPlatformFeePercent)
 					};
 				})
 				.OrderBy(x => x.Date)
@@ -145,6 +141,31 @@ namespace CamRent_Application.Services
 			var disputes = await _uow.Repository<Dispute>().ListAsync();
 			var openDisputes = disputes.Count(d => d.Status == "open" || d.Status == "under_review");
 			var resolvedDisputes = disputes.Count(d => d.Status == "resolved");
+			var resolvedDisputeRevenue = disputes
+				.Where(d => d.Status == "resolved")
+				.Sum(d => d.TotalAmount);
+
+			var branchRevenues = new List<BranchRevenueDTO>();
+			foreach (var branch in branches)
+			{
+				var branchBookings = completedBookings
+					.Where(b => b.BranchId == branch.Id)
+					.ToList();
+				var branchCommission = branchBookings.Sum(b => b.SnapshotRentalTotal * b.SnapshotPlatformFeePercent);
+				var branchBookingIds = branchBookings.Select(b => b.Id).ToHashSet();
+				var branchDisputeRevenue = disputes
+					.Where(d => d.Status == "resolved" && branchBookingIds.Contains(d.BookingId))
+					.Sum(d => d.TotalAmount);
+
+				branchRevenues.Add(new BranchRevenueDTO
+				{
+					BranchId = branch.Id,
+					BranchName = branch.Name,
+					CommissionRevenue = branchCommission,
+					DisputeRevenue = branchDisputeRevenue,
+					NetRevenue = branchCommission + branchDisputeRevenue
+				});
+			}
 
 			return new AdminDashboardDTO
 			{
@@ -164,6 +185,10 @@ namespace CamRent_Application.Services
 
 				TotalCapturedRevenue = totalCaptured,
 				TotalRefundedAmount = totalRefunded,
+				TotalCommissionRevenue = totalCommission,
+				TotalDisputeRevenue = resolvedDisputeRevenue,
+				TotalNetRevenue = totalCommission + resolvedDisputeRevenue,
+				BranchRevenues = branchRevenues,
 
 				OpenDisputes = openDisputes,
 				ResolvedDisputes = resolvedDisputes,
@@ -197,7 +222,7 @@ namespace CamRent_Application.Services
 			// Bookings in branch
 			var bookings = await _uow.Repository<Booking>()
 				.ListAsync(b => b.BranchId == branchId);
-			var totalBookings = bookings.Count();
+			var totalBookings = bookings.Count(b => b.Status == BookingStatus.Completed);
 			var bookingsByStatus = bookings
 				.GroupBy(b => b.Status)
 				.Select(g => new BookingStatusCount
@@ -207,30 +232,28 @@ namespace CamRent_Application.Services
 					Count = g.Count()
 				})
 				.ToList();
-
-			// Payments for bookings in this branch
 			var bookingIds = bookings.Select(b => b.Id).ToHashSet();
-			var payments = await _uow.Repository<Payment>().ListAsync(p => bookingIds.Contains((Guid)p.BookingId));
-			var totalCaptured = payments.Sum(p => p.CapturedAmount);
+			// Revenue for completed bookings in this branch
+			var completedBookings = bookings
+				.Where(b => b.Status == BookingStatus.Completed)
+				.ToList();
+			var totalCommission = completedBookings.Sum(b => b.SnapshotRentalTotal * b.SnapshotPlatformFeePercent);
 
 			// Disputes for bookings in branch
 			var disputes = await _uow.Repository<Dispute>().ListAsync(d => bookingIds.Contains(d.BookingId));
 			var openDisputes = disputes.Count(d => d.Status == "open" || d.Status == "under_review");
+			var resolvedDisputeRevenue = disputes
+				.Where(d => d.Status == "resolved")
+				.Sum(d => d.TotalAmount);
 
 			// ====== BIỂU ĐỒ + TOP THIẾT BỊ (giống Owner) ======
 			// Chỉ tính các booking hợp lệ (không Draft/Cancelled)
-			var validStatuses = new[]
-			{
-				BookingStatus.Confirmed,
-				BookingStatus.PickedUp,
-				BookingStatus.Returned,
-				BookingStatus.Completed,
-				BookingStatus.Overdue
-			};
+			var validStatuses = new[] { BookingStatus.Completed };
 
 			decimal totalGrossRevenue = 0;
 			var assetStats = new Dictionary<(Guid id, string type, string name), OwnerAssetStat>();
 			var bookingGross = new Dictionary<Guid, decimal>();
+			var bookingCommission = new Dictionary<Guid, decimal>();
 
 			// Lấy booking items trong chi nhánh (kèm booking + asset để đặt tên)
 			var bookingItems = await _uow.Repository<BookingItem>()
@@ -252,6 +275,7 @@ namespace CamRent_Application.Services
 				var booking = item.Booking!;
 				var days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
 				var gross = item.UnitPrice * days;
+				var net = gross * booking.SnapshotPlatformFeePercent;
 
 				totalGrossRevenue += gross;
 
@@ -259,6 +283,7 @@ namespace CamRent_Application.Services
 				if (!bookingGross.TryGetValue(booking.Id, out var cur))
 					cur = 0;
 				bookingGross[booking.Id] = cur + gross;
+				bookingCommission[booking.Id] = bookingGross[booking.Id] * booking.SnapshotPlatformFeePercent;
 
 				string type;
 				string name;
@@ -299,13 +324,15 @@ namespace CamRent_Application.Services
 						ItemType = type,
 						Name = name,
 						RentalCount = 0,
-						GrossRevenue = 0
+						GrossRevenue = 0,
+						NetRevenue = 0
 					};
 					assetStats[key] = stat;
 				}
 
 				stat.RentalCount += 1;
 				stat.GrossRevenue += gross;
+				stat.NetRevenue += net;
 			}
 
 			var bookingInfo = validItems
@@ -314,7 +341,7 @@ namespace CamRent_Application.Services
 				.Select(g => new
 				{
 					Booking = g.First().Booking!,
-					Gross = bookingGross.TryGetValue(g.Key, out var gr) ? gr : 0
+					Commission = bookingCommission.TryGetValue(g.Key, out var cr) ? cr : 0
 				})
 				.ToList();
 
@@ -328,7 +355,7 @@ namespace CamRent_Application.Services
 				{
 					Date = g.Key,
 					BookingCount = g.Count(),
-					CapturedRevenue = g.Sum(x => x.Gross)
+					CapturedRevenue = g.Sum(x => x.Commission)
 				})
 				.OrderBy(x => x.Date)
 				.ToList();
@@ -346,7 +373,7 @@ namespace CamRent_Application.Services
 					{
 						Date = monthStart,
 						BookingCount = g.Count(),
-						CapturedRevenue = g.Sum(x => x.Gross)
+						CapturedRevenue = g.Sum(x => x.Commission)
 					};
 				})
 				.OrderBy(x => x.Date)
@@ -366,7 +393,10 @@ namespace CamRent_Application.Services
 				AccessoriesInBranch = accessoriesInBranch,
 				TotalBookings = totalBookings,
 				BookingsByStatus = bookingsByStatus,
-				TotalCapturedRevenue = totalCaptured,
+				TotalCapturedRevenue = totalCommission,
+				TotalCommissionRevenue = totalCommission,
+				TotalDisputeRevenue = resolvedDisputeRevenue,
+				TotalNetRevenue = totalCommission,
 				TotalGrossRevenue = totalGrossRevenue,
 				TopRentedAssets = topAssets,
 				DailyStats = dailyStats,
@@ -448,14 +478,7 @@ namespace CamRent_Application.Services
 					include: q => q.Include(bi => bi.Booking));
 
 			// Chỉ tính các booking hợp lệ (không canceled/no-show)
-			var validStatuses = new[]
-			{
-				BookingStatus.Confirmed,
-				BookingStatus.PickedUp,
-				BookingStatus.Returned,
-				BookingStatus.Completed,
-				BookingStatus.Overdue
-			};
+			var validStatuses = new[] { BookingStatus.Completed };
 
 			var validItems = bookingItems
 				.Where(bi => bi.Booking != null && validStatuses.Contains(bi.Booking.Status))
@@ -470,9 +493,11 @@ namespace CamRent_Application.Services
 
 			// Doanh thu gộp ước tính: UnitPrice * days
 			decimal totalRevenue = 0;
+			decimal totalNetRevenue = 0;
 			var assetStats = new Dictionary<(Guid id, string type, string name), OwnerAssetStat>();
 			// Lưu doanh thu theo booking để vẽ biểu đồ theo thời gian
 			var bookingRevenue = new Dictionary<Guid, decimal>();
+			var bookingNetRevenue = new Dictionary<Guid, decimal>();
 
 			// Gộp doanh thu theo từng item/booking để:
 			// - tính tổng doanh thu của owner
@@ -485,13 +510,18 @@ namespace CamRent_Application.Services
 				var booking = item.Booking;
 				var days = Math.Max(1, (int)Math.Ceiling((booking.ReturnAt - booking.PickupAt).TotalDays));
 				var gross = item.UnitPrice * days;
+				var net = gross * (1 - booking.SnapshotPlatformFeePercent);
 
 				totalRevenue += gross;
+				totalNetRevenue += net;
 
 				// Dồn doanh thu theo booking
 				if (!bookingRevenue.TryGetValue(booking.Id, out var current))
 					current = 0;
 				bookingRevenue[booking.Id] = current + gross;
+				if (!bookingNetRevenue.TryGetValue(booking.Id, out var currentNet))
+					currentNet = 0;
+				bookingNetRevenue[booking.Id] = currentNet + net;
 
 				string type;
 				string name;
@@ -525,13 +555,15 @@ namespace CamRent_Application.Services
 						ItemType = type,
 						Name = name,
 						RentalCount = 0,
-						GrossRevenue = 0
+						GrossRevenue = 0,
+						NetRevenue = 0
 					};
 					assetStats[key] = stat;
 				}
 
 				stat.RentalCount += 1;
 				stat.GrossRevenue += gross;
+				stat.NetRevenue += net;
 			}
 
 			// Chuẩn bị dữ liệu booking + doanh thu theo booking
@@ -541,7 +573,7 @@ namespace CamRent_Application.Services
 				.Select(g => new
 				{
 					Booking = g.First().Booking!,
-					Gross = bookingRevenue.TryGetValue(g.Key, out var gr) ? gr : 0
+					Net = bookingNetRevenue.TryGetValue(g.Key, out var nr) ? nr : 0
 				})
 				.ToList();
 
@@ -556,7 +588,7 @@ namespace CamRent_Application.Services
 				{
 					Date = g.Key,
 					BookingCount = g.Count(),
-					CapturedRevenue = g.Sum(x => x.Gross)
+					CapturedRevenue = g.Sum(x => x.Net)
 				})
 				.OrderBy(x => x.Date)
 				.ToList();
@@ -575,7 +607,7 @@ namespace CamRent_Application.Services
 					{
 						Date = monthStart,
 						BookingCount = g.Count(),
-						CapturedRevenue = g.Sum(x => x.Gross)
+						CapturedRevenue = g.Sum(x => x.Net)
 					};
 				})
 				.OrderBy(x => x.Date)
@@ -593,6 +625,7 @@ namespace CamRent_Application.Services
 				TotalAccessories = accessories.Count(),
 				TotalBookingsForOwnerItems = totalBookingsForOwnerItems,
 				TotalGrossRevenue = totalRevenue,
+				TotalNetRevenue = totalNetRevenue,
 				TopRentedAssets = topAssets,
 				DailyStats = dailyStats,
 				MonthlyStats = monthlyStats

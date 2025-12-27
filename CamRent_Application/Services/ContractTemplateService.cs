@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using CamRent_Application.Interfaces;
 using CamRent_Application.IServices;
 using CamRent_Domain.Common;
@@ -94,6 +94,10 @@ namespace CamRent_Application.Services
 				(booking.ReturnAt.Date - booking.PickupAt.Date).Days);
 			var returnAt = booking.ReturnAt.AddHours(7);
 			var pickupAt = booking.PickupAt.AddHours(7);
+			var pickupWindowStart = pickupAt.AddHours(-1);
+			var pickupWindowEnd = pickupAt;
+			var returnWindowStart = returnAt;
+			var returnWindowEnd = returnAt.AddHours(1);
 
 			var totalRental = booking.SnapshotRentalTotal;      // tổng tiền thuê
 			var totalDeposit = booking.SnapshotDepositAmount;    // tổng tiền cọc
@@ -102,10 +106,19 @@ namespace CamRent_Application.Services
 			// Dòng tiền
 			var setting = await _uow.Repository<MoneyFlatformSetting>().FirstOrDefaultAsync(s => s.IsActive);
 			var upfrontPercent = setting.UpfrontPercent;  // % trả trước khi tạo booking
-			var upfrontRental = totalRental * upfrontPercent;   // 10% trả trước
-			var remainingRental = totalRental - upfrontRental;    // 90% còn lại
+			var upfrontRental = totalRental * upfrontPercent;   // phần trả trước
+			var remainingRental = totalRental - upfrontRental;    // phần còn lại
 			var payOnPickup = remainingRental + totalDeposit; // khi nhận máy
 			var upfrontPercentText = $"{upfrontPercent * 100:0}%";
+			var remainingPercentText = $"{(1 - upfrontPercent) * 100:0}%";
+			var lateFeeFirstDays = setting.LateFeeFirstNDays;
+			var lateFeeFirstFactor = setting.LateFeeFactorFirstN;
+			var lateFeeAfterFactor = setting.LateFeeFactorAfter;
+			var downtimeFactor = setting.DowntimeFactor;
+			var downtimeText = $"phí downtime = {downtimeFactor:0.##} x đơn giá thuê theo ngày x số ngày gián đoạn khai thác.";
+			var lateFeeText = lateFeeFirstDays > 0
+				? $"tiền thuê phát sinh mỗi ngày = số ngày trễ × {lateFeeFirstFactor:0.##} × đơn giá thuê theo ngày (áp dụng {lateFeeFirstDays} ngày đầu); sau đó {lateFeeAfterFactor:0.##} × đơn giá thuê theo ngày; phần ngày lẻ được làm tròn thành 1 ngày thuê."
+				: $"tiền thuê phát sinh mỗi ngày = số ngày trễ × {lateFeeAfterFactor:0.##} × đơn giá thuê theo ngày; phần ngày lẻ được làm tròn thành 1 ngày thuê.";
 
 			return await Task.Run(() =>
 			{
@@ -160,8 +173,8 @@ namespace CamRent_Application.Services
 							col.Item().Text($"• Ngày thuê: {booking.PickupAt:dd/MM/yyyy}");
 							col.Item().Text($"• Ngày trả: {booking.ReturnAt:dd/MM/yyyy}");
 							col.Item().Text($"• Số ngày thuê dự kiến: {rentalDays} ngày");
-							if (booking.Location != null)
-								col.Item().Text($"• Địa chỉ giao hàng (nếu chọn giao): {booking.Location.Province}, {booking.Location.District}");
+							col.Item().Text(
+								$"• Khách hàng vui lòng tới chi nhánh nhận hàng trong khoảng thời gian {pickupWindowStart:HH:mm} - {pickupWindowEnd:HH:mm} ngày {pickupWindowEnd:dd/MM/yyyy} và trả hàng trong khoảng thời gian {returnWindowStart:HH:mm} - {returnWindowEnd:HH:mm} ngày {returnWindowEnd:dd/MM/yyyy}.");
 							// Hiệu lực hợp đồng = từ thời điểm nhận máy đến thời điểm trả máy theo booking
 							col.Item().Text(
 								$"• Thời hạn hiệu lực hợp đồng: từ {booking.PickupAt:dd/MM/yyyy HH:mm} đến {booking.ReturnAt:dd/MM/yyyy HH:mm}");
@@ -283,7 +296,7 @@ namespace CamRent_Application.Services
 									table.Cell().Element(c => BodyCell(c, $"{upfrontRental:N0} đ"));
 
 									table.Cell().Element(c => BodyCell(c,
-										"Thanh toán khi nhận thiết bị (90% giá thuê + tổng cọc)"));
+										$"Thanh toán khi nhận thiết bị ({remainingPercentText} giá thuê + tổng cọc)"));
 									table.Cell().Element(c => BodyCell(c, $"{payOnPickup:N0} đ"));
 								});
 
@@ -311,12 +324,12 @@ namespace CamRent_Application.Services
 									   });
 
 									   note.Item().Text(
-										   "• Khi nhận thiết bị, khách thanh toán phần 90% còn lại cộng với toàn bộ tiền đặt cọc thiết bị.");
+										   $"• Khi nhận thiết bị, khách thanh toán phần {remainingPercentText} còn lại cộng với toàn bộ tiền đặt cọc thiết bị.");
 
 									   note.Item().Text(text =>
 									   {
 										   text.Span("• Trả trễ: ").Bold().FontColor(DangerColor);
-										   text.Span("tiền thuê phát sinh mỗi ngày = số ngày trễ × 1.5 × đơn giá thuê theo ngày; phần ngày lẻ được làm tròn thành 1 ngày thuê.");
+										   text.Span(lateFeeText);
 									   });
 								   });
 							});
@@ -325,15 +338,14 @@ namespace CamRent_Application.Services
 							col.Item().Text("6. Điều khoản về sử dụng, trả hàng và bồi thường")
 								.Bold().FontColor(SectionTitleColor);
 							col.Item().Text(
-								"• Bên thuê có trách nhiệm kiểm tra tình trạng thiết bị khi nhận, báo ngay cho CamRent nếu phát hiện lỗi.\n" +
-								"• Trả hàng trước hoặc đúng 16h ngày trả theo Booking."
+								$"• Bên thuê có trách nhiệm kiểm tra tình trạng thiết bị khi nhận, báo ngay cho CamRent nếu phát hiện lỗi.\n" +
+								$"• Trả hàng trong khoảng thời gian {returnWindowStart:HH:mm} - {returnWindowEnd:HH:mm} ngày {returnWindowEnd:dd/MM/yyyy}."
 							);
 							col.Item().Text(
-								"• Nếu trả trễ, tiền thuê phát sinh mỗi ngày được tính bằng: số ngày trễ × 1.5 × đơn giá thuê theo ngày; " +
-								"phần ngày lẻ được làm tròn thành 1 ngày thuê."
+								$"• Nếu trả trễ, {lateFeeText}"
 							);
 							col.Item().Text(
-								"• Trường hợp thiết bị hư hỏng, mất mát do lỗi của Bên thuê: CamRent cùng Bên thuê lập biên bản, chi phí bồi thường tối đa bằng giá trị thiết bị theo thoả thuận, sau khi trừ tiền đặt cọc đã thu. Phần cọc được ưu tiên dùng để trừ vào chi phí bồi thường."
+								$"• Trường hợp thiết bị hư hỏng, mất mát do lỗi của Bên thuê: CamRent cùng Bên thuê lập biên bản, chi phí bồi thường tối đa bằng giá trị thiết bị theo thoả thuận, sau khi trừ tiền đặt cọc đã thu. Phần cọc được ưu tiên dùng để trừ vào chi phí bồi thường. Ngoài ra, {downtimeText}"
 							);
 							col.Item().Text(
 								"• Trường hợp CamRent giao hàng trễ hơn thời gian dự kiến do lỗi vận hành của CamRent, CamRent có trách nhiệm hỗ trợ điều chỉnh thời gian thuê hoặc có chính sách hỗ trợ/giảm trừ phù hợp theo quy định hiện hành của CamRent."
@@ -353,7 +365,7 @@ namespace CamRent_Application.Services
 								row.RelativeItem().Element(c =>
 								{
 									var renterSigUrl = contract.Signatures
-										.FirstOrDefault(x => x.Role == ContractSignerRole.Renter)
+										.FirstOrDefault(x => x.Role == ContractSignerRole.Renter && x.IsSigned == true)
 										?.SignatureAsset?.Url;
 
 									SignatureBlock(
@@ -485,10 +497,12 @@ namespace CamRent_Application.Services
 									{
 										table.ColumnsDefinition(columns =>
 										{
-											columns.ConstantColumn(25);   // #
+											columns.ConstantColumn(25);
 											columns.RelativeColumn(4);    // Thiết bị
-											columns.RelativeColumn(3);    // Loại
-										});
+											columns.RelativeColumn(2);    // Loại
+											columns.RelativeColumn(2.5f); // Gia/ngay
+											columns.RelativeColumn(2.5f); // Tien coc
+											});
 
 										static void HeaderCell(IContainer container, string text)
 										{
@@ -510,6 +524,8 @@ namespace CamRent_Application.Services
 											header.Cell().Element(c => HeaderCell(c, "#"));
 											header.Cell().Element(c => HeaderCell(c, "Thiết bị"));
 											header.Cell().Element(c => HeaderCell(c, "Loại"));
+											header.Cell().Element(c => HeaderCell(c, "Giá/ngày"));
+											header.Cell().Element(c => HeaderCell(c, "Tiền cọc"));
 										});
 
 										int index = 1;
@@ -518,6 +534,8 @@ namespace CamRent_Application.Services
 											table.Cell().Element(c => BodyCell(c, index++.ToString()));
 											table.Cell().Element(c => BodyCell(c, item.ItemName));
 											table.Cell().Element(c => BodyCell(c, item.ItemType.ToString()));
+											table.Cell().Element(c => BodyCell(c, $"{item.UnitPrice:N0} đ"));
+											table.Cell().Element(c => BodyCell(c, $"{item.DepositAmount:N0} đ"));
 										}
 									});
 							}
@@ -626,3 +644,5 @@ namespace CamRent_Application.Services
 		}
 	}
 }
+
+
