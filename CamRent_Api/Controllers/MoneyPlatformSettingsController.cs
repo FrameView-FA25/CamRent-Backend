@@ -10,7 +10,6 @@ namespace CamRent_Api.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
-	[Authorize(Policy = "AdminOnly")]
 	public sealed class MoneyPlatformSettingsController : ControllerBase
 	{
 		private readonly IMoneyPlatformSettingsService _svc;
@@ -21,6 +20,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet]
+		[Authorize(Policy = "AdminOnly")]
 		[SwaggerOperation(Summary = "Danh sách cấu hình tiền nền tảng", Description = "Admin xem toàn bộ lịch sử cấu hình MoneyPlatformSettings.")]
 		public async Task<IActionResult> GetAll(CancellationToken ct)
 		{
@@ -29,6 +29,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("active")]
+		[Authorize(Policy = "Owner")]
 		[SwaggerOperation(Summary = "Cấu hình đang active", Description = "Admin lấy bản ghi IsActive=true (mới nhất).")]
 		public async Task<IActionResult> GetActive(CancellationToken ct)
 		{
@@ -38,6 +39,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpGet("{id:guid}")]
+		[Authorize(Policy = "AdminOnly")]
 		[SwaggerOperation(Summary = "Chi tiết cấu hình", Description = "Admin lấy cấu hình theo id.")]
 		public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
 		{
@@ -48,6 +50,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPost]
 		[SwaggerOperation(Summary = "Tạo cấu hình mới", Description = "Tạo bản ghi cấu hình mới; nếu IsActive=true sẽ tự deactivate các bản ghi active khác.")]
+		[Authorize(Policy = "AdminOnly")]
 		public async Task<IActionResult> Create([FromBody] MoneyPlatformSettingRequest req, CancellationToken ct)
 		{
 			try
@@ -69,6 +72,7 @@ namespace CamRent_Api.Controllers
 
 		[HttpPut("{id:guid}")]
 		[SwaggerOperation(Summary = "Cập nhật cấu hình", Description = "Cập nhật bản ghi; nếu chuyển IsActive=true sẽ tự deactivate các bản ghi active khác.")]
+		[Authorize(Policy = "AdminOnly")]
 		public async Task<IActionResult> Update(Guid id, [FromBody] MoneyPlatformSettingRequest req, CancellationToken ct)
 		{
 			try
@@ -90,6 +94,7 @@ namespace CamRent_Api.Controllers
 		}
 
 		[HttpDelete("{id:guid}")]
+		[Authorize(Policy = "AdminOnly")]
 		[SwaggerOperation(Summary = "Xóa cấu hình", Description = "Xóa bản ghi cấu hình theo id.")]
 		public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
 		{
