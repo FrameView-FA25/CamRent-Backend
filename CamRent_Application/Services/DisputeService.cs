@@ -44,7 +44,7 @@ namespace CamRent_Application.Services
 				{
 					var days = downtimeDays.GetValueOrDefault();
 					if (days <= 0)
-						throw new InvalidOperationException("DowntimeDays phải lớn hơn 0.");
+						throw new InvalidOperationException("Số ngày gián đoạn phải lớn hơn 0.");
 
 					amount = baseDailyRate * setting.DowntimeFactor * days;
 				}
